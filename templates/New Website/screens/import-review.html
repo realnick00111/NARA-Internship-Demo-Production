@@ -1,0 +1,31 @@
+<div class="page-header">
+	<div>
+		<div class="eyebrow">Import review</div>
+		<h1>Import Review</h1>
+		<p>Check incoming regulation or reference updates before they are merged into the library.</p>
+	</div>
+	<div class="action-row"><button class="button secondary">Reject import</button><button class="button primary">Approve import</button></div>
+</div>
+
+<div class="grid two">
+	<section class="panel">
+		<div class="panel-head"><div><h2>Import summary</h2><p>The file passed format validation and is ready for reviewer approval.</p></div></div>
+		<div class="summary-grid">
+			<div class="metric teal"><div class="metric-label">Rows found</div><div class="metric-value">124</div></div>
+			<div class="metric green"><div class="metric-label">Valid</div><div class="metric-value">120</div></div>
+			<div class="metric amber"><div class="metric-label">Warnings</div><div class="metric-value">3</div></div>
+			<div class="metric red"><div class="metric-label">Errors</div><div class="metric-value">1</div></div>
+		</div>
+	</section>
+	<section class="panel table-wrap">
+		<div class="panel-head"><div><h2>Review table</h2><p>Rows needing attention are highlighted below.</p></div></div>
+		<table>
+			<thead><tr><th>Row</th><th>Field</th><th>Status</th><th>Note</th></tr></thead>
+			<tbody>
+				<tr><td>14</td><td>Effective date</td><td><span class="chip warning">Warning</span></td><td>Missing leading zero.</td></tr>
+				<tr><td>52</td><td>Reference code</td><td><span class="chip success">Valid</span></td><td>Matches source data.</td></tr>
+				<tr><td>88</td><td>Indicator text</td><td><span class="chip danger">Error</span></td><td>Required field is blank.</td></tr>
+			</tbody>
+		</table>
+	</section>
+</div>

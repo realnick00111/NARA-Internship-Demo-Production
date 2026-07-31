@@ -1,0 +1,47 @@
+<div class="page-header">
+	<div>
+		<div class="eyebrow">Agency overview</div>
+		<h1>Agency Dashboard</h1>
+		<p>High-level status for active work, model health, and action items that need attention before the next review cycle.</p>
+	</div>
+	<div class="action-row"><button class="button primary">New assessment</button><button class="button secondary">Open queue</button></div>
+</div>
+
+<div class="grid four" style="margin-bottom:14px">
+	<div class="metric purple"><div class="metric-label">Draft assessments</div><div class="metric-value">18</div><div class="metric-foot">4 modified today</div></div>
+	<div class="metric green"><div class="metric-label">Finalized this month</div><div class="metric-value">42</div><div class="metric-foot">Up 8 from June</div></div>
+	<div class="metric amber"><div class="metric-label">Needs attention</div><div class="metric-value">7</div><div class="metric-foot">3 blocking errors</div></div>
+	<div class="metric teal"><div class="metric-label">Active model</div><div class="metric-value">CCEEHM v1.2</div><div class="metric-foot">Effective Jul 1, 2026</div></div>
+</div>
+
+<div class="grid two">
+	<section class="panel">
+		<div class="panel-head"><div><h2>Recent work</h2><p>Assessments you created or modified.</p></div><button class="button ghost">View all</button></div>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>Facility / reference</th><th>Status</th><th>Last updated</th><th>Result</th><th></th></tr></thead>
+				<tbody>
+					<tr><td><strong>Sunrise Learning Center</strong><span>CMP-2026-004182 · Jul 14, 2026</span></td><td><span class="chip warning">Draft</span></td><td>Today, 8:22 AM</td><td>Not calculated</td><td><button class="button secondary">Continue</button></td></tr>
+					<tr><td><strong>Riverbend Early Learning</strong><span>CMP-2026-003944 · Jul 11, 2026</span></td><td><span class="chip success">Final</span></td><td>Jul 12, 4:05 PM</td><td>High-Mid Quality</td><td><button class="button secondary">View</button></td></tr>
+					<tr><td><strong>Little Pines Family Home</strong><span>CMP-2026-003802 · Jul 9, 2026</span></td><td><span class="chip info">Review</span></td><td>Jul 10, 1:17 PM</td><td>Structural warning</td><td><button class="button secondary">Review</button></td></tr>
+				</tbody>
+			</table>
+		</div>
+	</section>
+	<section class="panel">
+		<div class="panel-head"><div><h2>Configuration health</h2><p>Items requiring agency action.</p></div></div>
+		<div class="stack">
+			<div class="summary-box"><strong>2 blocking model issues</strong><div class="helper">RWCH references are missing for two facility bands.</div></div>
+			<div class="summary-box"><strong>5 regulations expiring soon</strong><div class="helper">Effective dates end within 30 days.</div></div>
+			<div class="summary-box"><strong>1 import awaiting approval</strong><div class="helper">Provider standards update uploaded Jul 16.</div></div>
+		</div>
+	</section>
+	<section class="panel">
+		<div class="panel-head"><div><h2>Quick actions</h2><p>Available for your role.</p></div></div>
+		<div class="grid three">
+			<div class="summary-box"><strong>＋ New assessment</strong><div class="helper">Start a new draft.</div></div>
+			<div class="summary-box"><strong>↗ Reopen draft</strong><div class="helper">Continue a recent record.</div></div>
+			<div class="summary-box"><strong>✓ Validation queue</strong><div class="helper">Resolve incomplete records.</div></div>
+		</div>
+	</section>
+</div>

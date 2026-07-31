@@ -1,0 +1,27 @@
+<div class="page-header">
+	<div>
+		<div class="eyebrow">Score review</div>
+		<h1>Calculation Review</h1>
+		<p>Confirm the derived values, formula inputs, and rounding behavior before the final score is published.</p>
+	</div>
+	<div class="action-row"><button class="button secondary">Rebuild score</button><button class="button primary">Lock calculation</button></div>
+</div>
+
+<div class="calc-review-grid split">
+	<section class="panel">
+		<div class="panel-head"><div><h2>Formula</h2><p>The current implementation uses a weighted average with rounding rules applied at the end.</p></div></div>
+		<div class="paper-note" style="font-family:Georgia,serif;font-size:22px;padding:16px;background:#f7f3f9;border-radius:12px;text-align:center">Final score = (weighted inputs ÷ observed items)</div>
+		<div class="grid two" style="margin-top:14px">
+			<div class="summary-box"><strong>Weighted inputs</strong><div class="helper">74 points from observed evidence.</div></div>
+			<div class="summary-box"><strong>Observed items</strong><div class="helper">12 usable observations.</div></div>
+		</div>
+	</section>
+	<aside class="panel">
+		<div class="panel-head"><div><h3>Derived values</h3><p>Numbers that roll into the published score.</p></div></div>
+		<div class="stack">
+			<div class="metric purple"><div class="metric-label">Raw average</div><div class="metric-value">6.17</div></div>
+			<div class="metric teal"><div class="metric-label">Rounded score</div><div class="metric-value">6.2</div></div>
+			<div class="metric amber"><div class="metric-label">Rounding note</div><div class="metric-foot">Rounded to one decimal place.</div></div>
+		</div>
+	</aside>
+</div>

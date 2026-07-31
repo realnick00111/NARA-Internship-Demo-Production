@@ -1,0 +1,44 @@
+<div class="app-shell">
+	<header class="app-topbar">
+		<div class="branding">
+			<div class="brand-mark">HM</div>
+			<div class="brand-copy">
+				<strong>CCEE Heart Monitor</strong>
+				<span>Responsive prototype shell</span>
+			</div>
+		</div>
+		<div class="top-cluster">
+			<div class="tenant">
+				<strong>Evergreen Child Care Licensing</strong>
+				<span>Agency workspace</span>
+			</div>
+			<div class="user">
+				<div class="user-badge">JD</div>
+				<div class="user-copy">
+					<strong>Jordan Davis</strong>
+					<span>Senior Regulator</span>
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<aside class="app-sidebar" aria-label="Primary navigation">
+		<div class="sidebar-label">Navigation</div>
+		<a class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}" href="#agency-dashboard" {% if active_nav == 'dashboard' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Dashboard{% if active_nav == 'dashboard' %}<small>Current</small>{% endif %}</a>
+		<a class="nav-link {% if active_nav == 'assessments' %}active{% endif %}" href="#assessment-list" {% if active_nav == 'assessments' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Assessments{% if active_nav == 'assessments' %}<small>Current</small>{% endif %}</a>
+		<a class="nav-link {% if active_nav == 'drafts' %}active{% endif %}" href="#draft-management" {% if active_nav == 'drafts' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Drafts{% if active_nav == 'drafts' %}<small>Current</small>{% endif %}</a>
+		<a class="nav-link {% if active_nav == 'regulation-library' %}active{% endif %}" href="#regulation-library" {% if active_nav == 'regulation-library' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Regulation Library{% if active_nav == 'regulation-library' %}<small>Current</small>{% endif %}</a>
+		<a class="nav-link {% if active_nav == 'scoring-models' %}active{% endif %}" href="#model-administration" {% if active_nav == 'scoring-models' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Scoring Models{% if active_nav == 'scoring-models' %}<small>Current</small>{% endif %}</a>
+		<a class="nav-link {% if active_nav == 'reports' %}active{% endif %}" href="#result-summary" {% if active_nav == 'reports' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Reports{% if active_nav == 'reports' %}<small>Current</small>{% endif %}</a>
+		<a class="nav-link {% if active_nav == 'administration' %}active{% endif %}" href="#import-review" {% if active_nav == 'administration' %}aria-current="page"{% endif %}><span class="nav-mark"></span>Administration{% if active_nav == 'administration' %}<small>Current</small>{% endif %}</a>
+		<div class="sidebar-footer">
+			<strong>Prototype note</strong>
+			<span>The shell now fills the viewport instead of scaling like a poster.</span>
+		</div>
+	</aside>
+
+	<main class="app-main">
+		{{ page_head }}
+		{{ page_content }}
+	</main>
+</div>
