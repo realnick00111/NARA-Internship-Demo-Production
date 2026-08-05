@@ -636,6 +636,164 @@
 			background: #cfd6df
 		}
 
+		.record-banner {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 14px;
+			padding: 14px 16px;
+			margin-bottom: 14px;
+			border: 1px solid var(--line);
+			border-radius: 16px;
+			background: linear-gradient(135deg, #fff, #f6f8fb)
+		}
+
+		.record-banner > div {
+			display: flex;
+			flex-direction: column;
+			gap: 3px
+		}
+
+		.record-banner span,
+		.record-banner small {
+			color: var(--muted)
+		}
+
+		.record-banner strong {
+			font-size: 16px
+		}
+
+		.save-indicator {
+			font-size: 11px;
+			color: var(--muted)
+		}
+
+		.form-card {
+			min-width: 0
+		}
+
+		.form-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr))
+		}
+
+		.labelrow {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			gap: 10px
+		}
+
+		.req {
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: .08em;
+			color: var(--amber);
+			font-weight: 800
+		}
+
+		.hint {
+			font-size: 11px;
+			line-height: 1.45;
+			color: var(--muted)
+		}
+
+		.section-rule {
+			height: 1px;
+			background: var(--line);
+			margin: 18px 0
+		}
+
+		.config-preview {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 12px;
+			align-items: start
+		}
+
+		.config-preview > div,
+		.summary-box {
+			background: #f5f7fb;
+			border-radius: 12px;
+			padding: 12px
+		}
+
+		.config-preview span {
+			display: block;
+			font-size: 11px;
+			color: var(--muted)
+		}
+
+		.config-preview strong {
+			display: block;
+			margin-top: 4px
+		}
+
+		.config-preview small {
+			display: block;
+			margin-top: 4px;
+			font-size: 10px;
+			color: var(--muted)
+		}
+
+		.side-stack {
+			min-width: 0
+		}
+
+		.alert.vertical {
+			align-items: flex-start
+		}
+
+		.alert-icon {
+			width: 28px;
+			height: 28px;
+			border-radius: 50%;
+			display: grid;
+			place-items: center;
+			font-weight: 800;
+			flex: none;
+			background: rgba(0, 0, 0, .06)
+		}
+
+		.checklist {
+			margin: 0;
+			padding-left: 18px;
+			display: grid;
+			gap: 10px;
+			color: var(--ink)
+		}
+
+		.checklist li {
+			line-height: 1.45
+		}
+
+		.sticky-actions {
+			position: sticky;
+			bottom: 0;
+			z-index: 10;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 12px;
+			margin-top: 18px;
+			padding: 14px 16px;
+			border: 1px solid var(--line);
+			border-radius: 16px;
+			background: rgba(255, 255, 255, .94);
+			backdrop-filter: blur(10px);
+			box-shadow: 0 10px 24px rgba(19, 31, 50, .06)
+		}
+
+		.sticky-actions > div {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			flex-wrap: wrap
+		}
+
+		.side-stack .panel + .panel {
+			margin-top: 0
+		}
+
 		.hero {
 			padding: 22px;
 			background: linear-gradient(135deg, #542669 0, #0a6782 100%);
@@ -978,6 +1136,8 @@
 			.hero-points,
 			.preview-layout,
 			.split,
+			.form-grid,
+			.config-preview,
 			.login-page,
 			.grid.three,
 			.grid.two,
@@ -992,6 +1152,21 @@
 
 			.hero-score {
 				text-align: left
+			}
+
+			.record-banner,
+			.sticky-actions {
+				flex-direction: column;
+				align-items: stretch
+			}
+
+			.sticky-actions > div {
+				justify-content: stretch
+			}
+
+			.sticky-actions .button,
+			.sticky-actions > div > .button {
+				width: 100%
 			}
 
 			.hide-on-large {

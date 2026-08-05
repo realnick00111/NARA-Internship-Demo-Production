@@ -1,22 +1,32 @@
+import json
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, redirect, render_template, request, url_for
 from markupsafe import Markup
 
 app = Flask(__name__)
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = ROOT / "templates"
-NEW_WEBSITE_DIR = TEMPLATES_DIR / "New Website"
-PARTIALS_DIR = NEW_WEBSITE_DIR / "partials"
-SCREENS_DIR = NEW_WEBSITE_DIR / "screens"
+DATA_STORAGE_DIR = ROOT / "data"
+PARTIALS_DIR = TEMPLATES_DIR / "partials"
+SCREENS_DIR = TEMPLATES_DIR / "screens"
+DB_PATH = DATA_STORAGE_DIR / "database.db"
+LOGS_PATH = DATA_STORAGE_DIR / "logs.txt"
+
+DATABASE_TABLES = {
+    "facilities": "facilities",
+    "assessments": "assessments",
+}
 
 SCREEN_ORDER = [
     "login-tenant",
     "agency-dashboard",
     "assessment-list",
     "new-assessment",
+    "new-assignment",
     "facility-identification",
     "assessment-progress",
     "ch-structural-entry",
@@ -40,6 +50,7 @@ NAV_BY_SCREEN = {
     "agency-dashboard": "dashboard",
     "assessment-list": "assessments",
     "new-assessment": "assessments",
+    "new-assignment": "assessments",
     "facility-identification": "assessments",
     "assessment-progress": "assessments",
     "ch-structural-entry": "assessments",
@@ -58,8 +69,11 @@ NAV_BY_SCREEN = {
     "audit-history": "assessments",
 }
 
-#These are the screens that don't have the shell and are standalone, so we don't wrap them in the shell template
-STANDALONE_SCREENS = {"login-tenant", "export-preview"} 
+STANDALONE_SCREENS = {"login-tenant", "export-preview"}
+
+NEW_ASSIGNMENT_FIELDS_PATH = DATA_STORAGE_DIR / "new-assessment-fields.json"
+
+# region rendering
 
 def read_fragment(fragment_path: Path) -> str:
     return fragment_path.read_text(encoding="utf-8")
@@ -72,7 +86,7 @@ def render_screen_section(screen_id: str) -> str:
         inner_html = content
     else:
         inner_html = render_template(
-            "New Website/partials/_shell.html",
+            "partials/_shell_routes.html",
             active_nav=NAV_BY_SCREEN.get(screen_id, "assessments"),
             page_head=Markup(""),
             page_content=Markup(content),
@@ -80,34 +94,95 @@ def render_screen_section(screen_id: str) -> str:
 
     return f'<section class="screen" id="{screen_id}">{inner_html}</section>'
 
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# Single route to load the viewer and all 21 split screens
-@app.route('/')
-def index():
+def render_page(screen_id: str) -> str:
+    if screen_id not in SCREEN_ORDER:
+        abort(404)        
     head = read_fragment(PARTIALS_DIR / "_head.html")
     viewer = read_fragment(PARTIALS_DIR / "_viewer.html")
     tail = read_fragment(PARTIALS_DIR / "_tail.html")
-    screen_sections = "\n".join(render_screen_section(screen_id) for screen_id in SCREEN_ORDER)
-    return head + viewer + screen_sections + tail
+    screen_section = render_screen_section(screen_id)
+    return head + viewer + screen_section + tail
 
-# API route to save data submitted from any of your screens
-@app.route('/api/save-log', methods=['POST'])
+# endregion rendering
+
+# region storage and logging
+
+def log_storage_event(message: str) -> None:
+    DATA_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    with LOGS_PATH.open("a", encoding="utf-8") as log_file:
+        log_file.write(f"[{timestamp}] {message}\n")
+
+def clear_logs() -> None:
+    if LOGS_PATH.exists():
+        LOGS_PATH.unlink()
+        log_storage_event("Cleared all logs.")
+
+def ensure_storage_schema(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS facilities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS assessments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            data TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.commit()
+
+def get_db_connection():
+    DATA_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    if not DB_PATH.exists():
+        log_storage_event(f"Created missing database at {DB_PATH.name}")
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    ensure_storage_schema(conn)
+    return conn
+
+def add_database_entry(table_name: str, payload: str) -> None:
+    if table_name not in DATABASE_TABLES:
+        raise ValueError(f"Unknown table '{table_name}'. Expected one of: {', '.join(DATABASE_TABLES)}")
+
+    conn = get_db_connection()
+    try:
+        conn.execute(f"INSERT INTO {table_name} (data) VALUES (?)", (payload,))
+        conn.commit()
+        log_storage_event(f"Added entry to {table_name} table: {payload}")
+    finally:
+        conn.close()
+
+# endregion storage and logging
+
+@app.route("/")
+def index():
+    return redirect(url_for("screen", screen_id="assessment-list"))
+
+
+@app.route("/screens/<screen_id>")
+def screen(screen_id: str):
+    return render_page(screen_id)
+
+
+@app.route("/api/save-log", methods=["POST"])
 def save_log():
-    data = request.json  # Receives JSON sent from your front-end JS
-    user_input = data.get('log_data')
+    data = request.json
+    user_input = data.get("log_data")
 
     if user_input:
-        conn = get_db_connection()
-        conn.execute('INSERT INTO logs (user_data) VALUES (?)', (user_input,))
-        conn.commit()
-        conn.close()
+        add_database_entry("assessments", str(user_input))
         return jsonify({"status": "success", "message": "Log saved successfully!"})
 
     return jsonify({"status": "error", "message": "No data provided"}), 400
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
