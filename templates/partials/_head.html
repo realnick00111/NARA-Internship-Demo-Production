@@ -593,6 +593,10 @@
 			flex-wrap: wrap
 		}
 
+		.stepper.compact {
+			margin-top: -5px
+		}
+
 		.step {
 			display: flex;
 			align-items: center;
@@ -636,6 +640,13 @@
 			background: #cfd6df
 		}
 
+		.stepper i {
+			width: 68px;
+			height: 2px;
+			background: #cfd6df;
+			margin: 0 12px
+		}
+
 		.record-banner {
 			display: flex;
 			align-items: center;
@@ -674,6 +685,10 @@
 
 		.form-grid {
 			grid-template-columns: repeat(2, minmax(0, 1fr))
+		}
+
+		.form-grid.one {
+			grid-template-columns: repeat(1, minmax(0, 1fr))
 		}
 
 		.labelrow {
@@ -788,6 +803,89 @@
 			align-items: center;
 			gap: 8px;
 			flex-wrap: wrap
+		}
+
+		.alert {
+			border: 1px solid;
+			padding: 12px 14px;
+			border-radius: 10px;
+			display: flex;
+			gap: 11px;
+			align-items: center;
+			margin-bottom: 14px
+		}
+
+		.alert > div:nth-child(2) {
+			display: flex;
+			flex-direction: column;
+			gap: 3px;
+			flex: 1
+		}
+
+		.alert span {
+			font-size: 12px
+		}
+
+		.alert button {
+			border: 0;
+			background: transparent;
+			text-decoration: underline;
+			font-weight: 700
+		}
+
+		.alert.info {
+			background: #edf7fb;
+			border-color: #b8dae8;
+			color: #124c61
+		}
+
+		.alert.warning {
+			background: #fff7e7;
+			border-color: #e8c77d;
+			color: #694000
+		}
+
+		.alert.danger {
+			background: #fff0ef;
+			border-color: #efb9b4;
+			color: #7f1a13
+		}
+
+		.alert.vertical {
+			align-items: flex-start;
+			flex-direction: column
+		}
+
+		.alert-icon {
+			width: 27px;
+			height: 27px;
+			border-radius: 50%;
+			display: grid;
+			place-items: center;
+			font-weight: 800;
+			flex: none;
+			background: rgba(0, 0, 0, .06)
+		}
+
+		.two-card-grid {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 14px
+		}
+
+		.config-note {
+			margin-top: 14px;
+			border-left: 4px solid var(--teal);
+			padding: 10px 12px;
+			background: #eef8fa;
+			display: flex;
+			flex-direction: column;
+			gap: 3px
+		}
+
+		.config-note span {
+			font-size: 11px;
+			color: var(--muted)
 		}
 
 		.side-stack .panel + .panel {

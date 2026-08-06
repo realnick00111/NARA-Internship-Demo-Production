@@ -4,61 +4,100 @@
 		<h1>New Assessment</h1>
 		<p>Start the record, confirm the scope, and capture the identifiers before evidence entry begins.</p>
 	</div>
-	<div class="action-row"><button class="button secondary">Save draft</button><button class="button primary">Continue</button></div>
 </div>
 
 <div class="stepper" aria-label="Assessment timeline">
 	<div class="step active"><span>1</span><b>Setup</b></div><div class="step-line"></div><div class="step"><span>2</span><b>Identification</b></div><div class="step-line"></div><div class="step"><span>3</span><b>Findings</b></div><div class="step-line"></div><div class="step"><span>4</span><b>Review</b></div><div class="step-line"></div><div class="step"><span>5</span><b>Result</b></div>
 </div>
 
-<div class="record-banner">
-	<div><span>Draft assessment</span><strong>Sunrise Learning Center</strong><small>CMP-2026-004182 · Annual monitoring · Jul 17, 2026</small></div>
-	<div><span class="chip warning">Draft</span><span class="save-indicator">Saved just now</span></div>
-</div>
+<form id="assignment-draft-form" onsubmit="return false">
+	<div class="split">
+		<section class="panel form-card">
+			<div class="panel-head"><div><h2>Assessment setup</h2><p>Selections determine the applicable regulation set, scoring model, and required fields.</p></div></div>
+			<div class="grid two form-grid">
+				<label class="field"><div class="labelrow"><label for="program">Program</label><span class="req">Required</span></div><input class="input" id="program" name="program" type="text" value="Child Care Center"></label>
+				<label class="field"><div class="labelrow"><label for="facility-type">Facility type</label><span class="req">Required</span></div><input class="input" id="facility-type" name="facility_type" type="text" value="Mixed Age Center"></label>
+				<label class="field"><div class="labelrow"><label for="inspection-type">Inspection type</label><span class="req">Required</span></div><input class="input" id="inspection-type" name="inspection_type" type="text" value="Annual Monitoring Visit"></label>
+				<label class="field"><div class="labelrow"><label for="assessment-date">Assessment date</label><span class="req">Required</span></div><input class="select" type="date" id="assessment-date" name="assessment_date" value="2026-07-17"></label>
+				<label class="field"><div class="labelrow"><label for="visit-date">Visit date</label><span class="req">Required</span></div><input class="select" type="date" id="visit-date" name="visit_date" value="2026-07-14"></label>
+				<label class="field"><div class="labelrow"><label for="external-case-number">External case number</label></div><input class="input" id="external-case-number" name="external_case_number" type="text" value="CMP-2026-004182"><div class="hint">Used to match this record to the case-management system.</div></label>
+				<label class="field"><div class="labelrow"><label for="external-inspection-id">External inspection ID</label></div><input class="input" id="external-inspection-id" name="external_inspection_id" type="text" value="INS-2026-0714-22"></label>
+				<label class="field"><div class="labelrow"><label for="local-record-name">Local record name</label></div><input class="input" id="local-record-name" name="local_record_name" type="text" value="Sunrise Learning Center - Annual 2026"></label>
+			</div>
+			<div class="section-rule"></div>
+			<h3>Applicable configuration</h3>
+			<div class="config-preview">
+				<div><span>Regulation set</span><strong>Evergreen Center Standards 2026</strong><small>Version 2026.1 · Effective Jan 1, 2026</small></div>
+				<div><span>Scoring model</span><strong>CCEEHM v1.2</strong><small>Published Jul 1, 2026</small></div>
+				<button class="button secondary" type="button">Review applicability</button>
+			</div>
+		</section>
+		<aside class="stack side-stack">
+			<div class="alert warning vertical">
+				<div class="alert-icon">!</div>
+				<div><strong>Evidence limitation</strong><span>The scoring summary does not include the original validation study or complete RWCH conversion table. Results remain provisional until the agency approves the supporting evidence.</span></div>
+			</div>
+			<div class="panel">
+				<div class="panel-head"><div><h3>Record will include</h3><p>Everything needed for the downstream workflow.</p></div></div>
+				<ul class="checklist">
+					<li>Structural Contact Hour inputs</li>
+					<li>Ten Program Quality Indicators</li>
+					<li>Calculation inputs and version history</li>
+					<li>Export-ready external identifiers</li>
+				</ul>
+			</div>
+			<div class="panel">
+				<div class="panel-head"><div><h3>Draft behavior</h3><p>You can save at any time.</p></div></div>
+				<p class="muted">Required-for-calculation fields are enforced only when you calculate or finalize.</p>
+			</div>
+		</aside>
+	</div>
 
-<div class="split">
-	<section class="panel form-card">
-		<div class="panel-head"><div><h2>Assessment setup</h2><p>Selections determine the applicable regulation set, scoring model, and required fields.</p></div></div>
-		<div class="grid two form-grid">
-			<label class="field"><div class="labelrow"><label>Program</label><span class="req">Required</span></div><div class="input">Child Care Center</div></label>
-			<label class="field"><div class="labelrow"><label>Facility type</label><span class="req">Required</span></div><div class="input">Mixed Age Center</div></label>
-			<label class="field"><div class="labelrow"><label>Inspection type</label><span class="req">Required</span></div><div class="input">Annual Monitoring Visit</div></label>
-			<label class="field"><div class="labelrow"><label>Assessment date</label><span class="req">Required</span></div><div class="input">July 17, 2026</div></label>
-			<label class="field"><div class="labelrow"><label>Visit date</label><span class="req">Required</span></div><div class="input">July 14, 2026</div></label>
-			<label class="field"><div class="labelrow"><label>External case number</label></div><div class="input">CMP-2026-004182</div><div class="hint">Used to match this record to the case-management system.</div></label>
-			<label class="field"><div class="labelrow"><label>External inspection ID</label></div><div class="input">INS-2026-0714-22</div></label>
-			<label class="field"><div class="labelrow"><label>Local record name</label></div><div class="input">Sunrise Learning Center - Annual 2026</div></label>
-		</div>
-		<div class="section-rule"></div>
-		<h3>Applicable configuration</h3>
-		<div class="config-preview">
-			<div><span>Regulation set</span><strong>Evergreen Center Standards 2026</strong><small>Version 2026.1 · Effective Jan 1, 2026</small></div>
-			<div><span>Scoring model</span><strong>CCEEHM v1.2</strong><small>Published Jul 1, 2026</small></div>
-			<button class="button secondary">Review applicability</button>
-		</div>
-	</section>
-	<aside class="stack side-stack">
-		<div class="alert warning vertical">
-			<div class="alert-icon">!</div>
-			<div><strong>Evidence limitation</strong><span>The scoring summary does not include the original validation study or complete RWCH conversion table. Results remain provisional until the agency approves the supporting evidence.</span></div>
-		</div>
-		<div class="panel">
-			<div class="panel-head"><div><h3>Record will include</h3><p>Everything needed for the downstream workflow.</p></div></div>
-			<ul class="checklist">
-				<li>Structural Contact Hour inputs</li>
-				<li>Ten Program Quality Indicators</li>
-				<li>Calculation inputs and version history</li>
-				<li>Export-ready external identifiers</li>
-			</ul>
-		</div>
-		<div class="panel">
-			<div class="panel-head"><div><h3>Draft behavior</h3><p>You can save at any time.</p></div></div>
-			<p class="muted">Required-for-calculation fields are enforced only when you calculate or finalize.</p>
-		</div>
-	</aside>
-</div>
+	<div class="sticky-actions">
+		<a class="button ghost" href="/screens/assessment-list">Cancel</a>
+		<div><span class="save-indicator" id="assignment-save-status">Saved just now</span><button class="button secondary" id="save-assignment-draft" type="button">Save draft</button><a class="button primary" href="/screens/facility-identification">Continue to identification</a></div>
+	</div>
+</form>
 
-<div class="sticky-actions">
-	<button class="button ghost">Cancel</button>
-	<div><span class="save-indicator">Saved just now</span><button class="button secondary">Save draft</button><button class="button primary">Continue to identification</button></div>
-</div>
+<script>
+(() => {
+	const saveButton = document.getElementById('save-assignment-draft');
+	const form = document.getElementById('assignment-draft-form');
+	const status = document.getElementById('assignment-save-status');
+	const indicator = document.getElementById('assignment-save-indicator');
+
+	if (!saveButton || !form || !status) {
+		return;
+	}
+
+	const setStatus = (message) => {
+		status.textContent = message;
+		if (indicator) {
+			indicator.textContent = message;
+		}
+	};
+
+	saveButton.addEventListener('click', async () => {
+		const payload = Object.fromEntries(new FormData(form).entries());
+		setStatus('Saving draft...');
+
+		try {
+			const response = await fetch('/api/save-assignment-draft', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+
+			if (!response.ok) {
+				throw new Error('Draft save failed');
+			}
+
+			setStatus('Draft saved');
+		} catch (error) {
+			setStatus('Draft save unavailable');
+		}
+	});
+})();
+</script>

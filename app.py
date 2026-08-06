@@ -161,6 +161,10 @@ def add_database_entry(table_name: str, payload: str) -> None:
     finally:
         conn.close()
 
+
+def save_assignment_draft(draft_data: dict) -> None:
+    log_storage_event(f"Received assignment draft payload: {json.dumps(draft_data, sort_keys=True)}")
+
 # endregion storage and logging
 
 @app.route("/")
@@ -183,6 +187,17 @@ def save_log():
         return jsonify({"status": "success", "message": "Log saved successfully!"})
 
     return jsonify({"status": "error", "message": "No data provided"}), 400
+
+
+@app.route("/api/save-assignment-draft", methods=["POST"])
+def save_assignment_draft_api():
+    draft_data = request.get_json(silent=True) or {}
+
+    if draft_data:
+        save_assignment_draft(draft_data)
+        return jsonify({"status": "success", "message": "Draft received successfully!"})
+
+    return jsonify({"status": "error", "message": "No draft data provided"}), 400
 
 if __name__ == "__main__":
     app.run(debug=True)
