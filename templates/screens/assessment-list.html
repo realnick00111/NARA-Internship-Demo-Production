@@ -4,24 +4,167 @@
 		<h1>Assessment List</h1>
 		<p>Search, filter, and resume the assessments that are currently active in the workspace.</p>
 	</div>
-	<div class="action-row"><a class="button primary" href="/screens/new-assessment">Create assessment</a><button class="button secondary">Export list</button></div>
+	<div class="action-row"><a class="button primary" href="{{ url_for('start_new_assessment') }}">Create assessment</a><button class="button secondary">Export list</button></div>
 </div>
 
 <div class="toolbar">
-	<div class="searchbox">⌕ Search by facility, reference, or reviewer</div>
-	<button class="button secondary">Status</button>
-	<button class="button secondary">Agency</button>
-	<button class="button secondary">Date</button>
+	<form class="assessment-search" method="get" action="{{ url_for('screen', screen_id='assessment-list') }}">
+		<label class="searchbox" for="assessment-search-input">
+			<span>⌕</span>
+			<input id="assessment-search-input" name="q" type="search" placeholder="Search facility, case, provider, or inspection ID" value="{{ search_query }}">
+		</label>
+		<button class="button secondary" type="submit">Search</button>
+		{% if search_query %}
+		<a class="button ghost" href="{{ url_for('screen', screen_id='assessment-list') }}">Clear</a>
+		{% endif %}
+	</form>
 </div>
 
 <div class="panel table-wrap">
-	<table>
-		<thead><tr><th><input type="checkbox"></th><th>Facility</th><th>Status</th><th>Updated</th><th>Result</th><th></th></tr></thead>
+	<div class="table-actions">
+		<div class="table-actions-selection">
+			<button class="button bulk-delete-button" type="button">Delete selected</button>
+		</div>
+		<div class="table-actions-stats">
+			<strong class="table-count">{{ total_items }} assessments</strong>
+			<small>Showing {{ visible_start }}-{{ visible_end }}</small>
+		</div>
+	</div>
+	<table class="assessment-list-table">
+		<thead><tr><th><input class="assessment-select-all" type="checkbox" aria-label="Select all visible assessments"></th><th>Assessment</th><th>Facility / type</th><th>Status</th><th>Model</th><th>Visit date</th><th>Current result</th><th>Owner</th><th></th></tr></thead>
 		<tbody>
-			<tr><td><input type="checkbox"></td><td><strong>Sunrise Learning Center</strong><span>CMP-2026-004182</span></td><td><span class="chip warning">Draft</span></td><td>Today</td><td>Not calculated</td><td><button class="button secondary">Open</button></td></tr>
-			<tr><td><input type="checkbox"></td><td><strong>Riverbend Early Learning</strong><span>CMP-2026-003944</span></td><td><span class="chip success">Final</span></td><td>Jul 12</td><td>High-Mid Quality</td><td><button class="button secondary">View</button></td></tr>
-			<tr><td><input type="checkbox"></td><td><strong>Little Pines Family Home</strong><span>CMP-2026-003802</span></td><td><span class="chip info">Review</span></td><td>Jul 10</td><td>Structural warning</td><td><button class="button secondary">Review</button></td></tr>
-			<tr><td><input type="checkbox"></td><td><strong>Meadow Park Childcare</strong><span>CMP-2026-003774</span></td><td><span class="chip neutral">Archived</span></td><td>Jun 28</td><td>Finalized</td><td><button class="button secondary">History</button></td></tr>
+			{% for assessment in assessments %}
+			<tr data-assessment-id="{{ assessment.id }}">
+				<td><input class="assessment-row-select" type="checkbox" aria-label="Select assessment {{ assessment.id }}"></td>
+				<td>
+					<strong>ASMT-{{ "%05d"|format(assessment.id) }}</strong>
+					<span>{{ assessment.external_case_number or assessment.external_inspection_id or "not implemented" }}</span>
+				</td>
+				<td>
+					<strong>{{ assessment.assessment_name }}</strong>
+					<span>{{ assessment.facility_type }}</span>
+				</td>
+				<td><span class="chip {{ assessment.status_chip_class }}">{{ assessment.status }}</span></td>
+				<td>{{ assessment.model }}</td>
+				<td>{{ assessment.visit_date_label }}</td>
+				<td>{{ assessment.current_result }}</td>
+				<td>{{ assessment.owner }}</td>
+				<td><a class="button secondary" href="{{ url_for('open_assessment_create_assessment', assessment_id=assessment.id) }}">Open</a></td>
+			</tr>
+			{% else %}
+			<tr>
+				<td colspan="9">No assessments found for your current search.</td>
+			</tr>
+			{% endfor %}
 		</tbody>
 	</table>
+
+	{% if total_pages > 1 %}
+	<div class="pagination">
+		{% if has_prev %}
+		<a href="{{ url_for('screen', screen_id='assessment-list', q=search_query, page=prev_page) }}">‹</a>
+		{% else %}
+		<span class="disabled">‹</span>
+		{% endif %}
+
+		{% for page_number in page_numbers %}
+		{% if page_number == page %}
+		<span class="active">{{ page_number }}</span>
+		{% else %}
+		<a href="{{ url_for('screen', screen_id='assessment-list', q=search_query, page=page_number) }}">{{ page_number }}</a>
+		{% endif %}
+		{% endfor %}
+
+		{% if has_next %}
+		<a href="{{ url_for('screen', screen_id='assessment-list', q=search_query, page=next_page) }}">›</a>
+		{% else %}
+		<span class="disabled">›</span>
+		{% endif %}
+	</div>
+	{% endif %}
+
+	<script>
+	(() => {
+		const table = document.querySelector('.assessment-list-table');
+		if (!table) return;
+
+		const selectAll = table.querySelector('.assessment-select-all');
+		const rowSelects = Array.from(table.querySelectorAll('.assessment-row-select'));
+		const bulkDeleteButton = document.querySelector('.bulk-delete-button');
+		const tableActions = document.querySelector('.table-actions');
+
+		const getSelectedIds = () => rowSelects
+			.filter((checkbox) => checkbox.checked)
+			.map((checkbox) => Number(checkbox.closest('tr')?.dataset.assessmentId))
+			.filter(Number.isFinite);
+
+		const syncSelectionState = () => {
+			const selectedCount = getSelectedIds().length;
+			const allChecked = rowSelects.length > 0 && selectedCount === rowSelects.length;
+			const hasSelection = selectedCount > 0;
+
+			if (selectAll) {
+				selectAll.checked = allChecked;
+				selectAll.indeterminate = hasSelection && !allChecked;
+			}
+
+			if (bulkDeleteButton) {
+				bulkDeleteButton.classList.toggle('is-visible', hasSelection);
+				bulkDeleteButton.disabled = !hasSelection;
+			}
+
+			if (tableActions) {
+				tableActions.classList.toggle('has-selection', hasSelection);
+			}
+		};
+
+		if (selectAll) {
+			selectAll.addEventListener('change', () => {
+				rowSelects.forEach((checkbox) => {
+					checkbox.checked = selectAll.checked;
+				});
+				syncSelectionState();
+			});
+		}
+
+		rowSelects.forEach((checkbox) => {
+			checkbox.addEventListener('change', syncSelectionState);
+		});
+
+		if (bulkDeleteButton) {
+			bulkDeleteButton.addEventListener('click', async () => {
+				const selectedIds = getSelectedIds();
+				if (!selectedIds.length) return;
+
+				const count = selectedIds.length;
+				const confirmed = window.confirm(`Delete ${count} selected assessment${count === 1 ? '' : 's'}? This cannot be undone.`);
+				if (!confirmed) return;
+
+				bulkDeleteButton.disabled = true;
+				try {
+					const response = await fetch('{{ url_for('delete_assessments') }}', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({ assessment_ids: selectedIds }),
+					});
+
+					const payload = await response.json();
+					if (!response.ok || payload.status !== 'success') {
+						throw new Error(payload.message || 'Unable to delete selected assessments.');
+					}
+
+					window.location.reload();
+				} catch (error) {
+					window.alert(error.message || 'Unable to delete selected assessments.');
+				} finally {
+					bulkDeleteButton.disabled = false;
+				}
+			});
+		}
+
+		syncSelectionState();
+	})();
+	</script>
 </div>

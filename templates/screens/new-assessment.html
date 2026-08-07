@@ -1,8 +1,11 @@
 <div class="page-header">
 	<div>
 		<div class="eyebrow">Create assessment</div>
-		<h1>New Assessment</h1>
+		<h1>{{ 'Edit Assessment' if editing_assessment_id else 'New Assessment' }}</h1>
 		<p>Start the record, confirm the scope, and capture the identifiers before evidence entry begins.</p>
+		{% if editing_assessment_id %}
+		<p class="muted">Editing assessment ASMT-{{ "%05d"|format(editing_assessment_id) }}</p>
+		{% endif %}
 	</div>
 </div>
 
@@ -15,14 +18,14 @@
 		<section class="panel form-card">
 			<div class="panel-head"><div><h2>Assessment setup</h2><p>Selections determine the applicable regulation set, scoring model, and required fields.</p></div></div>
 			<div class="grid two form-grid">
-				<label class="field"><div class="labelrow"><label for="program">Program</label><span class="req">Required</span></div><input class="input" id="program" name="program" type="text" value="Child Care Center"></label>
-				<label class="field"><div class="labelrow"><label for="facility-type">Facility type</label><span class="req">Required</span></div><input class="input" id="facility-type" name="facility_type" type="text" value="Mixed Age Center"></label>
-				<label class="field"><div class="labelrow"><label for="inspection-type">Inspection type</label><span class="req">Required</span></div><input class="input" id="inspection-type" name="inspection_type" type="text" value="Annual Monitoring Visit"></label>
-				<label class="field"><div class="labelrow"><label for="assessment-date">Assessment date</label><span class="req">Required</span></div><input class="select" type="date" id="assessment-date" name="assessment_date" value="2026-07-17"></label>
-				<label class="field"><div class="labelrow"><label for="visit-date">Visit date</label><span class="req">Required</span></div><input class="select" type="date" id="visit-date" name="visit_date" value="2026-07-14"></label>
-				<label class="field"><div class="labelrow"><label for="external-case-number">External case number</label></div><input class="input" id="external-case-number" name="external_case_number" type="text" value="CMP-2026-004182"><div class="hint">Used to match this record to the case-management system.</div></label>
-				<label class="field"><div class="labelrow"><label for="external-inspection-id">External inspection ID</label></div><input class="input" id="external-inspection-id" name="external_inspection_id" type="text" value="INS-2026-0714-22"></label>
-				<label class="field"><div class="labelrow"><label for="local-record-name">Local record name</label></div><input class="input" id="local-record-name" name="local_record_name" type="text" value="Sunrise Learning Center - Annual 2026"></label>
+				<label class="field"><div class="labelrow"><label for="program">Program</label><span class="req">Required</span></div><input class="input" id="program" name="program" type="text" value="{{ assessment_form.program }}"></label>
+				<label class="field"><div class="labelrow"><label for="facility-type">Facility type</label><span class="req">Required</span></div><input class="input" id="facility-type" name="facility_type" type="text" value="{{ assessment_form.facility_type }}"></label>
+				<label class="field"><div class="labelrow"><label for="inspection-type">Inspection type</label><span class="req">Required</span></div><input class="input" id="inspection-type" name="inspection_type" type="text" value="{{ assessment_form.inspection_type }}"></label>
+				<label class="field"><div class="labelrow"><label for="assessment-date">Assessment date</label><span class="req">Required</span></div><input class="select" type="date" id="assessment-date" name="assessment_date" value="{{ assessment_form.assessment_date }}"></label>
+				<label class="field"><div class="labelrow"><label for="visit-date">Visit date</label><span class="req">Required</span></div><input class="select" type="date" id="visit-date" name="visit_date" value="{{ assessment_form.visit_date }}"></label>
+				<label class="field"><div class="labelrow"><label for="external-case-number">External case number</label></div><input class="input" id="external-case-number" name="external_case_number" type="text" value="{{ assessment_form.external_case_number }}"><div class="hint">Used to match this record to the case-management system.</div></label>
+				<label class="field"><div class="labelrow"><label for="external-inspection-id">External inspection ID</label></div><input class="input" id="external-inspection-id" name="external_inspection_id" type="text" value="{{ assessment_form.external_inspection_id }}"></label>
+				<label class="field"><div class="labelrow"><label for="local-record-name">Local record name</label></div><input class="input" id="local-record-name" name="local_record_name" type="text" value="{{ assessment_form.local_record_name }}"></label>
 			</div>
 			<div class="section-rule"></div>
 			<h3>Applicable configuration</h3>
@@ -55,18 +58,19 @@
 
 	<div class="sticky-actions">
 		<a class="button ghost" href="/screens/assessment-list">Cancel</a>
-		<div><span class="save-indicator" id="assignment-save-status">Saved just now</span><button class="button secondary" id="save-assignment-draft" type="button">Save draft</button><a class="button primary" href="/screens/facility-identification">Continue to identification</a></div>
+		<div><span class="save-indicator" id="assignment-save-status">Saved just now</span><button class="button secondary" id="save-assignment-draft" type="button">Save draft</button><button class="button primary" id="continue-to-identification" type="button">Continue to identification</button></div>
 	</div>
 </form>
 
 <script>
 (() => {
 	const saveButton = document.getElementById('save-assignment-draft');
+	const continueButton = document.getElementById('continue-to-identification');
 	const form = document.getElementById('assignment-draft-form');
 	const status = document.getElementById('assignment-save-status');
 	const indicator = document.getElementById('assignment-save-indicator');
 
-	if (!saveButton || !form || !status) {
+	if (!saveButton || !continueButton || !form || !status) {
 		return;
 	}
 
@@ -97,6 +101,33 @@
 			setStatus('Draft saved');
 		} catch (error) {
 			setStatus('Draft save unavailable');
+		}
+	});
+
+	continueButton.addEventListener('click', async () => {
+		const payload = Object.fromEntries(new FormData(form).entries());
+		setStatus('Creating assessment...');
+		continueButton.disabled = true;
+
+		try {
+			const response = await fetch('/api/assessments/start', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+
+			const result = await response.json();
+			if (!response.ok || result.status !== 'success') {
+				throw new Error(result.message || 'Assessment creation failed');
+			}
+
+			setStatus('Assessment started');
+			window.location.href = result.next_screen || '/screens/facility-identification';
+		} catch (error) {
+			setStatus('Unable to continue');
+			continueButton.disabled = false;
 		}
 	});
 })();

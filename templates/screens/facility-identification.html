@@ -14,38 +14,35 @@
 	<div class="step"><span>5</span><b>Result</b></div>
 </div>
 
-<div class="alert warning">
-	<div class="alert-icon">!</div>
-	<div><strong>Possible duplicate found</strong><span>A draft for Sunrise Learning Center with visit date Jul 14, 2026 was created by Jordan Davis at 8:11 AM.</span></div><button type="button">Review duplicate</button>
-</div>
+{{ duplicate_warning|safe }}
 
 <form id="facility-identification-form" onsubmit="return false">
 	<div class="two-card-grid">
 		<section class="panel form-card">
 			<h2>Facility identification</h2>
 			<div class="grid two form-grid">
-				<label class="field"><div class="labelrow"><label for="facility-name">Facility name</label><span class="req">Required</span></div><input class="input" id="facility-name" name="facility_name" type="text" value="Sunrise Learning Center"></label>
-				<label class="field"><div class="labelrow"><label for="facility-identifier">Facility identifier</label><span class="req">Required</span></div><input class="input" id="facility-identifier" name="facility_identifier" type="text" value="FAC-008742"><div class="hint">Agency-configured requirement</div></label>
-				<label class="field"><div class="labelrow"><label for="license-number">License number</label></div><input class="input" id="license-number" name="license_number" type="text" value="LIC-CC-21884"></label>
-				<label class="field"><div class="labelrow"><label for="provider-account-id">Provider or account ID</label></div><input class="input" id="provider-account-id" name="provider_account_id" type="text" value="PRV-004198"></label>
-				<label class="field"><div class="labelrow"><label for="program-type">Program type</label><span class="req">Required</span></div><input class="input" id="program-type" name="program_type" type="text" value="Child Care Center"></label>
-				<label class="field"><div class="labelrow"><label for="facility-type">Facility type</label><span class="req">Required</span></div><input class="input" id="facility-type" name="facility_type" type="text" value="Mixed Age Center"></label>
-				<label class="field"><div class="labelrow"><label for="physical-address">Physical address</label><span class="req">Required</span></div><input class="input" id="physical-address" name="physical_address" type="text" value="1250 Cedar Avenue"></label>
-				<label class="field"><div class="labelrow"><label for="city-state-postal">City, state, postal code</label><span class="req">Required</span></div><input class="input" id="city-state-postal" name="city_state_postal" type="text" value="Olympia, WA 98501"></label>
-				<label class="field"><div class="labelrow"><label for="region-office">Region / office</label></div><input class="input" id="region-office" name="region_office" type="text" value="Region 3 - South Sound"></label>
-				<label class="field"><div class="labelrow"><label for="provider-operator-name">Provider or operator name</label></div><input class="input" id="provider-operator-name" name="provider_operator_name" type="text" value="Sunrise Learning LLC"></label>
+				<label class="field"><div class="labelrow"><label for="facility-name">Facility name</label><span class="req">Required</span></div><input class="input" id="facility-name" name="facility_name" type="text" value="{{ facility_form.facility_name }}"></label>
+				<label class="field"><div class="labelrow"><label for="facility-identifier">Facility identifier</label><span class="req">Required</span></div><input class="input" id="facility-identifier" name="facility_identifier" type="text" value="{{ facility_form.facility_identifier }}"><div class="hint">Agency-configured requirement</div></label>
+				<label class="field"><div class="labelrow"><label for="license-number">License number</label></div><input class="input" id="license-number" name="license_number" type="text" value="{{ facility_form.license_number }}"></label>
+				<label class="field"><div class="labelrow"><label for="provider-account-id">Provider or account ID</label></div><input class="input" id="provider-account-id" name="provider_account_id" type="text" value="{{ facility_form.provider_account_id }}"></label>
+				<label class="field"><div class="labelrow"><label for="program-type">Program type</label><span class="req">Required</span></div><input class="input" id="program-type" name="program_type" type="text" value="{{ facility_form.program_type }}"></label>
+				<label class="field"><div class="labelrow"><label for="facility-type">Facility type</label><span class="req">Required</span></div><input class="input" id="facility-type" name="facility_type" type="text" value="{{ facility_form.facility_type }}"></label>
+				<label class="field"><div class="labelrow"><label for="physical-address">Physical address</label><span class="req">Required</span></div><input class="input" id="physical-address" name="physical_address" type="text" value="{{ facility_form.physical_address }}"></label>
+				<label class="field"><div class="labelrow"><label for="city-state-postal">City, state, postal code</label><span class="req">Required</span></div><input class="input" id="city-state-postal" name="city_state_postal" type="text" value="{{ facility_form.city_state_postal }}"></label>
+				<label class="field"><div class="labelrow"><label for="region-office">Region / office</label></div><input class="input" id="region-office" name="region_office" type="text" value="{{ facility_form.region_office }}"></label>
+				<label class="field"><div class="labelrow"><label for="provider-operator-name">Provider or operator name</label></div><input class="input" id="provider-operator-name" name="provider_operator_name" type="text" value="{{ facility_form.provider_operator_name }}"></label>
 			</div>
 		</section>
 		<section class="panel form-card">
 			<h2>External record references</h2>
 			<div class="grid one form-grid one">
-				<label class="field"><div class="labelrow"><label for="external-system">External system</label><span class="req">Required</span></div><input class="input" id="external-system" name="external_system" type="text" value="Compass"></label>
-				<label class="field"><div class="labelrow"><label for="external-case-number">External case number</label><span class="req">Required</span></div><input class="input" id="external-case-number" name="external_case_number" type="text" value="CMP-2026-004182"></label>
-				<label class="field"><div class="labelrow"><label for="external-inspection-number">External inspection number</label></div><input class="input" id="external-inspection-number" name="external_inspection_number" type="text" value="INS-2026-0714-22"></label>
-				<label class="field"><div class="labelrow"><label for="visit-date">Visit date</label><span class="req">Required</span></div><input class="input" id="visit-date" name="visit_date" type="text" value="July 14, 2026"></label>
-				<label class="field"><div class="labelrow"><label for="assigned-primary-inspector">Assigned primary inspector</label><span class="req">Required</span></div><input class="input" id="assigned-primary-inspector" name="assigned_primary_inspector" type="text" value="Jordan Davis"></label>
-				<label class="field"><div class="labelrow"><label for="inspector-identifier">Inspector identifier</label></div><input class="input" id="inspector-identifier" name="inspector_identifier" type="text" value="EMP-10482"></label>
-				<label class="field"><div class="labelrow"><label for="assessment-notes">Assessment notes</label></div><input class="input" id="assessment-notes" name="assessment_notes" type="text" value="Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection."></label>
+				<label class="field"><div class="labelrow"><label for="external-system">External system</label><span class="req">Required</span></div><input class="input" id="external-system" name="external_system" type="text" value="{{ facility_form.external_system }}"></label>
+				<label class="field"><div class="labelrow"><label for="external-case-number">External case number</label><span class="req">Required</span></div><input class="input" id="external-case-number" name="external_case_number" type="text" value="{{ facility_form.external_case_number }}"></label>
+				<label class="field"><div class="labelrow"><label for="external-inspection-number">External inspection number</label></div><input class="input" id="external-inspection-number" name="external_inspection_number" type="text" value="{{ facility_form.external_inspection_number }}"></label>
+				<label class="field"><div class="labelrow"><label for="visit-date">Visit date</label><span class="req">Required</span></div><input class="select" id="visit-date" name="visit_date" type="date" value="{{ facility_form.visit_date }}"></label>
+				<label class="field"><div class="labelrow"><label for="assigned-primary-inspector">Assigned primary inspector</label><span class="req">Required</span></div><input class="input" id="assigned-primary-inspector" name="assigned_primary_inspector" type="text" value="{{ facility_form.assigned_primary_inspector }}"></label>
+				<label class="field"><div class="labelrow"><label for="inspector-identifier">Inspector identifier</label></div><input class="input" id="inspector-identifier" name="inspector_identifier" type="text" value="{{ facility_form.inspector_identifier }}"></label>
+				<label class="field"><div class="labelrow"><label for="assessment-notes">Assessment notes</label></div><input class="input" id="assessment-notes" name="assessment_notes" type="text" value="{{ facility_form.assessment_notes }}"></label>
 			</div>
 		</section>
 	</div>
