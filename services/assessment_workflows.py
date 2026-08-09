@@ -39,6 +39,12 @@ def build_assessment_fields(
             default=str(existing_values.get("facility_identifier", "")).strip(),
         )
         or "",
+        "external_system": get_payload_value(
+            assessment_data,
+            "external_system",
+            default=str(existing_values.get("external_system", "")).strip(),
+        )
+        or "",
         "facility_license_number": get_payload_value(
             assessment_data,
             "facility_license_number",
@@ -63,6 +69,44 @@ def build_assessment_fields(
             assessment_data,
             "facility_type",
             default=str(existing_values.get("facility_type", "")).strip(),
+        ),
+        "provider_name": get_payload_value(
+            assessment_data,
+            "provider_name",
+            "provider_operator_name",
+            default=str(existing_values.get("provider_name", "")).strip(),
+        )
+        or "",
+        "provider_id": get_payload_value(
+            assessment_data,
+            "provider_id",
+            "provider_account_id",
+            default=str(existing_values.get("provider_id", "")).strip(),
+        )
+        or "",
+        "region": get_payload_value(
+            assessment_data,
+            "region",
+            "region_office",
+            default=str(existing_values.get("region", "")).strip(),
+        )
+        or "",
+        "program_type": get_payload_value(
+            assessment_data,
+            "program_type",
+            "program",
+            default=str(existing_values.get("program_type", existing_values.get("program", ""))).strip(),
+        )
+        or get_payload_value(
+            assessment_data,
+            "program",
+            default=str(existing_values.get("program", "")).strip(),
+        ),
+        "program": get_payload_value(
+            assessment_data,
+            "program",
+            "program_type",
+            default=str(existing_values.get("program", existing_values.get("program_type", ""))).strip(),
         ),
         "assessment_date": get_payload_value(
             assessment_data,
@@ -112,7 +156,7 @@ def build_assessment_fields(
         "facility_type",
         "assessment_date",
         "visit_date",
-        "program",
+        "program_type",
         "inspection_type",
     ]
     missing_required = [field for field in required_fields if not fields[field]]

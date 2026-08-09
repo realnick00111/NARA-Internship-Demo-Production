@@ -3,29 +3,165 @@ import sqlite3
 from db import get_db_connection, log_storage_event
 
 
+ASSESSMENT_ROW_SELECT = """
+    SELECT
+        a.id,
+        a.assessment_name,
+        a.facility_id,
+        a.facility_identifier AS assessment_facility_identifier,
+        a.external_system,
+        COALESCE(NULLIF(trim(f.identifier), ''), NULLIF(trim(a.facility_identifier), '')) AS facility_identifier,
+        a.assessment_date,
+        a.visit_date,
+        a.inspection_type,
+        a.assessor,
+        COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
+        a.external_case_number,
+        a.external_inspection_id,
+        a.created_at,
+        a.modified_at,
+        COALESCE(NULLIF(trim(f.name), ''), a.assessment_name) AS facility_name,
+        COALESCE(NULLIF(trim(f.license_number), ''), '') AS facility_license_number,
+        COALESCE(NULLIF(trim(f.physical_address), ''), '') AS physical_address,
+        COALESCE(NULLIF(trim(f.city_state_postal_code), ''), '') AS city_state_postal_code,
+        COALESCE(NULLIF(trim(f.type), ''), '') AS facility_type,
+        COALESCE(NULLIF(trim(f.provider_name), ''), '') AS provider_name,
+        COALESCE(NULLIF(trim(f.provider_id), ''), '') AS provider_id,
+        COALESCE(NULLIF(trim(f.region), ''), '') AS region,
+        COALESCE(NULLIF(trim(f.program_type), ''), '') AS program,
+        COALESCE(NULLIF(trim(f.program_type), ''), '') AS program_type
+    FROM assessments a
+    LEFT JOIN facilities f ON f.id = a.facility_id
+"""
+
+
+def _clean_text(value: object, default: str = "") -> str:
+    return str(value if value is not None else default).strip()
+
+
+def _facility_fields_from_payload(fields: dict) -> dict[str, str]:
+    return {
+        "identifier": _clean_text(fields.get("facility_identifier"), fields.get("assessment_facility_identifier", "")),
+        "name": _clean_text(fields.get("facility_name"), fields.get("assessment_name", "")),
+        "license_number": _clean_text(fields.get("facility_license_number"), fields.get("license_number", "")),
+        "physical_address": _clean_text(fields.get("physical_address")),
+        "city_state_postal_code": _clean_text(fields.get("city_state_postal_code"), fields.get("city_state_postal", "")),
+        "type": _clean_text(fields.get("facility_type")),
+        "provider_name": _clean_text(fields.get("provider_name"), fields.get("provider_operator_name", "")),
+        "provider_id": _clean_text(fields.get("provider_id"), fields.get("provider_account_id", "")),
+        "region": _clean_text(fields.get("region"), fields.get("region_office", "")),
+        "program_type": _clean_text(fields.get("program_type"), fields.get("program", "")),
+    }
+
+
+def _assessment_fields_from_payload(fields: dict) -> dict[str, str | None]:
+    return {
+        "assessment_name": _clean_text(fields.get("assessment_name"), fields.get("local_record_name", "")),
+        "facility_identifier": _clean_text(fields.get("facility_identifier"), fields.get("assessment_facility_identifier", "")),
+        "external_system": _clean_text(fields.get("external_system"), fields.get("external_system", "")),
+        "assessment_date": _clean_text(fields.get("assessment_date")),
+        "visit_date": _clean_text(fields.get("visit_date")),
+        "inspection_type": _clean_text(fields.get("inspection_type")),
+        "assessor": _clean_text(fields.get("assessor"), "not implemented") or "not implemented",
+        "status": _clean_text(fields.get("status"), "not implemented") or "not implemented",
+        "external_case_number": _clean_text(fields.get("external_case_number")) or None,
+        "external_inspection_id": _clean_text(fields.get("external_inspection_id")) or None,
+    }
+
+
+def _upsert_facility(conn: sqlite3.Connection, fields: dict, facility_id: int | None = None) -> int:
+    facility_fields = _facility_fields_from_payload(fields)
+
+    if facility_id is not None:
+        existing_facility = conn.execute("SELECT id FROM facilities WHERE id = ?", (facility_id,)).fetchone()
+        if existing_facility is not None:
+            conn.execute(
+                """
+                UPDATE facilities
+                SET
+                    identifier = ?,
+                    name = ?,
+                    license_number = ?,
+                    physical_address = ?,
+                    city_state_postal_code = ?,
+                    type = ?,
+                    provider_name = ?,
+                    provider_id = ?,
+                    region = ?,
+                    program_type = ?
+                WHERE id = ?
+                """,
+                (
+                    facility_fields["identifier"],
+                    facility_fields["name"],
+                    facility_fields["license_number"],
+                    facility_fields["physical_address"],
+                    facility_fields["city_state_postal_code"],
+                    facility_fields["type"],
+                    facility_fields["provider_name"],
+                    facility_fields["provider_id"],
+                    facility_fields["region"],
+                    facility_fields["program_type"],
+                    facility_id,
+                ),
+            )
+            return facility_id
+
+    cursor = conn.execute(
+        """
+        INSERT INTO facilities (
+            identifier,
+            name,
+            license_number,
+            physical_address,
+            city_state_postal_code,
+            type,
+            provider_name,
+            provider_id,
+            region,
+            program_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            facility_fields["identifier"],
+            facility_fields["name"],
+            facility_fields["license_number"],
+            facility_fields["physical_address"],
+            facility_fields["city_state_postal_code"],
+            facility_fields["type"],
+            facility_fields["provider_name"],
+            facility_fields["provider_id"],
+            facility_fields["region"],
+            facility_fields["program_type"],
+        ),
+    )
+    return int(cursor.lastrowid)
+
+
+def _fetch_assessment_row(conn: sqlite3.Connection, assessment_id: int) -> sqlite3.Row | None:
+    return conn.execute(
+        f"""
+        {ASSESSMENT_ROW_SELECT}
+        WHERE a.id = ?
+        """,
+        (assessment_id,),
+    ).fetchone()
+
+
+def _fetch_recent_assessment_row(conn: sqlite3.Connection) -> sqlite3.Row | None:
+    return conn.execute(
+        f"""
+        {ASSESSMENT_ROW_SELECT}
+        ORDER BY datetime(COALESCE(NULLIF(trim(a.modified_at), ''), a.created_at)) DESC, a.id DESC
+        LIMIT 1
+        """
+    ).fetchone()
+
+
 def get_most_recent_assessment_row() -> sqlite3.Row | None:
     conn = get_db_connection()
     try:
-        return conn.execute(
-            """
-            SELECT
-                id,
-                assessment_name,
-                facility_name,
-                facility_type,
-                assessment_date,
-                visit_date,
-                program,
-                inspection_type,
-                assessor,
-                status,
-                external_case_number,
-                external_inspection_id
-            FROM assessments
-            ORDER BY datetime(COALESCE(NULLIF(trim(modified_at), ''), created_at)) DESC, id DESC
-            LIMIT 1
-            """
-        ).fetchone()
+        return _fetch_recent_assessment_row(conn)
     finally:
         conn.close()
 
@@ -33,26 +169,7 @@ def get_most_recent_assessment_row() -> sqlite3.Row | None:
 def get_assessment_row_by_id(assessment_id: int) -> sqlite3.Row | None:
     conn = get_db_connection()
     try:
-        return conn.execute(
-            """
-            SELECT
-                id,
-                assessment_name,
-                facility_name,
-                facility_type,
-                assessment_date,
-                visit_date,
-                program,
-                inspection_type,
-                assessor,
-                status,
-                external_case_number,
-                external_inspection_id
-            FROM assessments
-            WHERE id = ?
-            """,
-            (assessment_id,),
-        ).fetchone()
+        return _fetch_assessment_row(conn, assessment_id)
     finally:
         conn.close()
 
@@ -60,12 +177,9 @@ def get_assessment_row_by_id(assessment_id: int) -> sqlite3.Row | None:
 def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) -> int:
     conn = get_db_connection()
     try:
-        existing_row = None
-        if assessment_id is not None:
-            existing_row = conn.execute(
-                "SELECT id FROM assessments WHERE id = ?",
-                (assessment_id,),
-            ).fetchone()
+        existing_row = _fetch_assessment_row(conn, int(assessment_id)) if assessment_id is not None else None
+        facility_id = _upsert_facility(conn, fields, int(existing_row["facility_id"]) if existing_row and existing_row["facility_id"] is not None else None)
+        assessment_fields = _assessment_fields_from_payload(fields)
 
         if existing_row is not None:
             conn.execute(
@@ -73,15 +187,11 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                 UPDATE assessments
                 SET
                     assessment_name = ?,
-                    facility_name = ?,
+                    facility_id = ?,
                     facility_identifier = ?,
-                    facility_license_number = ?,
-                    physical_address = ?,
-                    city_state_postal_code = ?,
-                    facility_type = ?,
+                    external_system = ?,
                     assessment_date = ?,
                     visit_date = ?,
-                    program = ?,
                     inspection_type = ?,
                     assessor = ?,
                     status = ?,
@@ -91,21 +201,17 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                 WHERE id = ?
                 """,
                 (
-                    fields["assessment_name"],
-                    fields["facility_name"],
-                    fields["facility_identifier"],
-                    fields["facility_license_number"],
-                    fields["physical_address"],
-                    fields["city_state_postal_code"],
-                    fields["facility_type"],
-                    fields["assessment_date"],
-                    fields["visit_date"],
-                    fields["program"],
-                    fields["inspection_type"],
-                    fields["assessor"],
-                    fields["status"],
-                    fields["external_case_number"],
-                    fields["external_inspection_id"],
+                    assessment_fields["assessment_name"],
+                    facility_id,
+                    assessment_fields["facility_identifier"],
+                    assessment_fields["external_system"],
+                    assessment_fields["assessment_date"],
+                    assessment_fields["visit_date"],
+                    assessment_fields["inspection_type"],
+                    assessment_fields["assessor"],
+                    assessment_fields["status"],
+                    assessment_fields["external_case_number"],
+                    assessment_fields["external_inspection_id"],
                     assessment_id,
                 ),
             )
@@ -117,38 +223,30 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
             """
             INSERT INTO assessments (
                 assessment_name,
-                facility_name,
+                facility_id,
                 facility_identifier,
-                facility_license_number,
-                physical_address,
-                city_state_postal_code,
-                facility_type,
+                external_system,
                 assessment_date,
                 visit_date,
-                program,
                 inspection_type,
                 assessor,
                 status,
                 external_case_number,
                 external_inspection_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                fields["assessment_name"],
-                fields["facility_name"],
-                fields["facility_identifier"],
-                fields["facility_license_number"],
-                fields["physical_address"],
-                fields["city_state_postal_code"],
-                fields["facility_type"],
-                fields["assessment_date"],
-                fields["visit_date"],
-                fields["program"],
-                fields["inspection_type"],
-                fields["assessor"],
-                fields["status"],
-                fields["external_case_number"],
-                fields["external_inspection_id"],
+                assessment_fields["assessment_name"],
+                facility_id,
+                assessment_fields["facility_identifier"],
+                assessment_fields["external_system"],
+                assessment_fields["assessment_date"],
+                assessment_fields["visit_date"],
+                assessment_fields["inspection_type"],
+                assessment_fields["assessor"],
+                assessment_fields["status"],
+                assessment_fields["external_case_number"],
+                assessment_fields["external_inspection_id"],
             ),
         )
         conn.commit()
@@ -187,13 +285,15 @@ def query_assessment_list(normalized_query: str, page: int, per_page: int) -> di
         like_value = f"%{normalized_query}%"
         where_clause = """
             WHERE lower(trim(assessment_name)) LIKE ?
-               OR lower(trim(facility_type)) LIKE ?
+               OR lower(trim(COALESCE(f.name, ''))) LIKE ?
+               OR lower(trim(COALESCE(f.type, ''))) LIKE ?
+               OR lower(trim(COALESCE(f.identifier, a.facility_identifier, ''))) LIKE ?
                OR lower(trim(COALESCE(external_case_number, ''))) LIKE ?
                OR lower(trim(COALESCE(external_inspection_id, ''))) LIKE ?
                OR lower(trim(COALESCE(assessor, ''))) LIKE ?
                OR lower(trim(COALESCE(status, ''))) LIKE ?
         """
-        params.extend([like_value, like_value, like_value, like_value, like_value, like_value])
+        params.extend([like_value, like_value, like_value, like_value, like_value, like_value, like_value, like_value])
 
     conn = get_db_connection()
     try:
@@ -201,7 +301,8 @@ def query_assessment_list(normalized_query: str, page: int, per_page: int) -> di
             conn.execute(
                 f"""
                 SELECT COUNT(*) AS total
-                FROM assessments
+                FROM assessments a
+                LEFT JOIN facilities f ON f.id = a.facility_id
                 {where_clause}
                 """,
                 params,
@@ -215,18 +316,19 @@ def query_assessment_list(normalized_query: str, page: int, per_page: int) -> di
         rows = conn.execute(
             f"""
             SELECT
-                id,
-                assessment_name,
-                facility_type,
-                visit_date,
-                assessor,
-                external_case_number,
-                external_inspection_id,
-                COALESCE(NULLIF(trim(status), ''), 'not implemented') AS status,
-                created_at
-            FROM assessments
+                a.id,
+                a.assessment_name,
+                COALESCE(NULLIF(trim(f.type), ''), '') AS facility_type,
+                a.visit_date,
+                a.assessor,
+                a.external_case_number,
+                a.external_inspection_id,
+                COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
+                a.created_at
+            FROM assessments a
+            LEFT JOIN facilities f ON f.id = a.facility_id
             {where_clause}
-            ORDER BY datetime(created_at) DESC, id DESC
+            ORDER BY datetime(a.created_at) DESC, a.id DESC
             LIMIT ? OFFSET ?
             """,
             [*params, per_page, offset],
@@ -269,15 +371,16 @@ def get_dashboard_counts_and_recent() -> tuple[int, int, list[sqlite3.Row]]:
         recent_rows = conn.execute(
             """
             SELECT
-                id,
-                assessment_name,
-                facility_type,
-                external_case_number,
-                external_inspection_id,
-                COALESCE(NULLIF(trim(status), ''), 'not implemented') AS status,
-                COALESCE(NULLIF(trim(modified_at), ''), created_at) AS modified_at
-            FROM assessments
-            ORDER BY datetime(COALESCE(NULLIF(trim(modified_at), ''), created_at)) DESC, id DESC
+                a.id,
+                a.assessment_name,
+                COALESCE(NULLIF(trim(f.type), ''), '') AS facility_type,
+                a.external_case_number,
+                a.external_inspection_id,
+                COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
+                COALESCE(NULLIF(trim(a.modified_at), ''), a.created_at) AS modified_at
+            FROM assessments a
+            LEFT JOIN facilities f ON f.id = a.facility_id
+            ORDER BY datetime(COALESCE(NULLIF(trim(a.modified_at), ''), a.created_at)) DESC, a.id DESC
             LIMIT 3
             """
         ).fetchall()

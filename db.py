@@ -17,13 +17,75 @@ def clear_logs() -> None:
         log_storage_event("Cleared all logs.")
 
 
+def _get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    return {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()}
+
+
+def _reset_storage_schema(conn: sqlite3.Connection) -> None:
+    conn.execute("DROP TABLE IF EXISTS assessments")
+    conn.execute("DROP TABLE IF EXISTS facilities")
+
+
 def ensure_storage_schema(conn: sqlite3.Connection) -> None:
+    expected_facility_columns = {
+        "id",
+        "identifier",
+        "name",
+        "license_number",
+        "physical_address",
+        "city_state_postal_code",
+        "type",
+        "provider_name",
+        "provider_id",
+        "region",
+        "program_type",
+    }
+    expected_assessment_columns = {
+        "id",
+        "assessment_name",
+        "facility_id",
+        "facility_identifier",
+        "external_system",
+        "assessment_date",
+        "visit_date",
+        "inspection_type",
+        "assessor",
+        "status",
+        "external_case_number",
+        "external_inspection_id",
+        "created_at",
+        "modified_at",
+    }
+
+    existing_tables = {
+        row["name"]
+        for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+    }
+
+    needs_reset = False
+    if "facilities" in existing_tables and _get_table_columns(conn, "facilities") != expected_facility_columns:
+        needs_reset = True
+    if "assessments" in existing_tables and _get_table_columns(conn, "assessments") != expected_assessment_columns:
+        needs_reset = True
+
+    if needs_reset:
+        _reset_storage_schema(conn)
+        log_storage_event("Reset storage schema to split facilities and assessments tables")
+
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS facilities (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            data TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            identifier TEXT NOT NULL DEFAULT '',
+            name TEXT NOT NULL DEFAULT '',
+            license_number TEXT NOT NULL DEFAULT '',
+            physical_address TEXT NOT NULL DEFAULT '',
+            city_state_postal_code TEXT NOT NULL DEFAULT '',
+            type TEXT NOT NULL DEFAULT '',
+            provider_name TEXT NOT NULL DEFAULT '',
+            provider_id TEXT NOT NULL DEFAULT '',
+            region TEXT NOT NULL DEFAULT '',
+            program_type TEXT NOT NULL DEFAULT ''
         )
         """
     )
@@ -32,15 +94,11 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS assessments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             assessment_name TEXT NOT NULL,
-            facility_name TEXT NOT NULL DEFAULT '',
+            facility_id INTEGER NOT NULL,
             facility_identifier TEXT NOT NULL DEFAULT '',
-            facility_license_number TEXT NOT NULL DEFAULT '',
-            physical_address TEXT NOT NULL DEFAULT '',
-            city_state_postal_code TEXT NOT NULL DEFAULT '',
-            facility_type TEXT NOT NULL,
+            external_system TEXT NOT NULL DEFAULT '',
             assessment_date TEXT NOT NULL,
             visit_date TEXT NOT NULL,
-            program TEXT NOT NULL,
             inspection_type TEXT NOT NULL,
             assessor TEXT NOT NULL DEFAULT 'not implemented',
             status TEXT NOT NULL DEFAULT 'not implemented',
@@ -52,97 +110,8 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
-    assessment_columns = {
-        row["name"] for row in conn.execute("PRAGMA table_info(assessments)").fetchall()
-    }
-
-    if "data" in assessment_columns:
-        legacy_name = f"assessments_legacy_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        conn.execute(f"ALTER TABLE assessments RENAME TO {legacy_name}")
-        conn.execute(
-            """
-            CREATE TABLE assessments (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                assessment_name TEXT NOT NULL,
-                facility_name TEXT NOT NULL DEFAULT '',
-                facility_identifier TEXT NOT NULL DEFAULT '',
-                facility_license_number TEXT NOT NULL DEFAULT '',
-                physical_address TEXT NOT NULL DEFAULT '',
-                city_state_postal_code TEXT NOT NULL DEFAULT '',
-                facility_type TEXT NOT NULL,
-                assessment_date TEXT NOT NULL,
-                visit_date TEXT NOT NULL,
-                program TEXT NOT NULL,
-                inspection_type TEXT NOT NULL,
-                assessor TEXT NOT NULL DEFAULT 'not implemented',
-                status TEXT NOT NULL DEFAULT 'not implemented',
-                external_case_number TEXT,
-                external_inspection_id TEXT,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                modified_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-        log_storage_event(
-            f"Migrated legacy assessments table to {legacy_name} and recreated structured assessments schema"
-        )
-        assessment_columns = {
-            row["name"] for row in conn.execute("PRAGMA table_info(assessments)").fetchall()
-        }
-
-    if "status" not in assessment_columns:
-        conn.execute("ALTER TABLE assessments ADD COLUMN status TEXT NOT NULL DEFAULT 'not implemented'")
-        log_storage_event("Added status column to assessments table with default 'not implemented'")
-
-    if "modified_at" not in assessment_columns:
-        conn.execute("ALTER TABLE assessments ADD COLUMN modified_at TEXT")
-        log_storage_event("Added modified_at column to assessments table")
-
-    if "facility_name" not in assessment_columns:
-        conn.execute("ALTER TABLE assessments ADD COLUMN facility_name TEXT NOT NULL DEFAULT ''")
-        log_storage_event("Added facility_name column to assessments table with default ''")
-
-    for column_name, column_definition in {
-        "facility_identifier": "TEXT NOT NULL DEFAULT ''",
-        "facility_license_number": "TEXT NOT NULL DEFAULT ''",
-        "physical_address": "TEXT NOT NULL DEFAULT ''",
-        "city_state_postal_code": "TEXT NOT NULL DEFAULT ''",
-    }.items():
-        if column_name not in assessment_columns:
-            conn.execute(f"ALTER TABLE assessments ADD COLUMN {column_name} {column_definition}")
-            log_storage_event(f"Added {column_name} column to assessments table with default ''")
-
-    conn.execute(
-        """
-        UPDATE assessments
-        SET status = 'not implemented'
-        WHERE status IS NULL OR trim(status) = ''
-        """
-    )
-
-    conn.execute(
-        """
-        UPDATE assessments
-        SET assessor = 'not implemented'
-        WHERE assessor IS NULL OR trim(assessor) = '' OR trim(assessor) = 'unimplemented'
-        """
-    )
-
-    conn.execute(
-        """
-        UPDATE assessments
-        SET modified_at = COALESCE(NULLIF(trim(modified_at), ''), created_at, CURRENT_TIMESTAMP)
-        WHERE modified_at IS NULL OR trim(modified_at) = ''
-        """
-    )
-
-    conn.execute(
-        """
-        UPDATE assessments
-        SET facility_name = COALESCE(NULLIF(trim(facility_name), ''), NULLIF(trim(assessment_name), ''), '')
-        WHERE facility_name IS NULL OR trim(facility_name) = ''
-        """
-    )
+    if needs_reset or "facilities" not in existing_tables or "assessments" not in existing_tables:
+        log_storage_event("Ensured split facilities and assessments tables exist")
 
     conn.execute(
         """

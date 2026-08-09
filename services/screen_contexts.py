@@ -151,9 +151,16 @@ def build_facility_identification_context() -> dict:
         facility_form.update(
             {
                 "facility_name": str(current_assessment["facility_name"] or current_assessment["assessment_name"] or facility_form["facility_name"]).strip() or facility_form["facility_name"],
-                "facility_identifier": str(current_assessment["external_case_number"] or current_assessment["external_inspection_id"] or facility_form["facility_identifier"]).strip() or facility_form["facility_identifier"],
-                "program_type": str(current_assessment["program"] or facility_form["program_type"]).strip() or facility_form["program_type"],
+                "facility_identifier": str(current_assessment["facility_identifier"] or facility_form["facility_identifier"]).strip() or facility_form["facility_identifier"],
+                "external_system": str(current_assessment["external_system"] or facility_form["external_system"]).strip() or facility_form["external_system"],
+                "license_number": str(current_assessment["facility_license_number"] or facility_form["license_number"]).strip() or facility_form["license_number"],
+                "provider_account_id": str(current_assessment["provider_id"] or facility_form["provider_account_id"]).strip() or facility_form["provider_account_id"],
+                "program_type": str(current_assessment["program_type"] or current_assessment["program"] or facility_form["program_type"]).strip() or facility_form["program_type"],
                 "facility_type": str(current_assessment["facility_type"] or facility_form["facility_type"]).strip() or facility_form["facility_type"],
+                "physical_address": str(current_assessment["physical_address"] or facility_form["physical_address"]).strip() or facility_form["physical_address"],
+                "city_state_postal": str(current_assessment["city_state_postal_code"] or facility_form["city_state_postal"]).strip() or facility_form["city_state_postal"],
+                "region_office": str(current_assessment["region"] or facility_form["region_office"]).strip() or facility_form["region_office"],
+                "provider_operator_name": str(current_assessment["provider_name"] or facility_form["provider_operator_name"]).strip() or facility_form["provider_operator_name"],
                 "external_case_number": str(current_assessment["external_case_number"] or facility_form["external_case_number"]).strip() or facility_form["external_case_number"],
                 "external_inspection_number": str(current_assessment["external_inspection_id"] or facility_form["external_inspection_number"]).strip() or facility_form["external_inspection_number"],
                 "visit_date": str(current_assessment["visit_date"] or facility_form["visit_date"]).strip() or facility_form["visit_date"],

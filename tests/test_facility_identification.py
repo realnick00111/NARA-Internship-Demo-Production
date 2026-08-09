@@ -7,11 +7,13 @@ class FacilityIdentificationTests(unittest.TestCase):
     def setUp(self):
         self.conn = get_db_connection()
         self.conn.execute("DELETE FROM assessments")
+        self.conn.execute("DELETE FROM facilities")
         self.conn.commit()
         self.client = app.test_client()
 
     def tearDown(self):
         self.conn.execute("DELETE FROM assessments")
+        self.conn.execute("DELETE FROM facilities")
         self.conn.commit()
         self.conn.close()
 
@@ -21,37 +23,58 @@ class FacilityIdentificationTests(unittest.TestCase):
         assessment_date: str = "2026-07-17",
         visit_date: str = "2026-07-14",
     ) -> int:
+        facility_id = self.conn.execute(
+            """
+            INSERT INTO facilities (
+                identifier,
+                name,
+                license_number,
+                physical_address,
+                city_state_postal_code,
+                type,
+                provider_name,
+                provider_id,
+                region,
+                program_type
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "FAC-008742",
+                assessment_name,
+                "LIC-CC-21884",
+                "1250 Cedar Avenue",
+                "Olympia, WA 98501",
+                "Mixed Age Center",
+                "Sunrise Learning LLC",
+                "PRV-004198",
+                "Region 3 - South Sound",
+                "Child Care Center",
+            ),
+        ).lastrowid
+
         assessment_id = self.conn.execute(
             """
             INSERT INTO assessments (
                 assessment_name,
-                facility_name,
+                facility_id,
                 facility_identifier,
-                facility_license_number,
-                physical_address,
-                city_state_postal_code,
-                facility_type,
+                external_system,
                 assessment_date,
                 visit_date,
-                program,
                 inspection_type,
                 assessor,
                 status,
                 external_case_number,
                 external_inspection_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 assessment_name,
-                assessment_name,
-                "",
-                "",
-                "",
-                "",
-                "Mixed Age Center",
+                facility_id,
+                "FAC-008742",
+                "Compass",
                 assessment_date,
                 visit_date,
-                "Child Care Center",
                 "Annual Monitoring Visit",
                 "Ada Lovelace",
                 "draft",
@@ -105,13 +128,9 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('href="/screens/audit-history"', rendered)
 
     def test_save_assignment_draft_populates_facility_name(self):
-        columns = {row[1] for row in self.conn.execute("PRAGMA table_info(assessments)").fetchall()}
-        if "facility_name" not in columns:
-            self.conn.execute("ALTER TABLE assessments ADD COLUMN facility_name TEXT NOT NULL DEFAULT ''")
-            self.conn.commit()
-
         draft_payload = {
             "local_record_name": "North Harbor Child Care",
+            "external_system": "Compass",
             "program": "Child Care Center",
             "facility_type": "Mixed Age Center",
             "assessment_date": "2026-07-17",
@@ -126,12 +145,18 @@ class FacilityIdentificationTests(unittest.TestCase):
             save_assignment_draft(draft_payload)
 
         saved_row = self.conn.execute(
-            "SELECT facility_name FROM assessments WHERE assessment_name = ?",
+            """
+            SELECT facilities.name, assessments.external_system
+            FROM assessments
+            JOIN facilities ON facilities.id = assessments.facility_id
+            WHERE assessments.assessment_name = ?
+            """,
             ("North Harbor Child Care",),
         ).fetchone()
 
         self.assertIsNotNone(saved_row)
         self.assertEqual(saved_row[0], "North Harbor Child Care")
+        self.assertEqual(saved_row[1], "Compass")
 
 
 if __name__ == "__main__":
