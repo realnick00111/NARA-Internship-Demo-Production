@@ -9,6 +9,7 @@ from repositories.assessments import (
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
+from services.formatters import calculate_pqi1_score
 from session_state import clear_current_assessment, get_current_assessment, set_current_assessment
 
 
@@ -85,6 +86,46 @@ def register_routes(app: Flask) -> None:
 
         set_current_assessment(normalized_assessment_id)
         return jsonify({"status": "success", "message": "Contact hours saved successfully!", "assessment_id": normalized_assessment_id})
+
+    @app.route("/api/assessments/pqi1", methods=["POST"])
+    def save_pqi1():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+
+        certified_teaching_staff = payload.get("certified_teaching_staff")
+        total_teaching_staff = payload.get("total_teaching_staff")
+        score = calculate_pqi1_score(certified_teaching_staff, total_teaching_staff)
+
+        if score is None:
+            return jsonify({"status": "error", "message": "Enter valid teaching staff counts before saving PQI 1"}), 400
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi1": {
+                        "score": score,
+                        "certified_teaching_staff": int(certified_teaching_staff),
+                        "total_teaching_staff": int(total_teaching_staff),
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify(
+            {
+                "status": "success",
+                "message": "PQI 1 saved successfully!",
+                "assessment_id": normalized_assessment_id,
+                "score": score,
+            }
+        )
 
     @app.route("/api/assessments/delete", methods=["POST"])
     def delete_assessments():

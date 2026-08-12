@@ -1,7 +1,7 @@
 from datetime import datetime
 from difflib import SequenceMatcher
 
-from constants import STATUS_CLASS_MAP
+from constants import PQI1_BAND_MAPPING, STATUS_CLASS_MAP
 
 
 def normalize_text(value: str | None) -> str:
@@ -60,6 +60,24 @@ def format_timestamp_label(timestamp_value: str | None) -> str:
 def get_status_chip_class(status_value: str | None) -> str:
     normalized = normalize_text(status_value)
     return STATUS_CLASS_MAP.get(normalized, "neutral")
+
+
+def calculate_pqi1_score(certified_teaching_staff: object, total_teaching_staff: object) -> int | None:
+    try:
+        certified_count = int(certified_teaching_staff)
+        total_count = int(total_teaching_staff)
+    except (TypeError, ValueError):
+        return None
+
+    if certified_count < 0 or total_count <= 0 or certified_count > total_count:
+        return None
+
+    percentage = (certified_count / total_count) * 100
+    for (lower_bound, upper_bound), band in sorted(PQI1_BAND_MAPPING.items(), key=lambda item: item[1]):
+        if lower_bound <= percentage <= upper_bound:
+            return band
+
+    return None
 
 
 def names_are_similar(left: str | None, right: str | None) -> bool:

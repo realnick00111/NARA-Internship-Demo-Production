@@ -1,3 +1,40 @@
+<style>
+	#pqi-findings-entry .pqi-panel[hidden] {
+		display: none !important;
+	}
+
+	#pqi-findings-entry .pqi-main {
+		min-width: 0;
+	}
+
+	#pqi-findings-entry .pqi-nav .pqi-item {
+		width: 100%;
+	}
+
+	#pqi-findings-entry .pqi-nav .pqi-item[aria-current="page"] {
+		background: #f4edf8;
+		border-radius: 8px;
+		color: var(--purple);
+	}
+
+	#pqi-findings-entry .pqi1-calculation-box {
+		align-items: flex-start;
+	}
+
+	#pqi-findings-entry .pqi1-formula {
+		display: inline-grid;
+		grid-template-columns: repeat(7, max-content);
+		gap: 10px;
+		width: fit-content;
+		max-width: 100%;
+		justify-content: start;
+	}
+
+	#pqi-findings-entry .pqi1-formula > div {
+		min-width: 128px;
+	}
+</style>
+
 <div class="page-header">
 	<div>
 		<div class="eyebrow">Assessment DM-2026-00184</div>
@@ -22,104 +59,224 @@
 			<span>64%</span>
 			<div class="bar"><i style="width:64%"></i></div>
 		</div>
-		<a class="pqi-item complete" href="{{ url_for('screen', screen_id='pqi1') }}"><span>1</span><div><b>ECE III Educators</b><small>Score 3</small></div></a>
-		<div class="pqi-item complete"><span>2</span><div><b>Stimulating Environment</b><small>Score 4</small></div></div>
-		<div class="pqi-item active"><span>3</span><div><b>Curriculum &amp; Assessment</b><small>8 of 10 records</small></div></div>
-		<div class="pqi-item"><span>4</span><div><b>Staff &amp; Family Opportunities</b><small>Not started</small></div></div>
-		<div class="pqi-item"><span>5</span><div><b>Child Progress Reporting</b><small>Score 3</small></div></div>
-		<div class="pqi-item"><span>6-8</span><div><b>Observational Levels</b><small>1 incomplete</small></div></div>
-		<div class="pqi-item"><span>9-10</span><div><b>Timed Observations</b><small>12 of 20 ratings</small></div></div>
+		<a class="pqi-item complete active" href="#pqi-1" data-pqi-target="pqi-1" aria-current="page"><span>1</span><div><b>ECE III Educators</b><small>{{ pqi1_score_label }}</small></div></a>
+		<a class="pqi-item complete" href="#pqi-2" data-pqi-target="pqi-2"><span>2</span><div><b>Stimulating Environment</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item" href="#pqi-3" data-pqi-target="pqi-3"><span>3</span><div><b>Curriculum &amp; Assessment</b><small>8 of 10 records</small></div></a>
+		<a class="pqi-item" href="#pqi-4" data-pqi-target="pqi-4"><span>4</span><div><b>Staff &amp; Family Opportunities</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item" href="#pqi-5" data-pqi-target="pqi-5"><span>5</span><div><b>Child Progress Reporting</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item" href="#pqi-6-8" data-pqi-target="pqi-6-8"><span>6-8</span><div><b>Observational Levels</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item" href="#pqi-9-10" data-pqi-target="pqi-9-10"><span>9-10</span><div><b>Timed Observations</b><small>Not implemented yet</small></div></a>
 	</aside>
 
 	<section class="pqi-main">
-		<div class="card">
-			<div class="card-head">
-				<div>
-					<span class="section-kicker">PQI 3</span>
-					<h2>Curriculum &amp; Assessment</h2>
-					<p>Review ten anonymous child records. A record is positive only when all three elements are present.</p>
+		<section class="pqi-panel" data-pqi-panel="pqi-1">
+			{% include 'partials/_pqi1.html' %}
+		</section>
+
+		<section class="pqi-panel" data-pqi-panel="pqi-2" hidden>
+			<div class="card">
+				<div class="card-head">
+					<div>
+						<span class="section-kicker">PQI 2</span>
+						<h2>Stimulating Environment</h2>
+						<p>The entry form for this indicator has not been built yet.</p>
+					</div>
+					<span class="chip neutral">Not implemented yet</span>
 				</div>
-				<span class="chip info">Sample-based</span>
+				<p class="helper">Use the left navigation to switch between PQIs. This panel is a placeholder until the PQI 2 workflow is added.</p>
 			</div>
+		</section>
 
-			<div class="state-legend">
-				<span><i class="state yes"></i>Yes</span>
-				<span><i class="state no"></i>No</span>
-				<span><i class="state na"></i>Not applicable</span>
-				<span><i class="state unknown"></i>Unable to determine</span>
+		<section class="pqi-panel" data-pqi-panel="pqi-3" hidden>
+			<div class="card">
+				<div class="card-head">
+					<div>
+						<span class="section-kicker">PQI 3</span>
+						<h2>Curriculum &amp; Assessment</h2>
+						<p>Review ten anonymous child records. A record is positive only when all three elements are present.</p>
+					</div>
+					<span class="chip info">Sample-based</span>
+				</div>
+
+				<div class="state-legend">
+					<span><i class="state yes"></i>Yes</span>
+					<span><i class="state no"></i>No</span>
+					<span><i class="state na"></i>Not applicable</span>
+					<span><i class="state unknown"></i>Unable to determine</span>
+				</div>
+
+				<div class="sample-summary">
+					<div><span>Records entered</span><strong>8 / 10</strong></div>
+					<div><span>Positive records</span><strong>6</strong></div>
+					<div><span>Percentage of required sample</span><strong>60%</strong></div>
+					<div><span>Provisional score</span><strong>Unavailable</strong></div>
+				</div>
+
+				<table class="sample-table">
+					<thead>
+						<tr>
+							<th>Anonymous record</th>
+							<th>Emergent curriculum</th>
+							<th>Co-learning</th>
+							<th>Documentation</th>
+							<th>Derived positive</th>
+							<th>Notes / evidence</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>Record 01</td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Positive</span></td>
+							<td><button class="button secondary tinybtn">Add</button></td>
+						</tr>
+						<tr>
+							<td>Record 02</td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip danger">No</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip neutral">Not positive</span></td>
+							<td><button class="button secondary tinybtn">View</button></td>
+						</tr>
+						<tr>
+							<td>Record 03</td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Positive</span></td>
+							<td><button class="button secondary tinybtn">Add</button></td>
+						</tr>
+						<tr>
+							<td>Record 04</td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Yes</span></td>
+							<td><span class="chip success">Positive</span></td>
+							<td><button class="button secondary tinybtn">Add</button></td>
+						</tr>
+					</tbody>
+				</table>
+
+				<div class="table-actions">
+					<button class="button secondary">Open full 10-record sample</button>
+					<span>2 required records remain</span>
+				</div>
+
+				<div class="card" style="margin-top: 14px;">
+					<div class="inline-form">
+						<div>
+							<label>General notes</label>
+							<div class="textarea">Documentation practices were consistent across most sampled records.</div>
+						</div>
+						<div>
+							<label>Supporting evidence</label>
+							<div class="upload">＋ Add file or link</div>
+						</div>
+					</div>
+				</div>
 			</div>
+		</section>
 
-			<div class="sample-summary">
-				<div><span>Records entered</span><strong>8 / 10</strong></div>
-				<div><span>Positive records</span><strong>6</strong></div>
-				<div><span>Percentage of required sample</span><strong>60%</strong></div>
-				<div><span>Provisional score</span><strong>Unavailable</strong></div>
-			</div>
-
-			<table class="sample-table">
-				<thead>
-					<tr>
-						<th>Anonymous record</th>
-						<th>Emergent curriculum</th>
-						<th>Co-learning</th>
-						<th>Documentation</th>
-						<th>Derived positive</th>
-						<th>Notes / evidence</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<td>Record 01</td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Positive</span></td>
-						<td><button class="button secondary tinybtn">Add</button></td>
-					</tr>
-					<tr>
-						<td>Record 02</td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip danger">No</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip neutral">Not positive</span></td>
-						<td><button class="button secondary tinybtn">View</button></td>
-					</tr>
-					<tr>
-						<td>Record 03</td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Positive</span></td>
-						<td><button class="button secondary tinybtn">Add</button></td>
-					</tr>
-					<tr>
-						<td>Record 04</td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Yes</span></td>
-						<td><span class="chip success">Positive</span></td>
-						<td><button class="button secondary tinybtn">Add</button></td>
-					</tr>
-				</tbody>
-			</table>
-
-			<div class="table-actions">
-				<button class="button secondary">Open full 10-record sample</button>
-				<span>2 required records remain</span>
+		<div class="pqi-panel" data-pqi-panel="pqi-4" hidden>
+			<div class="card">
+				<div class="card-head">
+					<div>
+						<span class="section-kicker">PQI 4</span>
+						<h2>Staff &amp; Family Opportunities</h2>
+						<p>The form for this indicator has not been implemented yet.</p>
+					</div>
+					<span class="chip neutral">Not implemented yet</span>
+				</div>
 			</div>
 		</div>
 
-		<div class="card">
-			<div class="inline-form">
-				<div>
-					<label>General notes</label>
-					<div class="textarea">Documentation practices were consistent across most sampled records.</div>
-				</div>
-				<div>
-					<label>Supporting evidence</label>
-					<div class="upload">＋ Add file or link</div>
+		<div class="pqi-panel" data-pqi-panel="pqi-5" hidden>
+			<div class="card">
+				<div class="card-head">
+					<div>
+						<span class="section-kicker">PQI 5</span>
+						<h2>Child Progress Reporting</h2>
+						<p>The form for this indicator has not been implemented yet.</p>
+					</div>
+					<span class="chip neutral">Not implemented yet</span>
 				</div>
 			</div>
+		</div>
+
+		<div class="pqi-panel" data-pqi-panel="pqi-6-8" hidden>
+			<div class="card">
+				<div class="card-head">
+					<div>
+						<span class="section-kicker">PQI 6-8</span>
+						<h2>Observational Levels</h2>
+						<p>The hierarchy workflow has not been implemented yet.</p>
+					</div>
+					<span class="chip neutral">Coming soon</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="pqi-panel" data-pqi-panel="pqi-9-10" hidden>
+			<div class="card">
+				<div class="card-head">
+					<div>
+						<span class="section-kicker">PQI 9-10</span>
+						<h2>Timed Observations</h2>
+						<p>The timed-observation workflow has not been implemented yet.</p>
+					</div>
+					<span class="chip neutral">Coming soon</span>
+				</div>
 		</div>
 	</section>
 </div>
+
+<script>
+(() => {
+	const defaultTarget = 'pqi-1';
+	const navItems = Array.from(document.querySelectorAll('#pqi-findings-entry [data-pqi-target]'));
+	const panels = Array.from(document.querySelectorAll('#pqi-findings-entry [data-pqi-panel]'));
+
+	if (!navItems.length || !panels.length) {
+		return;
+	}
+
+	const setActivePanel = (targetId, shouldUpdateHash = true) => {
+		const selectedPanel = panels.find((panel) => panel.getAttribute('data-pqi-panel') === targetId) || panels.find((panel) => panel.getAttribute('data-pqi-panel') === defaultTarget);
+		const selectedTarget = selectedPanel ? selectedPanel.getAttribute('data-pqi-panel') : defaultTarget;
+
+		panels.forEach((panel) => {
+			panel.hidden = panel.getAttribute('data-pqi-panel') !== selectedTarget;
+		});
+
+		navItems.forEach((item) => {
+			const isActive = item.getAttribute('data-pqi-target') === selectedTarget;
+			item.classList.toggle('active', isActive);
+			if (isActive) {
+				item.setAttribute('aria-current', 'page');
+			} else {
+				item.removeAttribute('aria-current');
+			}
+		});
+
+		if (shouldUpdateHash && location.hash.slice(1) !== selectedTarget) {
+			history.replaceState(null, '', `#${selectedTarget}`);
+		}
+	};
+
+	navItems.forEach((item) => {
+		item.addEventListener('click', (event) => {
+			event.preventDefault();
+			setActivePanel(item.getAttribute('data-pqi-target') || defaultTarget);
+		});
+	});
+
+	const initialTarget = location.hash ? location.hash.slice(1) : defaultTarget;
+	setActivePanel(initialTarget, true);
+
+	window.addEventListener('hashchange', () => {
+		setActivePanel(location.hash.slice(1) || defaultTarget, false);
+	});
+})();
+</script>

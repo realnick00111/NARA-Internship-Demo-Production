@@ -11,6 +11,7 @@ from services.screen_contexts import (
     build_dashboard_context,
     build_duplicate_warning_html,
     build_facility_identification_context,
+    build_pqi1_context,
     build_new_assessment_context,
 )
 
@@ -41,7 +42,7 @@ def render_screen_section(screen_id: str) -> str:
     elif screen_id == "assessment-list":
         content = render_template_string(content, **build_assessment_list_context())
     elif screen_id == "pqi-findings-entry":
-        content = render_template_string(content)
+        content = render_template_string(content, **build_pqi1_context(), pqi1_band_rows=build_pqi1_band_rows())
     elif screen_id == "ch-structural-entry":
         content = render_template_string(content, **build_contact_hours_context())
     elif screen_id == "new-assessment":
@@ -49,7 +50,7 @@ def render_screen_section(screen_id: str) -> str:
     elif screen_id == "assessment-progress":
         content = render_template_string(content, **build_assessment_progress_context())
     elif screen_id == "pqi1":
-        content = render_template_string(content, pqi1_band_rows=build_pqi1_band_rows())
+        content = render_template_string(content, **build_pqi1_context(), pqi1_band_rows=build_pqi1_band_rows())
 
     if screen_id in STANDALONE_SCREENS:
         inner_html = content

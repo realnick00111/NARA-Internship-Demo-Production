@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from app import app, get_db_connection, save_assignment_draft, set_current_assessment
@@ -153,8 +154,48 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="ece-iii-certified-count"', rendered)
         self.assertIn('id="total-teaching-staff-count"', rendered)
         self.assertIn('More ECE III-certified teaching staff than total staff.', rendered)
-        self.assertIn('id="pqi1-complete-button"', rendered)
+        self.assertIn('id="pqi1-save-button"', rendered)
         self.assertIn('disabled', rendered)
+
+    def test_pqi_findings_entry_embeds_pqi1_controls(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/screens/pqi-findings-entry")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="pqi1-card"', rendered)
+        self.assertIn('href="#pqi1-card"', rendered)
+        self.assertIn('id="pqi1-save-button"', rendered)
+
+    def test_save_pqi1_persists_nested_json(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.post(
+            "/api/assessments/pqi1",
+            json={
+                "certified_teaching_staff": 6,
+                "total_teaching_staff": 12,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+
+        self.assertIsNotNone(saved_row)
+        saved_findings = json.loads(saved_row[0])
+        self.assertEqual(saved_findings["pqi1"]["score"], 2)
+        self.assertEqual(saved_findings["pqi1"]["certified_teaching_staff"], 6)
+        self.assertEqual(saved_findings["pqi1"]["total_teaching_staff"], 12)
 
     def test_save_assignment_draft_populates_facility_name(self):
         draft_payload = {

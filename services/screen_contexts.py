@@ -18,6 +18,7 @@ from repositories.assessments import (
     query_assessment_list,
 )
 from services.formatters import (
+    calculate_pqi1_score,
     format_date_label,
     format_timestamp_label,
     get_status_chip_class,
@@ -84,6 +85,45 @@ def build_contact_hours_context() -> dict:
         "editing_assessment_id": assessment_id,
         "contact_hours_form": contact_hours_form,
         "save_indicator_label": f"Autosaved {format_timestamp_label(assessment_row['modified_at'])}" if assessment_row is not None else "Autosaved --",
+    }
+
+
+def build_pqi1_context() -> dict:
+    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+
+    pqi1_form = {
+        "certified_teaching_staff": "",
+        "total_teaching_staff": "",
+    }
+    assessment_id = None
+    assessment_code = "ASMT-not implemented"
+    score = None
+
+    if assessment_row is not None:
+        assessment_id = assessment_row["id"]
+        assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else assessment_code
+
+        pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
+        pqi1_entry = pqi_findings.get("pqi1") if isinstance(pqi_findings, dict) else {}
+        if isinstance(pqi1_entry, dict):
+            pqi1_form.update(
+                {
+                    "certified_teaching_staff": str(pqi1_entry.get("certified_teaching_staff", "")).strip(),
+                    "total_teaching_staff": str(pqi1_entry.get("total_teaching_staff", "")).strip(),
+                }
+            )
+        score = calculate_pqi1_score(pqi1_form["certified_teaching_staff"], pqi1_form["total_teaching_staff"])
+
+    return {
+        "assessment_code": assessment_code,
+        "editing_assessment_id": assessment_id,
+        "pqi1_form": pqi1_form,
+        "pqi1_score": score,
+        "pqi1_score_label": f"Score {score}" if score is not None else "Not started",
+        "pqi1_save_url": url_for("save_pqi1"),
+        "pqi1_back_href": url_for("screen", screen_id="pqi-findings-entry"),
+        "pqi1_card_id": "pqi1-card",
+        "pqi1_show_back_link": False,
     }
 
 

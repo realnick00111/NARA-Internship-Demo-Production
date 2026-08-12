@@ -59,6 +59,25 @@ def _json_text(value: object, default: object) -> str:
     return json.dumps(value)
 
 
+def _json_object(value: object, default: dict) -> dict:
+    if isinstance(value, dict):
+        return value
+
+    if value is None:
+        return dict(default)
+
+    cleaned_value = str(value).strip()
+    if not cleaned_value:
+        return dict(default)
+
+    try:
+        parsed_value = json.loads(cleaned_value)
+    except json.JSONDecodeError:
+        return dict(default)
+
+    return parsed_value if isinstance(parsed_value, dict) else dict(default)
+
+
 def _facility_fields_from_payload(fields: dict) -> dict[str, str]:
     return {
         "identifier": _clean_text(fields.get("facility_identifier"), fields.get("assessment_facility_identifier", "")),
@@ -311,7 +330,6 @@ def update_assessment_json_fields(
 
     if pqi_findings is not None:
         updates.append("pqi_findings = ?")
-        values.append(_json_text(pqi_findings, {}))
 
     if not updates:
         return
@@ -321,6 +339,13 @@ def update_assessment_json_fields(
         existing_row = _fetch_assessment_row(conn, int(assessment_id))
         if existing_row is None:
             raise ValueError(f"Assessment {assessment_id} not found")
+
+        if pqi_findings is not None:
+            existing_pqi_findings = _json_object(existing_row["pqi_findings"], {})
+            incoming_pqi_findings = _json_object(pqi_findings, {})
+            merged_pqi_findings = dict(existing_pqi_findings)
+            merged_pqi_findings.update(incoming_pqi_findings)
+            values.append(_json_text(merged_pqi_findings, {}))
 
         conn.execute(
             f"""
