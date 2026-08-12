@@ -16,98 +16,276 @@
 		<div><span class="chip info">6 inputs</span><span class="chip neutral">2 derived values</span></div>
 	</div>
 
-	<div class="calc-layout">
-		<section class="card form-card">
-			<div class="card-head">
-				<div>
-					<h2>Contact Hour inputs</h2>
-					<p>Enter times using the facility's local time zone.</p>
-				</div><button class="linkbtn" type="button" data-href="{{ url_for('screen', screen_id='detailed-explanation') }}">View methodology</button>
-			</div>
-			<div class="form-grid">
-				<div class="field">
-					<div class="labelrow"><label>Facility opens / first staff arrives (TO₁)</label><span class="req">Required</span></div>
-					<div class="input">7:00 AM</div>
+	<form id="contact-hours-form" onsubmit="return false">
+		<input type="hidden" id="assessment-id" name="assessment_id" value="{{ editing_assessment_id or '' }}">
+		<div class="calc-layout">
+			<section class="card form-card">
+				<div class="card-head">
+					<div>
+						<h2>Contact Hour inputs</h2>
+						<p>Enter times using the facility's local time zone.</p>
+					</div><button class="linkbtn" type="button" data-href="{{ url_for('screen', screen_id='detailed-explanation') }}">View methodology</button>
 				</div>
-				<div class="field">
-					<div class="labelrow"><label>Facility closes / last staff leaves (TO₂)</label><span class="req">Required</span></div>
-					<div class="input">6:00 PM</div>
+				<div class="form-grid">
+					<div class="field">
+						<div class="labelrow"><label for="to1">Facility opens / first staff arrives (TO₁)</label><span class="req">Required</span></div>
+						<input class="input" id="to1" name="to1" type="time" value="{{ contact_hours_form.to1 }}">
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="to2">Facility closes / last staff leaves (TO₂)</label><span class="req">Required</span></div>
+						<input class="input" id="to2" name="to2" type="time" value="{{ contact_hours_form.to2 }}">
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="ta">Total teaching / caregiving staff (TA)</label><span class="req">Required</span></div>
+						<input class="input" id="ta" name="ta" type="number" min="0" step="1" inputmode="numeric" value="{{ contact_hours_form.ta }}">
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="nc">Children on maximum enrollment day (NC)</label><span class="req">Required</span></div>
+						<input class="input" id="nc" name="nc" type="number" min="0" step="1" inputmode="numeric" value="{{ contact_hours_form.nc }}">
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="th1">Last child arrives (TH₁)</label><span class="req">Required</span></div>
+						<input class="input" id="th1" name="th1" type="time" value="{{ contact_hours_form.th1 }}">
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="th2">First child leaves (TH₂)</label><span class="req">Required</span></div>
+						<input class="input" id="th2" name="th2" type="time" value="{{ contact_hours_form.th2 }}">
+					</div>
 				</div>
-				<div class="field">
-					<div class="labelrow"><label>Total teaching / caregiving staff (TA)</label><span class="req">Required</span></div>
-					<div class="input">8</div>
+				<div class="derived">
+					<div><span>Operating duration (TO)</span><strong id="operating-duration-value">--</strong><small id="operating-duration-subtext">TO₂ - TO₁</small></div>
+					<div><span>Full enrollment duration (TH)</span><strong id="full-enrollment-duration-value">--</strong><small id="full-enrollment-duration-subtext">TH₂ - TH₁</small></div>
 				</div>
-				<div class="field">
-					<div class="labelrow"><label>Children on maximum enrollment day (NC)</label><span class="req">Required</span></div>
-					<div class="input">42</div>
+				<div class="section-rule"></div>
+				<h3>Reference and model selection</h3>
+				<div class="form-grid">
+					<div class="field">
+						<div class="labelrow"><label for="density-model">Density model</label><span class="req">Required</span></div>
+						<input class="input" id="density-model" name="density_model" type="text" value="{{ contact_hours_form.density_model }}">
+						<div class="hint">Standard for staggered arrivals and departures.</div>
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="required-ratio">Legally required adult-child ratio</label><span class="req">Required</span></div>
+						<input class="input" id="required-ratio" name="required_ratio" type="text" value="{{ contact_hours_form.required_ratio }}">
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="ratio-source">Ratio source</label><span class="req">Required</span></div>
+						<input class="input" id="ratio-source" name="ratio_source" type="text" value="{{ contact_hours_form.ratio_source }}">
+						<div class="hint">Citation, policy table, or agency-approved reference.</div>
+					</div>
+					<div class="field">
+						<div class="labelrow"><label for="rwch-reference">RWCH reference value</label><span class="req">Required</span></div>
+						<input class="input" id="rwch-reference" name="rwch_reference" type="number" min="0" step="any" inputmode="decimal" value="{{ contact_hours_form.rwch_reference }}">
+						<div class="hint">Demonstration value only; replace with an approved conversion-table lookup.</div>
+					</div>
 				</div>
-				<div class="field">
-					<div class="labelrow"><label>Last child arrives (TH₁)</label><span class="req">Required</span></div>
-					<div class="input">9:00 AM</div>
+			</section>
+			<aside class="side-stack">
+				<div class="card formula-card">
+					<h3>Formula preview</h3>
+					<div class="formula">CH = NC × (TO + TH)<br /><span>──────────────</span><br />2 × TA</div>
+					<div class="formula-values" id="formula-values">--</div>
+					<div class="formula-result"><span>Calculated CH</span><strong id="calculated-ch-value">--</strong></div>
+					<div class="compare danger" id="rwch-compare"><span>Reference RWCH</span><strong id="rwch-reference-value">--</strong><small id="rwch-compare-note">Enter values to compare the formula result against the reference.</small></div>
+					<p class="tiny">Prototype formula display follows the supplied scoring summary. Statistical validation and unit interpretation require review.</p>
 				</div>
-				<div class="field">
-					<div class="labelrow"><label>First child leaves (TH₂)</label><span class="req">Required</span></div>
-					<div class="input">4:30 PM</div>
+				<div class="card">
+					<h3>Why this model?</h3>
+					<p class="muted">Arrivals and departures are staggered, and the program reaches a sustained full-enrollment period. The trapezoidal model is therefore selected.</p><button class="linkbtn" type="button" data-href="{{ url_for('screen', screen_id='calculation-review') }}">Change rationale</button>
 				</div>
-			</div>
-			<div class="derived">
-				<div><span>Operating duration (TO)</span><strong>11.0 hours</strong><small>6:00 PM - 7:00 AM</small></div>
-				<div><span>Full enrollment duration (TH)</span><strong>7.5 hours</strong><small>4:30 PM - 9:00 AM</small></div>
-			</div>
-			<div class="section-rule"></div>
-			<h3>Reference and model selection</h3>
-			<div class="form-grid">
-				<div class="field">
-					<div class="labelrow"><label>Density model</label><span class="req">Required</span></div>
-					<div class="input">Trapezoidal</div>
-					<div class="hint">Standard for staggered arrivals and departures.</div>
-				</div>
-				<div class="field">
-					<div class="labelrow"><label>Legally required adult-child ratio</label><span class="req">Required</span></div>
-					<div class="input">1 adult : 10 children</div>
-				</div>
-				<div class="field">
-					<div class="labelrow"><label>Ratio source</label><span class="req">Required</span></div>
-					<div class="input">WAC 110-300-0355</div>
-					<div class="hint">Citation, policy table, or agency-approved reference.</div>
-				</div>
-				<div class="field">
-					<div class="labelrow"><label>RWCH reference value</label><span class="req">Required</span></div>
-					<div class="input">46.00 (illustrative)</div>
-					<div class="hint">Demonstration value only; replace with an approved conversion-table lookup.</div>
-				</div>
-			</div>
-		</section>
-		<aside class="side-stack">
-			<div class="card formula-card">
-				<h3>Formula preview</h3>
-				<div class="formula">CH = NC × (TO + TH)<br /><span>──────────────</span><br />2 × TA</div>
-				<div class="formula-values">42 × (11.0 + 7.5) / (2 × 8)</div>
-				<div class="formula-result"><span>Calculated CH</span><strong>48.56</strong></div>
-				<div class="compare danger"><span>Reference RWCH</span><strong>46.00</strong><small>Illustrative result exceeds reference</small></div>
-				<p class="tiny">Prototype formula display follows the supplied scoring summary. Statistical validation and unit interpretation require review.</p>
-			</div>
-			<div class="card">
-				<h3>Why this model?</h3>
-				<p class="muted">Arrivals and departures are staggered, and the program reaches a sustained full-enrollment period. The trapezoidal model is therefore selected.</p><button class="linkbtn" type="button" data-href="{{ url_for('screen', screen_id='calculation-review') }}">Change rationale</button>
-			</div>
-		</aside>
-	</div>
+			</aside>
+		</div>
 
-	<div class="sticky-actions">
-		<button class="button secondary" type="button" data-href="{{ url_for('screen', screen_id='assessment-progress') }}">Back to progress</button>
-		<div><span class="save-indicator">Autosaved 8:41 AM</span><button class="button secondary" type="button">Save draft</button><button class="button primary" type="button" data-href="{{ url_for('screen', screen_id='pqi-findings-entry') }}">Continue to PQI findings</button></div>
-	</div>
+		<div class="sticky-actions">
+			<button class="button secondary" type="button" data-href="{{ url_for('screen', screen_id='assessment-progress') }}">Back to progress</button>
+			<div><span class="save-indicator" id="contact-hours-save-state">{{ save_indicator_label }}</span><button class="button secondary" id="save-contact-hours-draft" type="button">Save draft</button><button class="button primary" type="button" data-href="{{ url_for('screen', screen_id='pqi-findings-entry') }}">Continue to PQI findings</button></div>
+		</div>
+	</form>
 </div>
 
 <script>
 (() => {
 	const buttons = document.querySelectorAll('.structural-entry-page [data-href]');
+	const form = document.getElementById('contact-hours-form');
+	const saveButton = document.getElementById('save-contact-hours-draft');
+	const saveState = document.getElementById('contact-hours-save-state');
+	const assessmentIdInput = document.getElementById('assessment-id');
+	const operatingDurationValue = document.getElementById('operating-duration-value');
+	const operatingDurationSubtext = document.getElementById('operating-duration-subtext');
+	const fullEnrollmentDurationValue = document.getElementById('full-enrollment-duration-value');
+	const fullEnrollmentDurationSubtext = document.getElementById('full-enrollment-duration-subtext');
+	const formulaValues = document.getElementById('formula-values');
+	const calculatedChValue = document.getElementById('calculated-ch-value');
+	const rwchReferenceValue = document.getElementById('rwch-reference-value');
+	const rwchCompareNote = document.getElementById('rwch-compare-note');
+	const fieldIds = ['to1', 'to2', 'ta', 'nc', 'th1', 'th2', 'density-model', 'required-ratio', 'ratio-source', 'rwch-reference'];
+	const fieldElements = Object.fromEntries(fieldIds.map((fieldId) => [fieldId, document.getElementById(fieldId)]));
+
+	if (!form || !saveButton || !saveState || !assessmentIdInput || !operatingDurationValue || !operatingDurationSubtext || !fullEnrollmentDurationValue || !fullEnrollmentDurationSubtext || !formulaValues || !calculatedChValue || !rwchReferenceValue || !rwchCompareNote) {
+		buttons.forEach((button) => {
+			button.addEventListener('click', () => {
+				window.location.href = button.dataset.href;
+			});
+		});
+		return;
+	}
+
+	const parseTimeValue = (value) => {
+		if (!value) {
+			return null;
+		}
+
+		const match = /^(\d{2}):(\d{2})$/.exec(value);
+		if (!match) {
+			return null;
+		}
+
+		const hours = Number(match[1]);
+		const minutes = Number(match[2]);
+		if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours > 23 || minutes > 59) {
+			return null;
+		}
+
+		return (hours * 60) + minutes;
+	};
+
+	const formatTimeLabel = (value) => {
+		const minutes = parseTimeValue(value);
+		if (minutes === null) {
+			return '--';
+		}
+
+		const hours24 = Math.floor(minutes / 60);
+		const minutePart = String(minutes % 60).padStart(2, '0');
+		const period = hours24 >= 12 ? 'PM' : 'AM';
+		const displayHours = hours24 % 12 || 12;
+		return `${displayHours}:${minutePart} ${period}`;
+	};
+
+	const formatDuration = (hours) => hours === null ? '--' : `${hours.toFixed(1)} hours`;
+	const formatDecimal = (value, digits = 2) => value === null ? '--' : value.toFixed(digits);
+
+	const readNumberField = (field) => {
+		if (!field || field.value.trim() === '') {
+			return null;
+		}
+
+		const numericValue = Number(field.value);
+		return Number.isFinite(numericValue) ? numericValue : null;
+	};
+
+	const getContactHoursPayload = () => {
+		const operatingStart = parseTimeValue(fieldElements.to1?.value || '');
+		const operatingEnd = parseTimeValue(fieldElements.to2?.value || '');
+		const enrollmentStart = parseTimeValue(fieldElements.th1?.value || '');
+		const enrollmentEnd = parseTimeValue(fieldElements.th2?.value || '');
+		const taValue = readNumberField(fieldElements.ta);
+		const ncValue = readNumberField(fieldElements.nc);
+		const rwchReference = readNumberField(fieldElements['rwch-reference']);
+		const operatingDurationMinutes = operatingStart !== null && operatingEnd !== null && operatingEnd > operatingStart ? operatingEnd - operatingStart : null;
+		const fullEnrollmentDurationMinutes = enrollmentStart !== null && enrollmentEnd !== null && enrollmentEnd > enrollmentStart ? enrollmentEnd - enrollmentStart : null;
+		const operatingHours = operatingDurationMinutes === null ? null : operatingDurationMinutes / 60;
+		const fullEnrollmentHours = fullEnrollmentDurationMinutes === null ? null : fullEnrollmentDurationMinutes / 60;
+		const calculatedCh = operatingHours === null || fullEnrollmentHours === null || taValue === null || ncValue === null || taValue <= 0
+			? null
+			: (ncValue * (operatingHours + fullEnrollmentHours)) / (2 * taValue);
+
+		return {
+			operatingHours,
+			fullEnrollmentHours,
+			calculatedCh,
+			payload: {
+				assessment_id: assessmentIdInput.value || null,
+				contact_hours: {
+					to1: fieldElements.to1?.value || '',
+					to2: fieldElements.to2?.value || '',
+					ta: taValue,
+					nc: ncValue,
+					th1: fieldElements.th1?.value || '',
+					th2: fieldElements.th2?.value || '',
+					density_model: fieldElements['density-model']?.value.trim() || '',
+					required_ratio: fieldElements['required-ratio']?.value.trim() || '',
+					ratio_source: fieldElements['ratio-source']?.value.trim() || '',
+					rwch_reference: rwchReference,
+					calculated_ch: calculatedCh,
+				},
+			},
+		};
+	};
+
+	const updateView = () => {
+		const { operatingHours, fullEnrollmentHours, calculatedCh, payload } = getContactHoursPayload();
+		const operatingStartLabel = formatTimeLabel(fieldElements.to1?.value || '');
+		const operatingEndLabel = formatTimeLabel(fieldElements.to2?.value || '');
+		const enrollmentStartLabel = formatTimeLabel(fieldElements.th1?.value || '');
+		const enrollmentEndLabel = formatTimeLabel(fieldElements.th2?.value || '');
+		const taValue = payload.contact_hours.ta;
+		const ncValue = payload.contact_hours.nc;
+		const rwchReference = payload.contact_hours.rwch_reference;
+
+		operatingDurationValue.textContent = formatDuration(operatingHours);
+		operatingDurationSubtext.textContent = operatingHours === null ? 'TO₂ - TO₁' : `${operatingEndLabel} - ${operatingStartLabel}`;
+		fullEnrollmentDurationValue.textContent = formatDuration(fullEnrollmentHours);
+		fullEnrollmentDurationSubtext.textContent = fullEnrollmentHours === null ? 'TH₂ - TH₁' : `${enrollmentEndLabel} - ${enrollmentStartLabel}`;
+		formulaValues.textContent = calculatedCh === null || taValue === null || ncValue === null || operatingHours === null || fullEnrollmentHours === null
+			? '--'
+			: `${formatDecimal(ncValue, 2)} × (${formatDecimal(operatingHours, 1)} + ${formatDecimal(fullEnrollmentHours, 1)}) / (2 × ${formatDecimal(taValue, 2)})`;
+		calculatedChValue.textContent = formatDecimal(calculatedCh, 2);
+		rwchReferenceValue.textContent = formatDecimal(rwchReference, 2);
+
+		if (calculatedCh !== null && rwchReference !== null) {
+			if (calculatedCh > rwchReference) {
+				rwchCompareNote.textContent = 'Calculated result exceeds the reference value.';
+			} else if (calculatedCh < rwchReference) {
+				rwchCompareNote.textContent = 'Calculated result is below the reference value.';
+			} else {
+				rwchCompareNote.textContent = 'Calculated result matches the reference value.';
+			}
+		} else {
+			rwchCompareNote.textContent = 'Enter values to compare the formula result against the reference.';
+		}
+
+		return payload;
+	};
 
 	buttons.forEach((button) => {
 		button.addEventListener('click', () => {
 			window.location.href = button.dataset.href;
 		});
 	});
+
+	saveButton.addEventListener('click', async () => {
+		const payload = updateView();
+		saveState.textContent = 'Saving draft...';
+
+		try {
+			const response = await fetch('/api/assessments/contact-hours', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+
+			if (!response.ok) {
+				throw new Error('Contact hours save failed');
+			}
+
+			saveState.textContent = 'Draft saved';
+		} catch (error) {
+			saveState.textContent = 'Draft save unavailable';
+		}
+	});
+
+	Object.values(fieldElements).forEach((field) => {
+		if (!field) {
+			return;
+		}
+
+		field.addEventListener('input', updateView);
+		field.addEventListener('change', updateView);
+	});
+
+	updateView();
 })();
 </script>

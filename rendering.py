@@ -7,6 +7,7 @@ from constants import NAV_BY_SCREEN, PARTIALS_DIR, PQI1_BAND_MAPPING, SCREENS_DI
 from services.screen_contexts import (
     build_assessment_list_context,
     build_assessment_progress_context,
+    build_contact_hours_context,
     build_dashboard_context,
     build_duplicate_warning_html,
     build_facility_identification_context,
@@ -41,6 +42,8 @@ def render_screen_section(screen_id: str) -> str:
         content = render_template_string(content, **build_assessment_list_context())
     elif screen_id == "pqi-findings-entry":
         content = render_template_string(content)
+    elif screen_id == "ch-structural-entry":
+        content = render_template_string(content, **build_contact_hours_context())
     elif screen_id == "new-assessment":
         content = render_template_string(content, **build_new_assessment_context())
     elif screen_id == "assessment-progress":

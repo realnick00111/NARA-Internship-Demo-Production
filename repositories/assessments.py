@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 from db import get_db_connection, log_storage_event
@@ -18,6 +19,8 @@ ASSESSMENT_ROW_SELECT = """
         COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
         a.external_case_number,
         a.external_inspection_id,
+        COALESCE(NULLIF(trim(a.contact_hours), ''), '{}') AS contact_hours,
+        COALESCE(NULLIF(trim(a.pqi_findings), ''), '{}') AS pqi_findings,
         a.created_at,
         a.modified_at,
         COALESCE(NULLIF(trim(f.name), ''), a.assessment_name) AS facility_name,
@@ -37,6 +40,23 @@ ASSESSMENT_ROW_SELECT = """
 
 def _clean_text(value: object, default: str = "") -> str:
     return str(value if value is not None else default).strip()
+
+
+def _json_text(value: object, default: object) -> str:
+    if value is None:
+        return json.dumps(default)
+
+    if isinstance(value, str):
+        cleaned_value = value.strip()
+        if not cleaned_value:
+            return json.dumps(default)
+        try:
+            parsed_value = json.loads(cleaned_value)
+        except json.JSONDecodeError:
+            return json.dumps(default)
+        return json.dumps(parsed_value)
+
+    return json.dumps(value)
 
 
 def _facility_fields_from_payload(fields: dict) -> dict[str, str]:
@@ -66,6 +86,16 @@ def _assessment_fields_from_payload(fields: dict) -> dict[str, str | None]:
         "status": _clean_text(fields.get("status"), "not implemented") or "not implemented",
         "external_case_number": _clean_text(fields.get("external_case_number")) or None,
         "external_inspection_id": _clean_text(fields.get("external_inspection_id")) or None,
+    }
+
+
+def _json_fields_from_payload(fields: dict, existing_row: sqlite3.Row | None = None) -> dict[str, str]:
+    existing_values = dict(existing_row) if existing_row is not None else {}
+    contact_hours_value = fields.get("contact_hours", existing_values.get("contact_hours", {}))
+    pqi_findings_value = fields.get("pqi_findings", existing_values.get("pqi_findings", {}))
+    return {
+        "contact_hours": _json_text(contact_hours_value, {}),
+        "pqi_findings": _json_text(pqi_findings_value, {}),
     }
 
 
@@ -180,6 +210,7 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
         existing_row = _fetch_assessment_row(conn, int(assessment_id)) if assessment_id is not None else None
         facility_id = _upsert_facility(conn, fields, int(existing_row["facility_id"]) if existing_row and existing_row["facility_id"] is not None else None)
         assessment_fields = _assessment_fields_from_payload(fields)
+        json_fields = _json_fields_from_payload(fields, existing_row)
 
         if existing_row is not None:
             conn.execute(
@@ -197,6 +228,8 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                     status = ?,
                     external_case_number = ?,
                     external_inspection_id = ?,
+                    contact_hours = ?,
+                    pqi_findings = ?,
                     modified_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
@@ -212,6 +245,8 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                     assessment_fields["status"],
                     assessment_fields["external_case_number"],
                     assessment_fields["external_inspection_id"],
+                    json_fields["contact_hours"],
+                    json_fields["pqi_findings"],
                     assessment_id,
                 ),
             )
@@ -232,8 +267,10 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                 assessor,
                 status,
                 external_case_number,
-                external_inspection_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                external_inspection_id,
+                contact_hours,
+                pqi_findings
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 assessment_fields["assessment_name"],
@@ -247,12 +284,54 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                 assessment_fields["status"],
                 assessment_fields["external_case_number"],
                 assessment_fields["external_inspection_id"],
+                json_fields["contact_hours"],
+                json_fields["pqi_findings"],
             ),
         )
         conn.commit()
         new_assessment_id = int(cursor.lastrowid)
         log_storage_event(f"Created assessment {new_assessment_id}: {fields}")
         return new_assessment_id
+    finally:
+        conn.close()
+
+
+def update_assessment_json_fields(
+    assessment_id: int,
+    *,
+    contact_hours: object | None = None,
+    pqi_findings: object | None = None,
+) -> None:
+    updates: list[str] = []
+    values: list[object] = []
+
+    if contact_hours is not None:
+        updates.append("contact_hours = ?")
+        values.append(_json_text(contact_hours, {}))
+
+    if pqi_findings is not None:
+        updates.append("pqi_findings = ?")
+        values.append(_json_text(pqi_findings, {}))
+
+    if not updates:
+        return
+
+    conn = get_db_connection()
+    try:
+        existing_row = _fetch_assessment_row(conn, int(assessment_id))
+        if existing_row is None:
+            raise ValueError(f"Assessment {assessment_id} not found")
+
+        conn.execute(
+            f"""
+            UPDATE assessments
+            SET {', '.join(updates)}, modified_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            [*values, assessment_id],
+        )
+        conn.commit()
+        log_storage_event(f"Updated assessment {assessment_id} JSON fields: {', '.join(name.split(' = ')[0] for name in updates)}")
     finally:
         conn.close()
 

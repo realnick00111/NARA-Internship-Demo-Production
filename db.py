@@ -21,6 +21,13 @@ def _get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
     return {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()}
 
 
+def _add_missing_columns(conn: sqlite3.Connection, table_name: str, column_definitions: dict[str, str]) -> None:
+    existing_columns = _get_table_columns(conn, table_name)
+    for column_name, column_sql in column_definitions.items():
+        if column_name not in existing_columns:
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}")
+
+
 def _reset_storage_schema(conn: sqlite3.Connection) -> None:
     conn.execute("DROP TABLE IF EXISTS assessments")
     conn.execute("DROP TABLE IF EXISTS facilities")
@@ -53,6 +60,8 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
         "status",
         "external_case_number",
         "external_inspection_id",
+        "contact_hours",
+        "pqi_findings",
         "created_at",
         "modified_at",
     }
@@ -61,16 +70,6 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
         row["name"]
         for row in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
     }
-
-    needs_reset = False
-    if "facilities" in existing_tables and _get_table_columns(conn, "facilities") != expected_facility_columns:
-        needs_reset = True
-    if "assessments" in existing_tables and _get_table_columns(conn, "assessments") != expected_assessment_columns:
-        needs_reset = True
-
-    if needs_reset:
-        _reset_storage_schema(conn)
-        log_storage_event("Reset storage schema to split facilities and assessments tables")
 
     conn.execute(
         """
@@ -104,13 +103,25 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
             status TEXT NOT NULL DEFAULT 'not implemented',
             external_case_number TEXT,
             external_inspection_id TEXT,
+            contact_hours TEXT NOT NULL DEFAULT '{}',
+            pqi_findings TEXT NOT NULL DEFAULT '{}',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             modified_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
 
-    if needs_reset or "facilities" not in existing_tables or "assessments" not in existing_tables:
+    if "assessments" in existing_tables:
+        _add_missing_columns(
+            conn,
+            "assessments",
+            {
+                "contact_hours": "TEXT NOT NULL DEFAULT '{}'",
+                "pqi_findings": "TEXT NOT NULL DEFAULT '{}'",
+            },
+        )
+
+    if "facilities" not in existing_tables or "assessments" not in existing_tables:
         log_storage_event("Ensured split facilities and assessments tables exist")
 
     conn.execute(

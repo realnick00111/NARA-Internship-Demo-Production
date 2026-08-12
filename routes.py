@@ -2,7 +2,12 @@ from flask import Flask, abort, jsonify, redirect, request, url_for
 
 from db import log_storage_event
 from rendering import render_page
-from repositories.assessments import delete_assessments_by_ids, get_assessment_row_by_id, upsert_assessment_fields
+from repositories.assessments import (
+    delete_assessments_by_ids,
+    get_assessment_row_by_id,
+    update_assessment_json_fields,
+    upsert_assessment_fields,
+)
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
 from session_state import clear_current_assessment, get_current_assessment, set_current_assessment
 
@@ -54,6 +59,32 @@ def register_routes(app: Flask) -> None:
             return jsonify({"status": "success", "message": "Draft saved successfully!"})
 
         return jsonify({"status": "error", "message": "No draft data provided"}), 400
+
+    @app.route("/api/assessments/contact-hours", methods=["POST"])
+    def save_contact_hours_draft_api():
+        payload = request.get_json(silent=True) or {}
+        contact_hours = payload.get("contact_hours")
+        pqi_findings = payload.get("pqi_findings")
+
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+
+        if not isinstance(contact_hours, dict):
+            return jsonify({"status": "error", "message": "contact_hours must be an object"}), 400
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                contact_hours=contact_hours,
+                pqi_findings=pqi_findings if isinstance(pqi_findings, dict) else None,
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify({"status": "success", "message": "Contact hours saved successfully!", "assessment_id": normalized_assessment_id})
 
     @app.route("/api/assessments/delete", methods=["POST"])
     def delete_assessments():

@@ -1,3 +1,5 @@
+import json
+
 from flask import request, url_for
 from markupsafe import Markup, escape
 
@@ -30,6 +32,59 @@ def get_current_assessment_row() -> dict | None:
     if assessment_id is None:
         return None
     return get_assessment_row_by_id(int(assessment_id))
+
+
+def _load_json_object(raw_value: object, default: dict) -> dict:
+    if isinstance(raw_value, dict):
+        return raw_value
+
+    if raw_value is None:
+        return dict(default)
+
+    cleaned_value = str(raw_value).strip()
+    if not cleaned_value:
+        return dict(default)
+
+    try:
+        parsed_value = json.loads(cleaned_value)
+    except json.JSONDecodeError:
+        return dict(default)
+
+    return parsed_value if isinstance(parsed_value, dict) else dict(default)
+
+
+def build_contact_hours_context() -> dict:
+    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+
+    contact_hours_form = {
+        "to1": "",
+        "to2": "",
+        "ta": "",
+        "nc": "",
+        "th1": "",
+        "th2": "",
+        "density_model": "",
+        "required_ratio": "",
+        "ratio_source": "",
+        "rwch_reference": "",
+        "calculated_ch": "",
+    }
+
+    if assessment_row is not None:
+        saved_contact_hours = _load_json_object(assessment_row["contact_hours"], {})
+        for key in contact_hours_form:
+            value = saved_contact_hours.get(key, "")
+            contact_hours_form[key] = "" if value is None else str(value)
+
+    assessment_id = assessment_row["id"] if assessment_row is not None else None
+    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "ASMT-not implemented"
+
+    return {
+        "assessment_code": assessment_code,
+        "editing_assessment_id": assessment_id,
+        "contact_hours_form": contact_hours_form,
+        "save_indicator_label": f"Autosaved {format_timestamp_label(assessment_row['modified_at'])}" if assessment_row is not None else "Autosaved --",
+    }
 
 
 def _normalize_facility_type(value: object) -> str:
