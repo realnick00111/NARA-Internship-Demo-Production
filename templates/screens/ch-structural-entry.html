@@ -1,25 +1,113 @@
-<div class="page-header">
-	<div>
-		<div class="eyebrow">Structural evidence</div>
-		<h1>CH Structural Entry</h1>
-		<p>Capture the structural observations that support the record and flag any items that need escalation.</p>
+<div class="structural-entry-page">
+	<div class="page-header">
+		<div>
+			<div class="eyebrow">{{ assessment_code }}</div>
+			<h1>CH Structural Entry</h1>
+		</div>
+		<div class="head-actions"></div>
 	</div>
-	<div class="action-row"><button class="button secondary">Save draft</button><button class="button primary">Mark complete</button></div>
+
+	<div class="record-banner">
+		<div>
+			<span>Structural Quality</span>
+			<strong>Contact Hour Calculator</strong>
+			<small>Measures adult-child interaction density across the operating day.</small>
+		</div>
+		<div><span class="chip info">6 inputs</span><span class="chip neutral">2 derived values</span></div>
+	</div>
+
+	<div class="calc-layout">
+		<section class="card form-card">
+			<div class="card-head">
+				<div>
+					<h2>Contact Hour inputs</h2>
+					<p>Enter times using the facility's local time zone.</p>
+				</div><button class="linkbtn" type="button" data-href="{{ url_for('screen', screen_id='detailed-explanation') }}">View methodology</button>
+			</div>
+			<div class="form-grid">
+				<div class="field">
+					<div class="labelrow"><label>Facility opens / first staff arrives (TO₁)</label><span class="req">Required</span></div>
+					<div class="input">7:00 AM</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>Facility closes / last staff leaves (TO₂)</label><span class="req">Required</span></div>
+					<div class="input">6:00 PM</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>Total teaching / caregiving staff (TA)</label><span class="req">Required</span></div>
+					<div class="input">8</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>Children on maximum enrollment day (NC)</label><span class="req">Required</span></div>
+					<div class="input">42</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>Last child arrives (TH₁)</label><span class="req">Required</span></div>
+					<div class="input">9:00 AM</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>First child leaves (TH₂)</label><span class="req">Required</span></div>
+					<div class="input">4:30 PM</div>
+				</div>
+			</div>
+			<div class="derived">
+				<div><span>Operating duration (TO)</span><strong>11.0 hours</strong><small>6:00 PM - 7:00 AM</small></div>
+				<div><span>Full enrollment duration (TH)</span><strong>7.5 hours</strong><small>4:30 PM - 9:00 AM</small></div>
+			</div>
+			<div class="section-rule"></div>
+			<h3>Reference and model selection</h3>
+			<div class="form-grid">
+				<div class="field">
+					<div class="labelrow"><label>Density model</label><span class="req">Required</span></div>
+					<div class="input">Trapezoidal</div>
+					<div class="hint">Standard for staggered arrivals and departures.</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>Legally required adult-child ratio</label><span class="req">Required</span></div>
+					<div class="input">1 adult : 10 children</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>Ratio source</label><span class="req">Required</span></div>
+					<div class="input">WAC 110-300-0355</div>
+					<div class="hint">Citation, policy table, or agency-approved reference.</div>
+				</div>
+				<div class="field">
+					<div class="labelrow"><label>RWCH reference value</label><span class="req">Required</span></div>
+					<div class="input">46.00 (illustrative)</div>
+					<div class="hint">Demonstration value only; replace with an approved conversion-table lookup.</div>
+				</div>
+			</div>
+		</section>
+		<aside class="side-stack">
+			<div class="card formula-card">
+				<h3>Formula preview</h3>
+				<div class="formula">CH = NC × (TO + TH)<br /><span>──────────────</span><br />2 × TA</div>
+				<div class="formula-values">42 × (11.0 + 7.5) / (2 × 8)</div>
+				<div class="formula-result"><span>Calculated CH</span><strong>48.56</strong></div>
+				<div class="compare danger"><span>Reference RWCH</span><strong>46.00</strong><small>Illustrative result exceeds reference</small></div>
+				<p class="tiny">Prototype formula display follows the supplied scoring summary. Statistical validation and unit interpretation require review.</p>
+			</div>
+			<div class="card">
+				<h3>Why this model?</h3>
+				<p class="muted">Arrivals and departures are staggered, and the program reaches a sustained full-enrollment period. The trapezoidal model is therefore selected.</p><button class="linkbtn" type="button" data-href="{{ url_for('screen', screen_id='calculation-review') }}">Change rationale</button>
+			</div>
+		</aside>
+	</div>
+
+	<div class="sticky-actions">
+		<button class="button secondary" type="button" data-href="{{ url_for('screen', screen_id='assessment-progress') }}">Back to progress</button>
+		<div><span class="save-indicator">Autosaved 8:41 AM</span><button class="button secondary" type="button">Save draft</button><button class="button primary" type="button" data-href="{{ url_for('screen', screen_id='pqi-findings-entry') }}">Continue to PQI findings</button></div>
+	</div>
 </div>
 
-<div class="split">
-	<section class="panel">
-		<div class="panel-head"><div><h2>Observation details</h2><p>Enter the current structural finding.</p></div></div>
-		<div class="grid two">
-			<label class="field"><span class="label">Observation area</span><div class="select">Play yard north boundary</div></label>
-			<label class="field"><span class="label">Finding type</span><div class="select">Barrier and gate condition</div></label>
-			<label class="field"><span class="label">Severity</span><div class="select">Moderate</div></label>
-			<label class="field"><span class="label">Evidence status</span><div class="select">Photo and note attached</div></label>
-		</div>
-		<div class="field" style="margin-top:14px"><span class="label">Narrative</span><textarea class="textarea">Gate latch is secure but the surrounding hardware shows noticeable wear and should be rechecked during follow-up.</textarea></div>
-	</section>
-	<aside class="stack">
-		<div class="panel"><div class="panel-head"><div><h3>Open items</h3><p>Items that still need action.</p></div></div><div class="stack"><div class="chip warning">Follow-up needed</div><div class="chip info">Photo reference linked</div><div class="chip neutral">No immediate hazard</div></div></div>
-		<div class="panel"><div class="panel-head"><div><h3>Next section</h3><p>Move on to findings entry.</p></div></div><button class="button primary block">Open PQI findings entry</button></div>
-	</aside>
-</div>
+<script>
+(() => {
+	const buttons = document.querySelectorAll('.structural-entry-page [data-href]');
+
+	buttons.forEach((button) => {
+		button.addEventListener('click', () => {
+			window.location.href = button.dataset.href;
+		});
+	});
+})();
+</script>

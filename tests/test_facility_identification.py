@@ -98,9 +98,25 @@ class FacilityIdentificationTests(unittest.TestCase):
             rendered = app.view_functions["screen"]("facility-identification")
 
         self.assertIn('type="date"', rendered)
+        self.assertIn('<select class="select" id="facility-type" name="facility_type">', rendered)
+        self.assertIn('<option value="Mixed Age" selected>Mixed Age</option>', rendered)
+        self.assertIn('<option value="Preschool">Preschool</option>', rendered)
+        self.assertIn('<option value="Infant-Toddler">Infant-Toddler</option>', rendered)
         self.assertIn('value="2026-04-12"', rendered)
         self.assertIn('Ada Lovelace', rendered)
         self.assertIn('Sunrise Learning Center', rendered)
+
+    def test_new_assessment_uses_facility_type_dropdown(self):
+        assessment_id = self.insert_assessment()
+
+        with app.test_request_context("/"):
+            set_current_assessment(assessment_id)
+            rendered = app.view_functions["screen"]("new-assessment")
+
+        self.assertIn('<select class="select" id="facility-type" name="facility_type">', rendered)
+        self.assertIn('<option value="Mixed Age" selected>Mixed Age</option>', rendered)
+        self.assertIn('<option value="Preschool">Preschool</option>', rendered)
+        self.assertIn('<option value="Infant-Toddler">Infant-Toddler</option>', rendered)
 
     def test_opening_an_existing_assessment_redirects_to_progress(self):
         assessment_id = self.insert_assessment()
@@ -126,6 +142,19 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('href="/screens/validation-summary"', rendered)
         self.assertIn('href="/screens/pqi3-sample"', rendered)
         self.assertIn('href="/screens/audit-history"', rendered)
+
+    def test_pqi1_screen_renders_calculation_controls(self):
+        response = self.client.get("/screens/pqi1")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("PQI 1", rendered)
+        self.assertIn("Number of ECE III Educators", rendered)
+        self.assertIn('id="ece-iii-certified-count"', rendered)
+        self.assertIn('id="total-teaching-staff-count"', rendered)
+        self.assertIn('More ECE III-certified teaching staff than total staff.', rendered)
+        self.assertIn('id="pqi1-complete-button"', rendered)
+        self.assertIn('disabled', rendered)
 
     def test_save_assignment_draft_populates_facility_name(self):
         draft_payload = {

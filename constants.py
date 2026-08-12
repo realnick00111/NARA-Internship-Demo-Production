@@ -23,6 +23,7 @@ SCREEN_ORDER = [
     "assessment-progress",
     "ch-structural-entry",
     "pqi-findings-entry",
+    "pqi1",
     "pqi3-sample",
     "pqi6-8-hierarchy",
     "pqi9-10-timed",
@@ -47,6 +48,7 @@ NAV_BY_SCREEN = {
     "assessment-progress": "assessments",
     "ch-structural-entry": "assessments",
     "pqi-findings-entry": "assessments",
+    "pqi1": "assessments",
     "pqi3-sample": "assessments",
     "pqi6-8-hierarchy": "assessments",
     "pqi9-10-timed": "assessments",
@@ -68,7 +70,7 @@ ASSESSMENTS_PER_PAGE = 8
 
 DEFAULT_ASSESSMENT_FORM_VALUES = {
     "program": "Child Care Center",
-    "facility_type": "Mixed Age Center",
+    "facility_type": "Mixed Age",
     "inspection_type": "Annual Monitoring Visit",
     "assessment_date": "2026-07-17",
     "visit_date": "2026-07-14",
@@ -83,7 +85,7 @@ DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
     "license_number": "LIC-CC-21884",
     "provider_account_id": "PRV-004198",
     "program_type": "Child Care Center",
-    "facility_type": "Mixed Age Center",
+    "facility_type": "Mixed Age",
     "physical_address": "1250 Cedar Avenue",
     "city_state_postal": "Olympia, WA 98501",
     "region_office": "Region 3 - South Sound",
@@ -95,6 +97,21 @@ DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
     "assigned_primary_inspector": "Jordan Davis",
     "inspector_identifier": "EMP-10482",
     "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
+}
+
+FACILITY_TYPE_OPTIONS = ("Mixed Age", "Preschool", "Infant-Toddler")
+
+FACILITY_TYPE_PQI_MAPPING = {
+    "Mixed Age": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "Preschool": [1, 2, 3, 4, 5, 6, 8, 9, 10],
+    "Infant-Toddler": [1, 2, 3, 4, 5, 7, 9, 10],
+}
+
+PQI1_BAND_MAPPING = {
+    (0, 25): 1,
+    (26, 50): 2,
+    (51, 75): 3,
+    (76, 100): 4,
 }
 
 STATUS_CLASS_MAP = {

@@ -3,6 +3,7 @@ from markupsafe import Markup, escape
 
 from constants import (
     ASSESSMENTS_PER_PAGE,
+    FACILITY_TYPE_OPTIONS,
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
     WORKFLOW_PROGRESS_BY_STATUS,
@@ -29,6 +30,15 @@ def get_current_assessment_row() -> dict | None:
     if assessment_id is None:
         return None
     return get_assessment_row_by_id(int(assessment_id))
+
+
+def _normalize_facility_type(value: object) -> str:
+    cleaned_value = str(value if value is not None else "").strip()
+    if cleaned_value in FACILITY_TYPE_OPTIONS:
+        return cleaned_value
+    if cleaned_value == "Mixed Age Center":
+        return "Mixed Age"
+    return FACILITY_TYPE_OPTIONS[0]
 
 
 def build_assessment_list_context() -> dict:
@@ -123,7 +133,7 @@ def build_new_assessment_context() -> dict:
         assessment_form.update(
             {
                 "program": str(current_assessment["program"] or assessment_form["program"]).strip() or assessment_form["program"],
-                "facility_type": str(current_assessment["facility_type"] or assessment_form["facility_type"]).strip() or assessment_form["facility_type"],
+                "facility_type": _normalize_facility_type(current_assessment["facility_type"] or assessment_form["facility_type"]),
                 "inspection_type": str(current_assessment["inspection_type"] or assessment_form["inspection_type"]).strip() or assessment_form["inspection_type"],
                 "assessment_date": str(current_assessment["assessment_date"] or assessment_form["assessment_date"]).strip() or assessment_form["assessment_date"],
                 "visit_date": str(current_assessment["visit_date"] or assessment_form["visit_date"]).strip() or assessment_form["visit_date"],
@@ -136,6 +146,7 @@ def build_new_assessment_context() -> dict:
     return {
         "assessment_form": assessment_form,
         "editing_assessment_id": current_assessment["id"] if current_assessment is not None else None,
+        "facility_type_options": FACILITY_TYPE_OPTIONS,
     }
 
 
@@ -156,7 +167,7 @@ def build_facility_identification_context() -> dict:
                 "license_number": str(current_assessment["facility_license_number"] or facility_form["license_number"]).strip() or facility_form["license_number"],
                 "provider_account_id": str(current_assessment["provider_id"] or facility_form["provider_account_id"]).strip() or facility_form["provider_account_id"],
                 "program_type": str(current_assessment["program_type"] or current_assessment["program"] or facility_form["program_type"]).strip() or facility_form["program_type"],
-                "facility_type": str(current_assessment["facility_type"] or facility_form["facility_type"]).strip() or facility_form["facility_type"],
+                "facility_type": _normalize_facility_type(current_assessment["facility_type"] or facility_form["facility_type"]),
                 "physical_address": str(current_assessment["physical_address"] or facility_form["physical_address"]).strip() or facility_form["physical_address"],
                 "city_state_postal": str(current_assessment["city_state_postal_code"] or facility_form["city_state_postal"]).strip() or facility_form["city_state_postal"],
                 "region_office": str(current_assessment["region"] or facility_form["region_office"]).strip() or facility_form["region_office"],
@@ -171,6 +182,7 @@ def build_facility_identification_context() -> dict:
     return {
         "facility_form": facility_form,
         "editing_assessment_id": current_assessment["id"] if current_assessment is not None else None,
+        "facility_type_options": FACILITY_TYPE_OPTIONS,
     }
 
 

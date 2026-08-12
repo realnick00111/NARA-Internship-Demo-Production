@@ -3,7 +3,7 @@ from pathlib import Path
 from flask import abort, render_template, render_template_string
 from markupsafe import Markup
 
-from constants import NAV_BY_SCREEN, PARTIALS_DIR, SCREENS_DIR, SCREEN_ORDER, STANDALONE_SCREENS
+from constants import NAV_BY_SCREEN, PARTIALS_DIR, PQI1_BAND_MAPPING, SCREENS_DIR, SCREEN_ORDER, STANDALONE_SCREENS
 from services.screen_contexts import (
     build_assessment_list_context,
     build_assessment_progress_context,
@@ -16,6 +16,13 @@ from services.screen_contexts import (
 
 def read_fragment(fragment_path: Path) -> str:
     return fragment_path.read_text(encoding="utf-8")
+
+
+def build_pqi1_band_rows() -> list[dict[str, int]]:
+    return [
+        {"min": lower_bound, "max": upper_bound, "band": band}
+        for (lower_bound, upper_bound), band in sorted(PQI1_BAND_MAPPING.items(), key=lambda item: item[1])
+    ]
 
 
 def render_screen_section(screen_id: str) -> str:
@@ -32,10 +39,14 @@ def render_screen_section(screen_id: str) -> str:
         content = render_template_string(content, **build_dashboard_context())
     elif screen_id == "assessment-list":
         content = render_template_string(content, **build_assessment_list_context())
+    elif screen_id == "pqi-findings-entry":
+        content = render_template_string(content)
     elif screen_id == "new-assessment":
         content = render_template_string(content, **build_new_assessment_context())
     elif screen_id == "assessment-progress":
         content = render_template_string(content, **build_assessment_progress_context())
+    elif screen_id == "pqi1":
+        content = render_template_string(content, pqi1_band_rows=build_pqi1_band_rows())
 
     if screen_id in STANDALONE_SCREENS:
         inner_html = content
