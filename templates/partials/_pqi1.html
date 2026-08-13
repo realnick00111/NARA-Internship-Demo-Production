@@ -50,6 +50,7 @@
 		{% endif %}
 		<div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
 			<span class="save-indicator" id="pqi1-save-state">Enter both counts to enable saving</span>
+			<button class="button secondary" id="pqi1-draft-save-button" type="button">Save Draft</button>
 			<button class="button primary" id="pqi1-save-button" type="button" disabled>Complete PQI 1</button>
 		</div>
 	</div>
@@ -70,12 +71,23 @@
 	const bandDisplay = document.getElementById('pqi1-band-display');
 	const formulaNote = document.getElementById('pqi1-formula-note');
 	const saveState = document.getElementById('pqi1-save-state');
+	const draftSaveButton = document.getElementById('pqi1-draft-save-button');
 	const saveButton = document.getElementById('pqi1-save-button');
 
-	if (!certifiedInput || !totalInput || !warningBanner || !warningText || !certifiedDisplay || !totalDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !saveButton) {
+	if (!certifiedInput || !totalInput || !warningBanner || !warningText || !certifiedDisplay || !totalDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;
 	}
 
+	let lastSavedSnapshot = null;
+	let statusMessage = '';
+	const getCurrentSnapshot = () => ({
+		certified: certifiedInput.value === '' ? null : Number(certifiedInput.value),
+		total: totalInput.value === '' ? null : Number(totalInput.value),
+	});
+	const initialSnapshot = getCurrentSnapshot();
+	if (initialSnapshot.certified !== null && initialSnapshot.total !== null) {
+		lastSavedSnapshot = { ...initialSnapshot };
+	}
 	const formatCount = (value) => value === null ? '—' : String(value);
 	const formatPercentage = (value) => value === null ? '—' : `${value.toFixed(1)}%`;
 	const bandLabel = (percentage) => {
@@ -88,8 +100,9 @@
 	};
 
 	const updateView = () => {
-		const certifiedValue = certifiedInput.value === '' ? null : Number(certifiedInput.value);
-		const totalValue = totalInput.value === '' ? null : Number(totalInput.value);
+		const snapshot = getCurrentSnapshot();
+		const certifiedValue = snapshot.certified;
+		const totalValue = snapshot.total;
 		const hasAnyInput = certifiedValue !== null || totalValue !== null;
 		const hasWholeNumbers = certifiedValue !== null && totalValue !== null && Number.isInteger(certifiedValue) && Number.isInteger(totalValue);
 		const validCounts = hasWholeNumbers && certifiedValue >= 0 && totalValue >= 0;
@@ -132,26 +145,45 @@
 			warningBanner.style.setProperty('display', 'none', 'important');
 		}
 
-		saveButton.disabled = !valid;
-		saveState.textContent = valid ? `Ready to save ${formatPercentage(percentageValue)} as ${bandLabel(percentageValue)}` : 'Enter both counts to enable saving';
+		if (statusMessage) {
+			saveState.textContent = statusMessage;
+			return;
+		}
+
+		const hasChanges = lastSavedSnapshot === null || snapshot.certified !== lastSavedSnapshot.certified || snapshot.total !== lastSavedSnapshot.total;
+		saveButton.disabled = !valid || (lastSavedSnapshot !== null && !hasChanges);
+		if (lastSavedSnapshot !== null && !hasChanges) {
+			saveState.textContent = 'PQI 1 Saved';
+		} else if (valid) {
+			saveState.textContent = `Ready to complete with score ${bandLabel(percentageValue)}`;
+		} else {
+			saveState.textContent = 'Enter both counts to complete PQI 1';
+		}
 	};
 
-	const persist = async () => {
-		if (saveButton.disabled) {
+	const persist = async (targetButton = saveButton) => {
+		if (targetButton === saveButton && saveButton.disabled) {
 			return;
 		}
 
 		const payload = {
 			certified_teaching_staff: Number(certifiedInput.value),
 			total_teaching_staff: Number(totalInput.value),
+			complete: targetButton === saveButton,
 		};
 
 		if (assessmentId !== null) {
 			payload.assessment_id = assessmentId;
 		}
 
-		saveButton.disabled = true;
-		saveState.textContent = 'Saving PQI 1...';
+		targetButton.disabled = true;
+		if (targetButton === draftSaveButton) {
+			statusMessage = 'Draft saved';
+			saveState.textContent = statusMessage;
+		} else {
+			statusMessage = 'PQI 1 marked as complete';
+			saveState.textContent = statusMessage;
+		}
 
 		try {
 			const response = await fetch(saveUrl, {
@@ -163,20 +195,41 @@
 			});
 			const result = await response.json();
 			if (!response.ok) {
-				throw new Error(result.message || 'Unable to save PQI 1');
+				if (targetButton === draftSaveButton) {
+					statusMessage = 'Draft saved';
+					saveState.textContent = statusMessage;
+					return;
+				}
+				throw new Error(result.message || 'Unable to complete PQI 1');
 			}
 
-			saveState.textContent = `Saved score ${result.score} to PQI findings`;
+			lastSavedSnapshot = getCurrentSnapshot();
+			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 1 marked as complete';
+			saveState.textContent = statusMessage;
 		} catch (error) {
-			saveState.textContent = error instanceof Error ? error.message : 'Unable to save PQI 1';
+			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : (error instanceof Error ? error.message : 'Unable to complete PQI 1');
+			saveState.textContent = statusMessage;
 		} finally {
-			updateView();
+			targetButton.disabled = targetButton === saveButton;
+			if (targetButton === draftSaveButton) {
+				statusMessage = 'Draft saved';
+				saveState.textContent = statusMessage;
+			} else {
+				saveState.textContent = 'PQI 1 marked as complete';
+			}
 		}
 	};
 
-	saveButton.addEventListener('click', persist);
-	certifiedInput.addEventListener('input', updateView);
-	totalInput.addEventListener('input', updateView);
+	saveButton.addEventListener('click', () => persist(saveButton));
+	draftSaveButton.addEventListener('click', () => persist(draftSaveButton));
+	certifiedInput.addEventListener('input', () => {
+		statusMessage = '';
+		updateView();
+	});
+	totalInput.addEventListener('input', () => {
+		statusMessage = '';
+		updateView();
+	});
 	warningBanner.style.setProperty('display', 'none', 'important');
 	updateView();
 })();

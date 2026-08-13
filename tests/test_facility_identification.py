@@ -154,6 +154,8 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="ece-iii-certified-count"', rendered)
         self.assertIn('id="total-teaching-staff-count"', rendered)
         self.assertIn('More ECE III-certified teaching staff than total staff.', rendered)
+        self.assertIn('id="pqi1-draft-save-button"', rendered)
+        self.assertIn('Save Draft', rendered)
         self.assertIn('id="pqi1-save-button"', rendered)
         self.assertIn('disabled', rendered)
 
@@ -168,7 +170,8 @@ class FacilityIdentificationTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="pqi1-card"', rendered)
-        self.assertIn('href="#pqi1-card"', rendered)
+        self.assertIn('href="#pqi-1"', rendered)
+        self.assertIn('id="pqi1-draft-save-button"', rendered)
         self.assertIn('id="pqi1-save-button"', rendered)
 
     def test_save_pqi1_persists_nested_json(self):

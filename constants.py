@@ -107,7 +107,7 @@ FACILITY_TYPE_PQI_MAPPING = {
     "Infant-Toddler": [1, 2, 3, 4, 5, 7, 9, 10],
 }
 
-PQI1_BAND_MAPPING = {
+PQI_BAND_MAPPING = {
     (0, 25): 1,
     (26, 50): 2,
     (51, 75): 3,

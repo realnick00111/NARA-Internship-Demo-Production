@@ -1,7 +1,7 @@
 from datetime import datetime
 from difflib import SequenceMatcher
 
-from constants import PQI1_BAND_MAPPING, STATUS_CLASS_MAP
+from constants import PQI_BAND_MAPPING, STATUS_CLASS_MAP
 
 
 def normalize_text(value: str | None) -> str:
@@ -73,7 +73,7 @@ def calculate_pqi1_score(certified_teaching_staff: object, total_teaching_staff:
         return None
 
     percentage = (certified_count / total_count) * 100
-    for (lower_bound, upper_bound), band in sorted(PQI1_BAND_MAPPING.items(), key=lambda item: item[1]):
+    for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1]):
         if lower_bound <= percentage <= upper_bound:
             return band
 

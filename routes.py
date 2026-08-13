@@ -97,10 +97,17 @@ def register_routes(app: Flask) -> None:
 
         certified_teaching_staff = payload.get("certified_teaching_staff")
         total_teaching_staff = payload.get("total_teaching_staff")
-        score = calculate_pqi1_score(certified_teaching_staff, total_teaching_staff)
+        complete_flag = bool(payload.get("complete", False))
 
-        if score is None:
-            return jsonify({"status": "error", "message": "Enter valid teaching staff counts before saving PQI 1"}), 400
+        try:
+            normalized_certified = int(certified_teaching_staff) if certified_teaching_staff not in (None, "") else None
+            normalized_total = int(total_teaching_staff) if total_teaching_staff not in (None, "") else None
+        except (TypeError, ValueError):
+            return jsonify({"status": "error", "message": "Teaching staff counts must be valid integers"}), 400
+
+        score = calculate_pqi1_score(normalized_certified, normalized_total)
+        if complete_flag and score is None:
+            return jsonify({"status": "error", "message": "Enter valid teaching staff counts before completing PQI 1"}), 400
 
         try:
             normalized_assessment_id = int(assessment_id)
@@ -108,9 +115,10 @@ def register_routes(app: Flask) -> None:
                 normalized_assessment_id,
                 pqi_findings={
                     "pqi1": {
+                        "complete": complete_flag,
                         "score": score,
-                        "certified_teaching_staff": int(certified_teaching_staff),
-                        "total_teaching_staff": int(total_teaching_staff),
+                        "certified_teaching_staff": normalized_certified,
+                        "total_teaching_staff": normalized_total,
                     }
                 },
             )
@@ -123,6 +131,7 @@ def register_routes(app: Flask) -> None:
                 "status": "success",
                 "message": "PQI 1 saved successfully!",
                 "assessment_id": normalized_assessment_id,
+                "complete": complete_flag,
                 "score": score,
             }
         )
