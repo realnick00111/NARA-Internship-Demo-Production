@@ -1,5 +1,6 @@
 from flask import Flask, abort, jsonify, redirect, request, url_for
 
+from constants import PQI2_ENVIRONMENT_QUESTIONS, PQI3_RECORD_COUNT
 from db import log_storage_event
 from rendering import render_page
 from repositories.assessments import (
@@ -9,7 +10,7 @@ from repositories.assessments import (
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
-from services.formatters import calculate_pqi1_score
+from services.formatters import calculate_pqi1_score, calculate_pqi2_score, calculate_pqi3_score, normalize_yes_no
 from session_state import clear_current_assessment, get_current_assessment, set_current_assessment
 
 
@@ -135,6 +136,155 @@ def register_routes(app: Flask) -> None:
                 "score": score,
             }
         )
+
+    @app.route("/api/assessments/pqi2", methods=["POST"])
+    def save_pqi2():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+
+        responses = payload.get("responses")
+        if not isinstance(responses, dict):
+            return jsonify({"status": "error", "message": "responses must be an object"}), 400
+
+        complete_flag = bool(payload.get("complete", False))
+        question_ids = [str(index) for index in range(1, len(PQI2_ENVIRONMENT_QUESTIONS) + 1)]
+        normalized_index_responses: dict[str, str | None] = {}
+
+        for raw_key, raw_value in responses.items():
+            if not isinstance(raw_key, str):
+                continue
+
+            key_text = raw_key.strip()
+            normalized_index = None
+            if key_text in question_ids:
+                normalized_index = key_text
+            elif "." in key_text:
+                suffix = key_text.rsplit(".", 1)[-1]
+                if suffix.isdigit():
+                    normalized_index = str(int(suffix))
+            if normalized_index in question_ids:
+                normalized_index_responses[normalized_index] = normalize_yes_no(raw_value)
+
+        for question_id in question_ids:
+            if question_id not in normalized_index_responses:
+                normalized_index_responses[question_id] = normalize_yes_no(responses.get(question_id))
+
+        all_answered = all(normalized_index_responses[question_id] in {"yes", "no"} for question_id in question_ids)
+        if complete_flag and not all_answered:
+            return jsonify({"status": "error", "message": "Answer all PQI 2 questions before completing"}), 400
+
+        ordered_responses = [normalized_index_responses[question_id] for question_id in question_ids]
+        score = calculate_pqi2_score(ordered_responses)
+        yes_count = sum(1 for value in ordered_responses if value == "yes")
+        stored_responses = {f"2.{question_id}": normalized_index_responses[question_id] for question_id in question_ids}
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi2": {
+                        "complete": complete_flag,
+                        "score": score,
+                        "question_count": len(question_ids),
+                        "yes_count": yes_count,
+                        "responses": stored_responses,
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify(
+            {
+                "status": "success",
+                "message": "PQI 2 saved successfully!",
+                "assessment_id": normalized_assessment_id,
+                "complete": complete_flag,
+                "score": score,
+                "yes_count": yes_count,
+                "question_count": len(question_ids),
+            }
+        )
+
+    @app.route("/api/assessments/pqi3", methods=["POST"])
+    def save_pqi3():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+
+        raw_records = payload.get("records")
+        if not isinstance(raw_records, dict):
+            return jsonify({"status": "error", "message": "records must be an object"}), 400
+
+        normalized_records: dict[str, object] = {}
+        for raw_key, raw_record in raw_records.items():
+            if not isinstance(raw_key, str):
+                continue
+            key_text = raw_key.strip()
+            if key_text.isdigit():
+                normalized_key = f"record {int(key_text)}"
+            else:
+                normalized_key = key_text
+            normalized_records[normalized_key] = raw_record
+        raw_records = normalized_records
+
+        records = []
+        for index in range(1, PQI3_RECORD_COUNT + 1):
+            raw_record = raw_records.get(f"record {index}", {})
+            if not isinstance(raw_record, dict):
+                raw_record = {}
+            record = {
+                "emergent_curriculum": normalize_yes_no(raw_record.get("emergent_curriculum")),
+                "co_learning": normalize_yes_no(raw_record.get("co_learning")),
+                "documented_learning_future_planning": normalize_yes_no(
+                    raw_record.get("documented_learning_future_planning", raw_record.get("documentation"))
+                ),
+                "notes": str(raw_record.get("notes", "") or "").strip(),
+            }
+            record["complete"] = all(record[field] in {"yes", "no"} for field in (
+                "emergent_curriculum", "co_learning", "documented_learning_future_planning"
+            ))
+            record["positive"] = record["complete"] and all(
+                record[field] == "yes" for field in (
+                    "emergent_curriculum", "co_learning", "documented_learning_future_planning"
+                )
+            )
+            records.append(record)
+
+        complete_flag = bool(payload.get("completed", payload.get("complete", False)))
+        all_complete = all(record["complete"] for record in records)
+        if complete_flag and not all_complete:
+            return jsonify({"status": "error", "message": "Complete all ten PQI 3 records before completing"}), 400
+
+        score = calculate_pqi3_score(records)
+        stored_records = {f"record {index}": record for index, record in enumerate(records, start=1)}
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi3": {
+                        "completed": complete_flag and all_complete,
+                        **stored_records,
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify({
+            "status": "success",
+            "assessment_id": normalized_assessment_id,
+            "completed": complete_flag and all_complete,
+            "score": score,
+        })
 
     @app.route("/api/assessments/delete", methods=["POST"])
     def delete_assessments():

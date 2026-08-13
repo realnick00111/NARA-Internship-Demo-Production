@@ -62,6 +62,14 @@ def get_status_chip_class(status_value: str | None) -> str:
     return STATUS_CLASS_MAP.get(normalized, "neutral")
 
 
+def _calculate_band_score_from_percentage(percentage: float) -> int | None:
+    for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1]):
+        if lower_bound <= percentage <= upper_bound:
+            return band
+
+    return None
+
+
 def calculate_pqi1_score(certified_teaching_staff: object, total_teaching_staff: object) -> int | None:
     try:
         certified_count = int(certified_teaching_staff)
@@ -73,11 +81,42 @@ def calculate_pqi1_score(certified_teaching_staff: object, total_teaching_staff:
         return None
 
     percentage = (certified_count / total_count) * 100
-    for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1]):
-        if lower_bound <= percentage <= upper_bound:
-            return band
+    return _calculate_band_score_from_percentage(percentage)
 
+
+def normalize_yes_no(value: object) -> str | None:
+    if value is None:
+        return None
+
+    text = str(value).strip().casefold()
+    if text == "yes":
+        return "yes"
+    if text == "no":
+        return "no"
+    if text == "":
+        return None
     return None
+
+
+def calculate_pqi2_score(responses: list[object]) -> int | None:
+    normalized_responses = [normalize_yes_no(value) for value in responses]
+    if any(response is None for response in normalized_responses):
+        return None
+
+    if not normalized_responses:
+        return None
+
+    yes_count = sum(1 for response in normalized_responses if response == "yes")
+    percentage = (yes_count / len(normalized_responses)) * 100
+    return _calculate_band_score_from_percentage(percentage)
+
+
+def calculate_pqi3_score(records: list[dict]) -> int | None:
+    if len(records) != 10:
+        return None
+
+    positive_count = sum(1 for record in records if record.get("positive") is True)
+    return _calculate_band_score_from_percentage((positive_count / 10) * 100)
 
 
 def names_are_similar(left: str | None, right: str | None) -> bool:

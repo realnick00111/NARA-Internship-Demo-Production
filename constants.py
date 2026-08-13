@@ -25,6 +25,7 @@ SCREEN_ORDER = [
     "pqi-findings-entry",
     "pqi1",
     "pqi3-sample",
+    "pqi3",
     "pqi6-8-hierarchy",
     "pqi9-10-timed",
     "validation-summary",
@@ -50,6 +51,7 @@ NAV_BY_SCREEN = {
     "pqi-findings-entry": "assessments",
     "pqi1": "assessments",
     "pqi3-sample": "assessments",
+    "pqi3": "assessments",
     "pqi6-8-hierarchy": "assessments",
     "pqi9-10-timed": "assessments",
     "validation-summary": "assessments",
@@ -106,6 +108,22 @@ FACILITY_TYPE_PQI_MAPPING = {
     "Preschool": [1, 2, 3, 4, 5, 6, 8, 9, 10],
     "Infant-Toddler": [1, 2, 3, 4, 5, 7, 9, 10],
 }
+
+PQI2_ENVIRONMENT_QUESTIONS = [
+    "Co-teaching is evident.",
+    "Children are viewed as competent learners and can access materials independently.",
+    "Authentic and meaningful materials are used with children.",
+    "Children are provided with meaningful choices.",
+    "Children's work, art and photos are displayed respectfully.",
+    "Family photos are displayed in the early learning program.",
+    "Documentation of learning is displayed and discusses holistic development.",
+    "Environment reflects the culture and beliefs of the children, families and staff.",
+    "Variety of books and other print materials are available throughout the classroom.",
+    "A variety of writing materials are accessible to children most of the time.",
+    "There is evidence of the children's interests and projects in the classroom.",
+]
+
+PQI3_RECORD_COUNT = 10
 
 PQI_BAND_MAPPING = {
     (0, 25): 1,

@@ -33,6 +33,42 @@
 	#pqi-findings-entry .pqi1-formula > div {
 		min-width: 128px;
 	}
+
+	#pqi-findings-entry .pqi2-table td:last-child,
+	#pqi-findings-entry .pqi2-table th:last-child {
+		text-align: left;
+	}
+
+	#pqi-findings-entry .pqi2-response-control {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		margin-bottom: 8px;
+	}
+
+	#pqi-findings-entry .pqi2-state-button {
+		min-width: 64px;
+	}
+
+	#pqi-findings-entry .pqi2-state-button.is-selected.is-yes {
+		background: #e8f4ea;
+		border-color: #5f9f73;
+		color: #1f6f3d;
+	}
+
+	#pqi-findings-entry .pqi2-state-button.is-selected.is-no {
+		background: #fff0ef;
+		border-color: #d77b71;
+		color: #8d2b24;
+	}
+
+	#pqi-findings-entry .pqi2-current-state {
+		min-height: 24px;
+	}
+
+	#pqi-findings-entry .pqi2-summary-card {
+		margin-bottom: 12px;
+	}
 </style>
 
 <div class="page-header">
@@ -60,7 +96,7 @@
 			<div class="bar"><i style="width:64%"></i></div>
 		</div>
 		<a class="pqi-item complete active" href="#pqi-1" data-pqi-target="pqi-1" aria-current="page"><span>1</span><div><b>ECE III Educators</b><small>{{ pqi1_score_label }}</small></div></a>
-		<a class="pqi-item complete" href="#pqi-2" data-pqi-target="pqi-2"><span>2</span><div><b>Stimulating Environment</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item complete" href="#pqi-2" data-pqi-target="pqi-2"><span>2</span><div><b>Stimulating Environment</b><small>{{ pqi2_score_label }}</small></div></a>
 		<a class="pqi-item" href="#pqi-3" data-pqi-target="pqi-3"><span>3</span><div><b>Curriculum &amp; Assessment</b><small>8 of 10 records</small></div></a>
 		<a class="pqi-item" href="#pqi-4" data-pqi-target="pqi-4"><span>4</span><div><b>Staff &amp; Family Opportunities</b><small>Not implemented yet</small></div></a>
 		<a class="pqi-item" href="#pqi-5" data-pqi-target="pqi-5"><span>5</span><div><b>Child Progress Reporting</b><small>Not implemented yet</small></div></a>
@@ -70,25 +106,17 @@
 
 	<section class="pqi-main">
 		<section class="pqi-panel" data-pqi-panel="pqi-1">
-			{% include 'partials/_pqi1.html' %}
+			{% include 'partials/pqi/_pqi1.html' %}
 		</section>
 
 		<section class="pqi-panel" data-pqi-panel="pqi-2" hidden>
-			<div class="card">
-				<div class="card-head">
-					<div>
-						<span class="section-kicker">PQI 2</span>
-						<h2>Stimulating Environment</h2>
-						<p>The entry form for this indicator has not been built yet.</p>
-					</div>
-					<span class="chip neutral">Not implemented yet</span>
-				</div>
-				<p class="helper">Use the left navigation to switch between PQIs. This panel is a placeholder until the PQI 2 workflow is added.</p>
-			</div>
+			{% include 'partials/pqi/_pqi2.html' %}
 		</section>
 
 		<section class="pqi-panel" data-pqi-panel="pqi-3" hidden>
-			<div class="card">
+			{% set pqi3_preview = True %}
+			{% include 'partials/pqi/_pqi3.html' %}
+			<!--
 				<div class="card-head">
 					<div>
 						<span class="section-kicker">PQI 3</span>
@@ -177,6 +205,7 @@
 					</div>
 				</div>
 			</div>
+			-->
 		</section>
 
 		<div class="pqi-panel" data-pqi-panel="pqi-4" hidden>

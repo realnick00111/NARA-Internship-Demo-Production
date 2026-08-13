@@ -8,6 +8,8 @@ from constants import (
     FACILITY_TYPE_OPTIONS,
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
+    PQI2_ENVIRONMENT_QUESTIONS,
+    PQI3_RECORD_COUNT,
     WORKFLOW_PROGRESS_BY_STATUS,
 )
 from repositories.assessments import (
@@ -19,10 +21,13 @@ from repositories.assessments import (
 )
 from services.formatters import (
     calculate_pqi1_score,
+    calculate_pqi2_score,
+    calculate_pqi3_score,
     format_date_label,
     format_timestamp_label,
     get_status_chip_class,
     names_are_similar,
+    normalize_yes_no,
     normalize_text,
 )
 from session_state import get_current_assessment
@@ -52,6 +57,60 @@ def _load_json_object(raw_value: object, default: dict) -> dict:
         return dict(default)
 
     return parsed_value if isinstance(parsed_value, dict) else dict(default)
+
+
+def _build_pqi3_records(raw_entry: object) -> list[dict]:
+    entry = raw_entry if isinstance(raw_entry, dict) else {}
+    raw_records = entry.get("records", entry)
+    records = []
+    for index in range(1, PQI3_RECORD_COUNT + 1):
+        raw_record = {}
+        if isinstance(raw_records, dict):
+            for candidate_key in (f"record {index}", str(index), index):
+                if candidate_key in raw_records:
+                    raw_record = raw_records[candidate_key]
+                    break
+        raw_record = raw_record if isinstance(raw_record, dict) else {}
+        values = {
+            "emergent_curriculum": normalize_yes_no(raw_record.get("emergent_curriculum")),
+            "co_learning": normalize_yes_no(raw_record.get("co_learning")),
+            "documented_learning_future_planning": normalize_yes_no(
+                raw_record.get("documented_learning_future_planning", raw_record.get("documentation"))
+            ),
+        }
+        values["complete"] = all(value in {"yes", "no"} for value in values.values())
+        values["positive"] = values["complete"] and all(value == "yes" for value in values.values())
+        values["notes"] = str(raw_record.get("notes", "") or "").strip()
+        records.append(values)
+    return records
+
+
+def build_pqi3_context(preview: bool = False) -> dict:
+    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+    assessment_id = assessment_row["id"] if assessment_row is not None else None
+    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "ASMT-not implemented"
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {}) if assessment_row is not None else {}
+    pqi3_entry = pqi_findings.get("pqi3", {}) if isinstance(pqi_findings, dict) else {}
+    records = _build_pqi3_records(pqi3_entry)
+    completed_count = sum(1 for record in records if record["complete"])
+    positive_count = sum(1 for record in records if record["positive"])
+    complete = completed_count == PQI3_RECORD_COUNT
+    percentage = (positive_count / PQI3_RECORD_COUNT) * 100
+    score = calculate_pqi3_score(records)
+    return {
+        "assessment_code": assessment_code,
+        "editing_assessment_id": assessment_id,
+        "pqi3_records": records[:4] if preview else records,
+        "pqi3_preview": preview,
+        "pqi3_complete": bool(pqi3_entry.get("completed", pqi3_entry.get("complete", False))) and complete,
+        "pqi3_completed_count": completed_count,
+        "pqi3_positive_count": positive_count,
+        "pqi3_percentage": percentage,
+        "pqi3_score": score,
+        "pqi3_save_url": url_for("save_pqi3"),
+        "pqi3_full_href": url_for("screen", screen_id="pqi3"),
+        "pqi3_back_href": url_for("screen", screen_id="pqi-findings-entry"),
+    }
 
 
 def build_contact_hours_context() -> dict:
@@ -98,6 +157,10 @@ def build_pqi1_context() -> dict:
     assessment_id = None
     assessment_code = "ASMT-not implemented"
     score = None
+    pqi1_complete = False
+    pqi2_form = {str(index): "" for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)}
+    pqi2_complete = False
+    pqi2_score = None
 
     if assessment_row is not None:
         assessment_id = assessment_row["id"]
@@ -106,6 +169,7 @@ def build_pqi1_context() -> dict:
         pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
         pqi1_entry = pqi_findings.get("pqi1") if isinstance(pqi_findings, dict) else {}
         if isinstance(pqi1_entry, dict):
+            pqi1_complete = bool(pqi1_entry.get("complete", False))
             pqi1_form.update(
                 {
                     "certified_teaching_staff": str(pqi1_entry.get("certified_teaching_staff", "")).strip(),
@@ -114,16 +178,67 @@ def build_pqi1_context() -> dict:
             )
         score = calculate_pqi1_score(pqi1_form["certified_teaching_staff"], pqi1_form["total_teaching_staff"])
 
+        pqi2_entry = pqi_findings.get("pqi2") if isinstance(pqi_findings, dict) else {}
+        if isinstance(pqi2_entry, dict):
+            responses = pqi2_entry.get("responses")
+            if isinstance(responses, dict):
+                normalized_by_legacy_key: dict[str, str | None] = {}
+                for raw_key, raw_value in responses.items():
+                    if not isinstance(raw_key, str):
+                        continue
+                    key_text = raw_key.strip()
+                    if key_text in {str(index) for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)}:
+                        normalized_by_legacy_key[key_text] = normalize_yes_no(raw_value)
+                        continue
+                    if "." in key_text:
+                        suffix = key_text.rsplit(".", 1)[-1]
+                        if suffix.isdigit():
+                            normalized_index = str(int(suffix))
+                            if normalized_index in {str(index) for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)}:
+                                normalized_by_legacy_key[normalized_index] = normalize_yes_no(raw_value)
+
+                for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1):
+                    key = str(index)
+                    raw_value = responses.get(key)
+                    if raw_value is None:
+                        raw_value = normalized_by_legacy_key.get(key)
+                    normalized_value = normalize_yes_no(raw_value)
+                    pqi2_form[key] = normalized_value or ""
+
+            pqi2_complete = bool(pqi2_entry.get("complete", False))
+            pqi2_score = calculate_pqi2_score([pqi2_form[str(index)] for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)])
+
+    pqi2_question_count = len(PQI2_ENVIRONMENT_QUESTIONS)
+    pqi2_completed_count = sum(1 for value in pqi2_form.values() if value in {"yes", "no"})
+    pqi2_yes_count = sum(1 for value in pqi2_form.values() if value == "yes")
+    pqi2_all_answered = pqi2_completed_count == pqi2_question_count
+    pqi2_percentage = (pqi2_yes_count / pqi2_question_count) * 100 if pqi2_all_answered else None
+    pqi2_score_label = f"Score {pqi2_score}" if pqi2_score is not None else f"{pqi2_completed_count} of {pqi2_question_count} answered"
+
+    pqi3_context = build_pqi3_context()
+
     return {
         "assessment_code": assessment_code,
         "editing_assessment_id": assessment_id,
         "pqi1_form": pqi1_form,
         "pqi1_score": score,
+        "pqi1_complete": pqi1_complete,
         "pqi1_score_label": f"Score {score}" if score is not None else "Not started",
         "pqi1_save_url": url_for("save_pqi1"),
         "pqi1_back_href": url_for("screen", screen_id="pqi-findings-entry"),
         "pqi1_card_id": "pqi1-card",
         "pqi1_show_back_link": False,
+        "pqi2_questions": PQI2_ENVIRONMENT_QUESTIONS,
+        "pqi2_form": pqi2_form,
+        "pqi2_complete": pqi2_complete,
+        "pqi2_score": pqi2_score,
+        "pqi2_score_label": pqi2_score_label,
+        "pqi2_question_count": pqi2_question_count,
+        "pqi2_completed_count": pqi2_completed_count,
+        "pqi2_yes_count": pqi2_yes_count,
+        "pqi2_percentage": pqi2_percentage,
+        "pqi2_save_url": url_for("save_pqi2"),
+        **pqi3_context,
     }
 
 

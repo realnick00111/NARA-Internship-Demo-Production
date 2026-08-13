@@ -1078,6 +1078,59 @@ td span {
 	font-size: 12px
 }
 
+.pqi3-sample-card .score-block {
+	flex: none;
+	padding: 9px 13px;
+	border: 1px solid #c4e0e7;
+	border-radius: 9px;
+	background: #eef8fa;
+	text-align: right
+}
+
+.pqi3-sample-card .score-block span,
+.pqi3-sample-card .sample-table td:first-child span {
+	display: block;
+	font-size: 9px;
+	color: var(--muted)
+}
+
+.pqi3-sample-card .statebtn {
+	min-width: 62px;
+	padding: 6px;
+	border-radius: 6px;
+	font-weight: 800
+}
+
+.pqi3-sample-card .statebtn.yes {
+	border: 1px solid #8cc897;
+	background: #e8f5ea;
+	color: var(--green)
+}
+
+.pqi3-sample-card .statebtn.no {
+	border: 1px solid #e6aaa6;
+	background: #fdeceb;
+	color: var(--red)
+}
+
+.pqi3-sample-card .statebtn.empty {
+	border: 1px solid #aeb8c4;
+	background: #fff;
+	color: #667385
+}
+
+.pqi3-sample-card .sample-table.full td {
+	padding: 6px 9px
+}
+
+.pqi3-table-wrap {
+	overflow-x: auto
+}
+
+.pqi3-table-wrap .sample-table {
+	min-width: 760px
+}
+
 .table-actions {
 	display: flex;
 	align-items: center;
@@ -1123,6 +1176,18 @@ td span {
 .tinybtn {
 	padding: 5px 9px;
 	font-size: 10px
+}
+
+.pqi3-choice.is-selected[data-value="yes"] {
+	border-color: #8cc897;
+	background: #e8f5ea;
+	color: var(--green)
+}
+
+.pqi3-choice.is-selected[data-value="no"] {
+	border-color: #e6aaa6;
+	background: #fdeceb;
+	color: var(--red)
 }
 
 .save-indicator {
@@ -2211,6 +2276,48 @@ td span {
 
 	.hide-on-large {
 		display: inline-flex
+	}
+}
+
+@media (max-width: 600px) {
+	.app-shell {
+		grid-template-rows: auto auto auto
+	}
+
+	.app-topbar {
+		height: auto;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		padding-top: 12px;
+		padding-bottom: 12px
+	}
+
+	.branding,
+	.top-cluster {
+		min-width: 0
+	}
+
+	.branding {
+		flex: 1 1 100%
+	}
+
+	.top-cluster {
+		width: 100%;
+		justify-content: space-between;
+		gap: 8px
+	}
+
+	.tenant {
+		padding-right: 8px
+	}
+
+	.pqi3-sample-card .card-head {
+		flex-wrap: wrap
+	}
+
+	.pqi3-sample-card .score-block {
+		width: 100%;
+		text-align: left
 	}
 }
 

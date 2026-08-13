@@ -1,0 +1,122 @@
+<div class="card pqi3-sample-card" id="pqi3-card">
+	<div class="card-head">
+		<div>
+			<span class="section-kicker">PQI 3</span>
+			<h2>Ten-record Curriculum &amp; Assessment sample</h2>
+			<p>A record is positive only when Emergent curriculum, Co-learning, and Documented learning used for future planning are all Yes.</p>
+		</div>
+		<div class="score-block"><span>Provisional</span><strong id="pqi3-score-top">{% if pqi3_score is not none %}Score {{ pqi3_score }}{% else %}Score unavailable{% endif %}</strong></div>
+	</div>
+
+	<div class="pqi3-table-wrap">
+		<table class="sample-table full">
+			<thead><tr><th>Anonymous record</th><th>Emergent curriculum</th><th>Co-learning</th><th>Documented learning for future planning</th><th>Derived result</th><th>Evidence</th></tr></thead>
+			<tbody>
+			{% for record in (pqi3_records[:4] if pqi3_preview else pqi3_records) %}
+			{% set record_number = loop.index + (pqi3_record_offset | default(0)) %}
+			<tr data-pqi3-record="{{ record_number }}" data-emergent_curriculum="{{ record.emergent_curriculum or '' }}" data-co_learning="{{ record.co_learning or '' }}" data-documented_learning_future_planning="{{ record.documented_learning_future_planning or '' }}">
+				<td><strong>Record {{ '%02d' % record_number }}</strong><span>No child name or personal ID</span></td>
+				{% for field in ('emergent_curriculum', 'co_learning', 'documented_learning_future_planning') %}
+				<td>
+					{% if pqi3_preview %}
+						{% if record[field] == 'yes' %}<span class="chip success">Yes</span>{% elif record[field] == 'no' %}<span class="chip danger">No</span>{% else %}<span class="chip warning">Incomplete</span>{% endif %}
+					{% else %}
+						<div class="pqi3-choice-group" role="group" aria-label="Record {{ record_number }} response">
+							<button class="button secondary tinybtn pqi3-choice" type="button" data-field="{{ field }}" data-value="yes">Yes</button>
+							<button class="button secondary tinybtn pqi3-choice" type="button" data-field="{{ field }}" data-value="no">No</button>
+						</div>
+					{% endif %}
+				</td>
+				{% endfor %}
+				<td><span class="chip {% if record.complete and record.positive %}success{% elif record.complete %}neutral{% else %}warning{% endif %}" data-pqi3-positive>{% if record.complete and record.positive %}Positive{% elif record.complete %}Not positive{% else %}Incomplete{% endif %}</span></td>
+				<td>{% if pqi3_preview %}<span>{{ record.notes or 'No notes' }}</span>{% else %}<input class="input pqi3-notes" type="text" value="{{ record.notes }}" aria-label="Notes for record {{ record_number }}">{% endif %}</td>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+	<div class="formula-strip" aria-live="polite">
+		<div><span>Positive records</span><strong id="pqi3-positive-count">{{ pqi3_positive_count }}</strong></div>
+		<div class="operator">/</div><div><span>Required sample</span><strong>10</strong></div>
+		<div class="operator">x 100 =</div><div><span>Percentage</span><strong id="pqi3-percentage">{% if pqi3_percentage is not none %}{{ '%.1f%%' % pqi3_percentage }}{% else %}-{% endif %}</strong></div>
+		<div class="operator">-&gt;</div><div><span>Ordinal score</span><strong id="pqi3-score">{% if pqi3_score is not none %}{{ pqi3_score }}{% else %}-{% endif %}</strong></div>
+		<div class="formula-note" id="pqi3-formula-note">{% if pqi3_complete %}All ten records are complete.{% else %}Complete all ten records to calculate the ordinal score.{% endif %}</div>
+	</div>
+
+	{% if pqi3_preview %}
+	<div class="table-actions"><a class="button secondary" href="{{ pqi3_full_href }}">Open full 10-record sample</a><span>{{ pqi3_completed_count }} of 10 records complete</span></div>
+	{% else %}
+	<div class="card-actions" style="margin-top: 16px; justify-content: space-between;"><a class="button ghost" href="{{ pqi3_back_href }}">Back to PQI list</a><div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;"><span class="save-indicator" id="pqi3-save-state">{% if pqi3_complete %}PQI 3 marked as complete{% else %}Complete all ten records to complete PQI 3{% endif %}</span><button class="button secondary" id="pqi3-draft-save-button" type="button">Save Draft</button><button class="button primary" id="pqi3-save-button" type="button"{% if not pqi3_complete %} disabled{% endif %}>Complete PQI 3</button></div></div>
+	{% endif %}
+</div>
+
+{% if not pqi3_preview %}
+<script>
+(() => {
+	const bandRows = {{ pqi1_band_rows | tojson }};
+	const assessmentId = {{ editing_assessment_id | tojson }};
+	const saveUrl = "{{ pqi3_save_url }}";
+	const completeInitially = {{ pqi3_complete | tojson }};
+	const fields = ['emergent_curriculum', 'co_learning', 'documented_learning_future_planning'];
+	const rows = Array.from(document.querySelectorAll('#pqi3-card [data-pqi3-record]'));
+	const positiveCountNode = document.getElementById('pqi3-positive-count');
+	const percentageNode = document.getElementById('pqi3-percentage');
+	const scoreNode = document.getElementById('pqi3-score');
+	const topScoreNode = document.getElementById('pqi3-score-top');
+	const noteNode = document.getElementById('pqi3-formula-note');
+	const saveState = document.getElementById('pqi3-save-state');
+	const draftButton = document.getElementById('pqi3-draft-save-button');
+	const completeButton = document.getElementById('pqi3-save-button');
+	const rowRecordKey = (row) => `record ${row.dataset.pqi3Record}`;
+	const recordState = Object.fromEntries(rows.map((row) => [rowRecordKey(row), Object.fromEntries(fields.map((field) => [field, row.getAttribute(`data-${field}`) || '']))]));
+	const syncRowState = (row) => {
+		const recordKey = rowRecordKey(row);
+		fields.forEach((field) => {
+			const value = recordState[recordKey]?.[field] || '';
+			row.dataset[field] = value;
+			row.setAttribute(`data-${field}`, value);
+		});
+	};
+	const snapshot = () => Object.fromEntries(rows.map((row) => [rowRecordKey(row), { ...(recordState[rowRecordKey(row)] || {}), notes: row.querySelector('.pqi3-notes')?.value || '' }]));
+	let lastSaved = JSON.stringify(snapshot());
+	const band = (percentage) => { const found = bandRows.find((row) => percentage >= row.min && percentage <= row.max); return found ? found.band : null; };
+	const update = () => {
+		const records = snapshot();
+		let completeCount = 0; let positiveCount = 0;
+		rows.forEach((row) => {
+			syncRowState(row);
+			const recordKey = rowRecordKey(row);
+			const rowValues = records[recordKey] || {};
+			const values = fields.map((field) => rowValues[field]);
+			const complete = values.every((value) => value === 'yes' || value === 'no');
+			const positive = complete && values.every((value) => value === 'yes');
+			if (complete) completeCount++;
+			if (positive) positiveCount++;
+			const result = row.querySelector('[data-pqi3-positive]');
+			result.className = `chip ${positive ? 'success' : complete ? 'neutral' : 'warning'}`;
+			result.textContent = positive ? 'Positive' : complete ? 'Not positive' : 'Incomplete';
+		});
+		const allComplete = completeCount === 10; const percentage = positiveCount * 10; const score = band(percentage); const changed = JSON.stringify(records) !== lastSaved;
+		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${percentage.toFixed(1)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
+	};
+	rows.forEach((row) => {
+		syncRowState(row);
+		row.querySelectorAll('[data-field]').forEach((button) => {
+			const recordKey = rowRecordKey(row);
+			const selected = recordState[recordKey][button.dataset.field] === button.dataset.value;
+			button.classList.toggle('is-selected', selected);
+			button.addEventListener('click', () => {
+				recordState[recordKey][button.dataset.field] = button.dataset.value;
+				syncRowState(row);
+				row.querySelectorAll(`[data-field="${button.dataset.field}"]`).forEach((candidate) => candidate.classList.toggle('is-selected', candidate === button));
+				update();
+			});
+		});
+		row.querySelector('.pqi3-notes')?.addEventListener('input', update);
+	});
+	const persist = async (button) => { const records = snapshot(); const payload = { records, completed: button === completeButton }; if (assessmentId !== null) payload.assessment_id = assessmentId; button.disabled = true; try { const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.message || 'Unable to save PQI 3'); lastSaved = JSON.stringify(records); saveState.textContent = button === completeButton ? 'PQI 3 marked as complete' : 'Draft saved'; } catch (error) { saveState.textContent = error instanceof Error ? error.message : 'Unable to save PQI 3'; } finally { if (button === draftButton) draftButton.disabled = false; update(); } };
+	draftButton.addEventListener('click', () => persist(draftButton)); completeButton.addEventListener('click', () => persist(completeButton)); update();
+})();
+</script>
+{% endif %}

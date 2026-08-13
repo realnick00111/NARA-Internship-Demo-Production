@@ -1,0 +1,273 @@
+<div class="card pqi2-card" id="pqi2-card">
+	<div class="card-head">
+		<div>
+			<span class="section-kicker">PQI 2</span>
+			<h2>Stimulating Environment</h2>
+			<p>Answer each yes/no environment criterion to calculate the percentage score and ordinal band.</p>
+		</div>
+		<span class="chip info">Yes/No checklist</span>
+	</div>
+
+	<div class="alert info pqi2-summary-card" role="status" aria-live="polite">
+		<div class="alert-icon">i</div>
+		<div>
+			<strong>Fields completed</strong>
+			<span id="pqi2-summary-text">{{ pqi2_completed_count }} of {{ pqi2_question_count }} completed</span>
+		</div>
+	</div>
+
+	<table class="sample-table pqi2-table">
+		<thead>
+			<tr>
+				<th>Environment criterion</th>
+				<th>Response</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for question in pqi2_questions %}
+			{% set question_key = loop.index|string %}
+			{% set response_value = pqi2_form.get(question_key, '') %}
+			<tr data-pqi2-question-id="{{ question_key }}" data-pqi2-response="{{ response_value }}">
+				<td>
+					<strong>{{ loop.index }}. {{ question }}</strong>
+				</td>
+				<td>
+					<div class="pqi2-response-control" role="group" aria-label="Response for question {{ loop.index }}">
+						<div class="pqi2-current-state" data-pqi2-current-state>
+							{% if response_value == 'yes' %}
+							<span class="chip success">Yes</span>
+							{% elif response_value == 'no' %}
+							<span class="chip danger">No</span>
+							{% else %}
+							<span class="chip neutral">Unawnsered</span>
+							{% endif %}
+						</div>
+						<div class="pqi2-choice-group">
+							<button class="button secondary tinybtn pqi2-state-button" type="button" data-pqi2-choice="yes">Yes</button>
+							<button class="button secondary tinybtn pqi2-state-button" type="button" data-pqi2-choice="no">No</button>
+						</div>
+					</div>
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<div class="pqi1-calculation-box" style="margin-top: 12px;">
+		<div class="formula-strip pqi1-formula pqi2-formula" aria-live="polite">
+			<div><span>Yes responses</span><strong id="pqi2-yes-count-display">{{ pqi2_yes_count }}</strong></div>
+			<div class="operator">/</div>
+			<div><span>Total criteria</span><strong id="pqi2-total-count-display">{{ pqi2_question_count }}</strong></div>
+			<div class="operator">x 100 =</div>
+			<div><span>Percentage</span><strong id="pqi2-percentage-display">{% if pqi2_percentage is not none %}{{ '%.1f%%' % pqi2_percentage }}{% else %}-{% endif %}</strong></div>
+			<div class="operator">-&gt;</div>
+			<div><span>Ordinal score</span><strong id="pqi2-band-display">{% if pqi2_score is not none %}{{ pqi2_score }}{% else %}-{% endif %}</strong></div>
+			<div class="formula-note" id="pqi2-formula-note">Answer all questions to calculate the ordinal score.</div>
+		</div>
+	</div>
+
+	<div class="card-actions" style="margin-top: 16px; justify-content: flex-end;">
+		<div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
+			<span class="save-indicator" id="pqi2-save-state">Answer all questions to complete PQI 2</span>
+			<button class="button secondary" id="pqi2-draft-save-button" type="button">Save Draft</button>
+			<button class="button primary" id="pqi2-save-button" type="button" disabled>Complete PQI 2</button>
+		</div>
+	</div>
+</div>
+
+<script>
+(() => {
+	const bandRows = {{ pqi1_band_rows | tojson }};
+	const assessmentId = {{ editing_assessment_id | tojson }};
+	const saveUrl = "{{ pqi2_save_url }}";
+	const pqi2Complete = {{ pqi2_complete | tojson }};
+	const questionIds = Array.from({ length: {{ pqi2_question_count }} }, (_, index) => String(index + 1));
+	const rows = Array.from(document.querySelectorAll('#pqi2-card [data-pqi2-question-id]'));
+	const summaryText = document.getElementById('pqi2-summary-text');
+	const yesCountDisplay = document.getElementById('pqi2-yes-count-display');
+	const totalCountDisplay = document.getElementById('pqi2-total-count-display');
+	const percentageDisplay = document.getElementById('pqi2-percentage-display');
+	const bandDisplay = document.getElementById('pqi2-band-display');
+	const formulaNote = document.getElementById('pqi2-formula-note');
+	const saveState = document.getElementById('pqi2-save-state');
+	const draftSaveButton = document.getElementById('pqi2-draft-save-button');
+	const saveButton = document.getElementById('pqi2-save-button');
+
+	if (!rows.length || !summaryText || !yesCountDisplay || !totalCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
+		return;
+	}
+
+	let statusMessage = '';
+	const normalizeChoice = (value) => {
+		if (typeof value !== 'string') {
+			return '';
+		}
+		const lowered = value.trim().toLowerCase();
+		if (lowered === 'yes' || lowered === 'no') {
+			return lowered;
+		}
+		return '';
+	};
+
+	const getSnapshot = () => {
+		const snapshot = {};
+		rows.forEach((row) => {
+			const questionId = row.getAttribute('data-pqi2-question-id');
+			if (questionId) {
+				snapshot[questionId] = normalizeChoice(row.getAttribute('data-pqi2-response'));
+			}
+		});
+		return snapshot;
+	};
+
+	let lastSavedSnapshot = getSnapshot();
+
+	const applyStateChip = (row, value) => {
+		const stateNode = row.querySelector('[data-pqi2-current-state]');
+		if (!stateNode) {
+			return;
+		}
+
+		if (value === 'yes') {
+			stateNode.innerHTML = '<span class="chip success">Yes</span>';
+			return;
+		}
+		if (value === 'no') {
+			stateNode.innerHTML = '<span class="chip danger">No</span>';
+			return;
+		}
+		stateNode.innerHTML = '<span class="chip neutral">Unawnsered</span>';
+	};
+
+	const applyButtonState = (row, value) => {
+		const buttons = Array.from(row.querySelectorAll('[data-pqi2-choice]'));
+		buttons.forEach((button) => {
+			const choice = button.getAttribute('data-pqi2-choice');
+			const isSelected = choice === value;
+			button.classList.toggle('is-selected', isSelected);
+			button.classList.toggle('is-yes', isSelected && choice === 'yes');
+			button.classList.toggle('is-no', isSelected && choice === 'no');
+		});
+	};
+
+	const setResponse = (row, nextValue) => {
+		const normalizedValue = normalizeChoice(nextValue);
+		row.setAttribute('data-pqi2-response', normalizedValue);
+		applyButtonState(row, normalizedValue);
+		applyStateChip(row, normalizedValue);
+		updateView();
+	};
+
+	const formatPercentage = (value) => value === null ? '-' : `${value.toFixed(1)}%`;
+	const getBandLabel = (percentage) => {
+		if (percentage === null) {
+			return '-';
+		}
+		const matchingBand = bandRows.find((row) => percentage >= row.min && percentage <= row.max);
+		return matchingBand ? `${matchingBand.band}` : 'Unavailable';
+	};
+
+	const snapshotsMatch = (left, right) => questionIds.every((questionId) => normalizeChoice(left[questionId]) === normalizeChoice(right[questionId]));
+
+	const updateView = () => {
+		const snapshot = getSnapshot();
+		const completedCount = questionIds.filter((questionId) => snapshot[questionId] === 'yes' || snapshot[questionId] === 'no').length;
+		const yesCount = questionIds.filter((questionId) => snapshot[questionId] === 'yes').length;
+		const totalCount = questionIds.length;
+		const allAnswered = completedCount === totalCount;
+		const percentage = allAnswered ? (yesCount / totalCount) * 100 : null;
+		const bandLabel = allAnswered ? getBandLabel(percentage) : '-';
+		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
+
+		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
+		yesCountDisplay.textContent = String(yesCount);
+		totalCountDisplay.textContent = String(totalCount);
+		percentageDisplay.textContent = formatPercentage(percentage);
+		bandDisplay.textContent = bandLabel;
+		formulaNote.textContent = allAnswered
+			? bandRows.map((row) => `${row.min}-${row.max} = ${row.band}`).join(' | ')
+			: 'Answer all questions to calculate the ordinal score.';
+
+		saveButton.disabled = !allAnswered || (!hasChanges && pqi2Complete);
+
+		if (statusMessage) {
+			saveState.textContent = statusMessage;
+			return;
+		}
+
+		if (!hasChanges) {
+			saveState.textContent = pqi2Complete ? 'PQI 2 marked as complete' : 'PQI 2 Saved';
+		} else if (allAnswered) {
+			saveState.textContent = `Ready to complete with score ${bandLabel}`;
+		} else {
+			saveState.textContent = 'Answer all questions to complete PQI 2';
+		}
+	};
+
+	const persist = async (targetButton = saveButton) => {
+		if (targetButton === saveButton && saveButton.disabled) {
+			return;
+		}
+
+		const snapshot = getSnapshot();
+		const payload = {
+			responses: snapshot,
+			complete: targetButton === saveButton,
+		};
+
+		if (assessmentId !== null) {
+			payload.assessment_id = assessmentId;
+		}
+
+		targetButton.disabled = true;
+		statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 2 marked as complete';
+		saveState.textContent = statusMessage;
+
+		try {
+			const response = await fetch(saveUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(payload),
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				throw new Error(result.message || 'Unable to save PQI 2');
+			}
+
+			lastSavedSnapshot = snapshot;
+			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 2 marked as complete';
+		} catch (error) {
+			statusMessage = error instanceof Error ? error.message : 'Unable to save PQI 2';
+		} finally {
+			targetButton.disabled = false;
+			saveState.textContent = statusMessage;
+			updateView();
+		}
+	};
+
+	rows.forEach((row) => {
+		const currentValue = normalizeChoice(row.getAttribute('data-pqi2-response'));
+		row.setAttribute('data-pqi2-response', currentValue);
+		applyButtonState(row, currentValue);
+		applyStateChip(row, currentValue);
+
+		const buttons = Array.from(row.querySelectorAll('[data-pqi2-choice]'));
+		buttons.forEach((button) => {
+			button.addEventListener('click', () => {
+				setResponse(row, button.getAttribute('data-pqi2-choice') || '');
+			});
+		});
+	});
+
+	draftSaveButton.addEventListener('click', () => {
+		persist(draftSaveButton);
+	});
+	saveButton.addEventListener('click', () => {
+		persist(saveButton);
+	});
+
+	updateView();
+})();
+</script>
