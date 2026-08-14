@@ -1,22 +1,64 @@
 <div class="page-header">
 	<div>
-		<div class="eyebrow">PQI structure</div>
+		<div class="eyebrow">Assessment DM-2026-00184</div>
 		<h1>PQI 6-8 Hierarchy</h1>
-		<p>Validate the hierarchical score structure and confirm which levels are complete, partial, or locked.</p>
 	</div>
-	<div class="action-row"><button class="button secondary">Recalculate</button><button class="button primary">Approve hierarchy</button></div>
 </div>
 
-<div class="split">
-	<section class="panel">
-		<div class="stack">
-			<div class="summary-box"><strong>Level 6</strong><div class="helper">Complete and verified.</div></div>
-			<div class="summary-box"><strong>Level 7</strong><div class="helper">Partial credit applied.</div></div>
-			<div class="summary-box"><strong>Level 8</strong><div class="helper">Locked until level 7 is complete.</div></div>
+<div class="tabs hierarchy-tabs" role="tablist" aria-label="PQI hierarchy sections">
+	<button class="active" type="button" role="tab" aria-selected="true">PQI 6 · Language &amp; Interaction</button>
+	<button type="button" role="tab" aria-selected="false">PQI 7 · Learning Environment</button>
+	<button type="button" role="tab" aria-selected="false">PQI 8 · Responsive Care</button>
+</div>
+
+<div class="hierarchy-layout">
+	<section class="card">
+		<div class="card-head">
+			<div>
+				<h2>Hierarchical criteria</h2>
+				<p>The score is the highest level for which every criterion is met.</p>
+			</div>
+			<span class="chip info">Highest complete: Level 2</span>
+		</div>
+
+		<div class="level complete">
+			<div class="level-head"><span class="level-num">1</span><div><strong>Level 1 - Foundational practice</strong><small>All 3 criteria met</small></div><span class="chip success">Complete</span></div>
+			<div class="criteria">
+				<label><input type="checkbox" checked disabled><span>Staff respond when children initiate communication</span></label>
+				<label><input type="checkbox" checked disabled><span>Staff use respectful and age-appropriate language</span></label>
+				<label><input type="checkbox" checked disabled><span>Children have regular opportunities to communicate</span></label>
+			</div>
+		</div>
+
+		<div class="level complete">
+			<div class="level-head"><span class="level-num">2</span><div><strong>Level 2 - Consistent practice</strong><small>All 4 criteria met</small></div><span class="chip success">Complete</span></div>
+			<div class="criteria">
+				<label><input type="checkbox" checked disabled><span>Staff extend children's ideas through follow-up questions</span></label>
+				<label><input type="checkbox" checked disabled><span>Conversations include more than one exchange</span></label>
+				<label><input type="checkbox" checked disabled><span>Language is adapted to individual developmental levels</span></label>
+				<label><input type="checkbox" checked disabled><span>Visual or contextual supports are used when needed</span></label>
+			</div>
+		</div>
+
+		<div class="level partial">
+			<div class="level-head"><span class="level-num">3</span><div><strong>Level 3 - Advanced practice</strong><small>2 of 4 criteria met</small></div><span class="chip warning">Partial</span></div>
+			<div class="criteria">
+				<label><input type="checkbox" checked disabled><span>Staff intentionally introduce new vocabulary</span></label>
+				<label><input type="checkbox" checked disabled><span>Children are encouraged to explain reasoning</span></label>
+				<label><input type="checkbox" disabled><span>Staff connect current discussion to prior learning</span></label>
+				<label><input type="checkbox" disabled><span>Peer-to-peer dialogue is intentionally supported</span></label>
+			</div>
+			<div class="partial-box"><label>Partial descriptor</label><div class="input">Level 2 fully met; Level 3 partially observed</div><p>Agency policy must define whether partial levels are stored only as a descriptor or used numerically.</p></div>
+		</div>
+
+		<div class="level locked">
+			<div class="level-head"><span class="level-num">4</span><div><strong>Level 4 - Sustained exemplary practice</strong><small>Level 3 must be complete first</small></div><span class="chip neutral">Locked</span></div>
 		</div>
 	</section>
-	<aside class="panel">
-		<div class="panel-head"><div><h3>Current score</h3><p>The hierarchy resolves to the middle quality band.</p></div></div>
-		<div class="metric purple"><div class="metric-label">Composite</div><div class="metric-value">78</div><div class="metric-foot">Rounded after partial credit</div></div>
+
+	<aside class="side-stack">
+		<div class="card score-card"><span>Current calculated level</span><strong>2</strong><p>Level 2 is the highest level with all criteria met.</p></div>
+		<div class="alert warning vertical"><div class="alert-icon">!</div><div><strong>Partial credit decision required</strong><span>The supplied summary mentions an “X+” descriptor but does not define standard numeric treatment. This prototype preserves the descriptor without changing the score.</span></div></div>
+		<div class="card"><h3>Evidence and notes</h3><div class="textarea small">Level 3 practices were observed inconsistently across classrooms.</div><div class="upload">+ Attach observation notes</div></div>
 	</aside>
 </div>

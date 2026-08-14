@@ -1,7 +1,7 @@
 from datetime import datetime
 from difflib import SequenceMatcher
 
-from constants import PQI_BAND_MAPPING, STATUS_CLASS_MAP
+from constants import PQI4_BAND_MAPPING, PQI5_QUESTION_POINTS, PQI_BAND_MAPPING, STATUS_CLASS_MAP
 
 
 def normalize_text(value: str | None) -> str:
@@ -109,6 +109,27 @@ def calculate_pqi2_score(responses: list[object]) -> int | None:
     yes_count = sum(1 for response in normalized_responses if response == "yes")
     percentage = (yes_count / len(normalized_responses)) * 100
     return _calculate_band_score_from_percentage(percentage)
+
+
+def calculate_pqi4_score(responses: list[object]) -> int | None:
+    normalized_responses = [normalize_yes_no(value) for value in responses]
+    if not normalized_responses or any(response is None for response in normalized_responses):
+        return None
+
+    percentage = round((sum(response == "yes" for response in normalized_responses) / len(normalized_responses)) * 100, 2)
+    return PQI4_BAND_MAPPING.get(percentage)
+
+
+def calculate_pqi5_points(responses: list[object]) -> tuple[int, int, int] | None:
+    normalized_responses = [normalize_yes_no(value) for value in responses]
+    if len(normalized_responses) != len(PQI5_QUESTION_POINTS) or any(response is None for response in normalized_responses):
+        return None
+
+    base_points = sum(
+        points for points, response in zip(PQI5_QUESTION_POINTS[:-1], normalized_responses[:-1]) if response == "yes"
+    )
+    bonus_point = PQI5_QUESTION_POINTS[-1] if normalized_responses[-1] == "yes" else 0
+    return base_points, bonus_point, base_points + bonus_point
 
 
 def calculate_pqi3_score(records: list[dict]) -> int | None:

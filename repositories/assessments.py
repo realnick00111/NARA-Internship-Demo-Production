@@ -338,7 +338,7 @@ def update_assessment_json_fields(
     try:
         existing_row = _fetch_assessment_row(conn, int(assessment_id))
         if existing_row is None:
-            raise ValueError(f"Assessment {assessment_id} not found")
+            raise ValueError("No assessment selected, unable to save")
 
         if pqi_findings is not None:
             existing_pqi_findings = _json_object(existing_row["pqi_findings"], {})

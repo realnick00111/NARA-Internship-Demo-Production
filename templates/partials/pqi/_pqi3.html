@@ -57,7 +57,7 @@
 	const bandRows = {{ pqi1_band_rows | tojson }};
 	const assessmentId = {{ editing_assessment_id | tojson }};
 	const saveUrl = "{{ pqi3_save_url }}";
-	const completeInitially = {{ pqi3_complete | tojson }};
+	let completeInitially = {{ pqi3_complete | tojson }};
 	const fields = ['emergent_curriculum', 'co_learning', 'documented_learning_future_planning'];
 	const rows = Array.from(document.querySelectorAll('#pqi3-card [data-pqi3-record]'));
 	const positiveCountNode = document.getElementById('pqi3-positive-count');
@@ -115,7 +115,7 @@
 		});
 		row.querySelector('.pqi3-notes')?.addEventListener('input', update);
 	});
-	const persist = async (button) => { const records = snapshot(); const payload = { records, completed: button === completeButton }; if (assessmentId !== null) payload.assessment_id = assessmentId; button.disabled = true; try { const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const result = await response.json(); if (!response.ok) throw new Error(result.message || 'Unable to save PQI 3'); lastSaved = JSON.stringify(records); saveState.textContent = button === completeButton ? 'PQI 3 marked as complete' : 'Draft saved'; } catch (error) { saveState.textContent = error instanceof Error ? error.message : 'Unable to save PQI 3'; } finally { if (button === draftButton) draftButton.disabled = false; update(); } };
+	const persist = async (button) => { const records = snapshot(); const payload = { records, completed: button === completeButton }; if (assessmentId !== null) payload.assessment_id = assessmentId; button.disabled = true; try { const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.message || 'No assessment selected, unable to save'); lastSaved = JSON.stringify(records); completeInitially = button === completeButton; saveState.textContent = button === completeButton ? 'PQI 3 marked as complete' : 'Draft saved'; } catch (error) { saveState.textContent = 'No assessment selected, unable to save'; } finally { if (button === draftButton) draftButton.disabled = false; update(); } };
 	draftButton.addEventListener('click', () => persist(draftButton)); completeButton.addEventListener('click', () => persist(completeButton)); update();
 })();
 </script>

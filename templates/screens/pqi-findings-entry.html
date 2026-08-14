@@ -19,19 +19,42 @@
 
 	#pqi-findings-entry .pqi1-calculation-box {
 		align-items: flex-start;
+		overflow-wrap: anywhere;
 	}
 
 	#pqi-findings-entry .pqi1-formula {
-		display: inline-grid;
-		grid-template-columns: repeat(7, max-content);
+		display: flex;
+		flex-wrap: wrap;
 		gap: 10px;
-		width: fit-content;
+		width: 100%;
 		max-width: 100%;
-		justify-content: start;
+		justify-content: flex-start;
+		align-items: center;
 	}
 
 	#pqi-findings-entry .pqi1-formula > div {
-		min-width: 128px;
+		min-width: 0;
+		flex: 0 0 auto;
+	}
+
+	#pqi-findings-entry .pqi5-table {
+		table-layout: fixed;
+	}
+
+	#pqi-findings-entry .pqi5-table th:nth-child(1),
+	#pqi-findings-entry .pqi5-table td:nth-child(1) {
+		width: 58%;
+	}
+
+	#pqi-findings-entry .pqi5-table th:nth-child(2),
+	#pqi-findings-entry .pqi5-table td:nth-child(2) {
+		width: 18%;
+		white-space: nowrap;
+	}
+
+	#pqi-findings-entry .pqi5-table th:nth-child(3),
+	#pqi-findings-entry .pqi5-table td:nth-child(3) {
+		width: 24%;
 	}
 
 	#pqi-findings-entry .pqi2-table td:last-child,
@@ -73,7 +96,7 @@
 
 <div class="page-header">
 	<div>
-		<div class="eyebrow">Assessment DM-2026-00184</div>
+		<div class="eyebrow">{{ assessment_label }}</div>
 		<h1>PQI Findings Entry</h1>
 	</div>
 	<div class="head-actions"></div>
@@ -98,8 +121,8 @@
 		<a class="pqi-item complete active" href="#pqi-1" data-pqi-target="pqi-1" aria-current="page"><span>1</span><div><b>ECE III Educators</b><small>{{ pqi1_score_label }}</small></div></a>
 		<a class="pqi-item complete" href="#pqi-2" data-pqi-target="pqi-2"><span>2</span><div><b>Stimulating Environment</b><small>{{ pqi2_score_label }}</small></div></a>
 		<a class="pqi-item" href="#pqi-3" data-pqi-target="pqi-3"><span>3</span><div><b>Curriculum &amp; Assessment</b><small>8 of 10 records</small></div></a>
-		<a class="pqi-item" href="#pqi-4" data-pqi-target="pqi-4"><span>4</span><div><b>Staff &amp; Family Opportunities</b><small>Not implemented yet</small></div></a>
-		<a class="pqi-item" href="#pqi-5" data-pqi-target="pqi-5"><span>5</span><div><b>Child Progress Reporting</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item" href="#pqi-4" data-pqi-target="pqi-4"><span>4</span><div><b>Staff &amp; Family Opportunities</b><small>{{ pqi4_score_label }}</small></div></a>
+		<a class="pqi-item" href="#pqi-5" data-pqi-target="pqi-5"><span>5</span><div><b>Child Progress Reporting</b><small>{{ pqi5_score_label }}</small></div></a>
 		<a class="pqi-item" href="#pqi-6-8" data-pqi-target="pqi-6-8"><span>6-8</span><div><b>Observational Levels</b><small>Not implemented yet</small></div></a>
 		<a class="pqi-item" href="#pqi-9-10" data-pqi-target="pqi-9-10"><span>9-10</span><div><b>Timed Observations</b><small>Not implemented yet</small></div></a>
 	</aside>
@@ -209,29 +232,11 @@
 		</section>
 
 		<div class="pqi-panel" data-pqi-panel="pqi-4" hidden>
-			<div class="card">
-				<div class="card-head">
-					<div>
-						<span class="section-kicker">PQI 4</span>
-						<h2>Staff &amp; Family Opportunities</h2>
-						<p>The form for this indicator has not been implemented yet.</p>
-					</div>
-					<span class="chip neutral">Not implemented yet</span>
-				</div>
-			</div>
+			{% include 'partials/pqi/_pqi4.html' %}
 		</div>
 
 		<div class="pqi-panel" data-pqi-panel="pqi-5" hidden>
-			<div class="card">
-				<div class="card-head">
-					<div>
-						<span class="section-kicker">PQI 5</span>
-						<h2>Child Progress Reporting</h2>
-						<p>The form for this indicator has not been implemented yet.</p>
-					</div>
-					<span class="chip neutral">Not implemented yet</span>
-				</div>
-			</div>
+			{% include 'partials/pqi/_pqi5.html' %}
 		</div>
 
 		<div class="pqi-panel" data-pqi-panel="pqi-6-8" hidden>

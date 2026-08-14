@@ -1,6 +1,6 @@
 from flask import Flask, abort, jsonify, redirect, request, url_for
 
-from constants import PQI2_ENVIRONMENT_QUESTIONS, PQI3_RECORD_COUNT
+from constants import PQI2_ENVIRONMENT_QUESTIONS, PQI3_RECORD_COUNT, PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, PQI5_CHILD_PROGRESS_QUESTIONS
 from db import log_storage_event
 from rendering import render_page
 from repositories.assessments import (
@@ -10,7 +10,7 @@ from repositories.assessments import (
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
-from services.formatters import calculate_pqi1_score, calculate_pqi2_score, calculate_pqi3_score, normalize_yes_no
+from services.formatters import calculate_pqi1_score, calculate_pqi2_score, calculate_pqi3_score, calculate_pqi4_score, calculate_pqi5_points, normalize_yes_no
 from session_state import clear_current_assessment, get_current_assessment, set_current_assessment
 
 
@@ -70,7 +70,7 @@ def register_routes(app: Flask) -> None:
 
         assessment_id = payload.get("assessment_id") or get_current_assessment()
         if assessment_id is None:
-            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
 
         if not isinstance(contact_hours, dict):
             return jsonify({"status": "error", "message": "contact_hours must be an object"}), 400
@@ -94,7 +94,7 @@ def register_routes(app: Flask) -> None:
         assessment_id = payload.get("assessment_id") or get_current_assessment()
 
         if assessment_id is None:
-            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
 
         certified_teaching_staff = payload.get("certified_teaching_staff")
         total_teaching_staff = payload.get("total_teaching_staff")
@@ -143,7 +143,7 @@ def register_routes(app: Flask) -> None:
         assessment_id = payload.get("assessment_id") or get_current_assessment()
 
         if assessment_id is None:
-            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
 
         responses = payload.get("responses")
         if not isinstance(responses, dict):
@@ -211,12 +211,86 @@ def register_routes(app: Flask) -> None:
             }
         )
 
+    @app.route("/api/assessments/pqi5", methods=["POST"])
+    def save_pqi5():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+
+        responses = payload.get("responses")
+        if not isinstance(responses, dict):
+            return jsonify({"status": "error", "message": "responses must be an object"}), 400
+
+        complete_flag = bool(payload.get("complete", False))
+        question_ids = [str(index) for index in range(1, len(PQI5_CHILD_PROGRESS_QUESTIONS) + 1)]
+        normalized_index_responses: dict[str, str | None] = {}
+
+        for raw_key, raw_value in responses.items():
+            if not isinstance(raw_key, str):
+                continue
+
+            key_text = raw_key.strip()
+            normalized_index = None
+            if key_text in question_ids:
+                normalized_index = key_text
+            elif "." in key_text:
+                suffix = key_text.rsplit(".", 1)[-1]
+                if suffix.isdigit():
+                    normalized_index = str(int(suffix))
+            if normalized_index in question_ids:
+                normalized_index_responses[normalized_index] = normalize_yes_no(raw_value)
+
+        for question_id in question_ids:
+            if question_id not in normalized_index_responses:
+                normalized_index_responses[question_id] = normalize_yes_no(responses.get(question_id))
+
+        all_answered = all(normalized_index_responses[question_id] in {"yes", "no"} for question_id in question_ids)
+        if complete_flag and not all_answered:
+            return jsonify({"status": "error", "message": "Answer all PQI 5 questions before completing"}), 400
+
+        ordered_responses = [normalized_index_responses[question_id] for question_id in question_ids]
+        points = calculate_pqi5_points(ordered_responses)
+        base_points, bonus_point, total_points = points if points is not None else (None, None, None)
+        stored_responses = {f"5.{question_id}": normalized_index_responses[question_id] for question_id in question_ids}
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi5": {
+                        "complete": complete_flag,
+                        "base_points": base_points,
+                        "bonus_point": bonus_point,
+                        "score": total_points,
+                        "responses": stored_responses,
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify(
+            {
+                "status": "success",
+                "message": "PQI 5 saved successfully!",
+                "assessment_id": normalized_assessment_id,
+                "complete": complete_flag,
+                "base_points": base_points,
+                "bonus_point": bonus_point,
+                "score": total_points,
+            }
+        )
+
     @app.route("/api/assessments/pqi3", methods=["POST"])
     def save_pqi3():
         payload = request.get_json(silent=True) or {}
         assessment_id = payload.get("assessment_id") or get_current_assessment()
         if assessment_id is None:
-            return jsonify({"status": "error", "message": "No active assessment available"}), 400
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
 
         raw_records = payload.get("records")
         if not isinstance(raw_records, dict):
@@ -285,6 +359,62 @@ def register_routes(app: Flask) -> None:
             "completed": complete_flag and all_complete,
             "score": score,
         })
+
+    @app.route("/api/assessments/pqi4", methods=["POST"])
+    def save_pqi4():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+
+        responses = payload.get("responses")
+        if not isinstance(responses, dict):
+            return jsonify({"status": "error", "message": "responses must be an object"}), 400
+
+        complete_flag = bool(payload.get("complete", False))
+        question_ids = [str(index) for index in range(1, len(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS) + 1)]
+        normalized_responses = {
+            question_id: normalize_yes_no(responses.get(question_id, responses.get(f"4.{question_id}")))
+            for question_id in question_ids
+        }
+        all_answered = all(value in {"yes", "no"} for value in normalized_responses.values())
+        if complete_flag and not all_answered:
+            return jsonify({"status": "error", "message": "Answer all PQI 4 questions before completing"}), 400
+
+        ordered_responses = [normalized_responses[question_id] for question_id in question_ids]
+        score = calculate_pqi4_score(ordered_responses)
+        yes_count = sum(value == "yes" for value in ordered_responses)
+        stored_responses = {f"4.{question_id}": normalized_responses[question_id] for question_id in question_ids}
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi4": {
+                        "complete": complete_flag,
+                        "score": score,
+                        "question_count": len(question_ids),
+                        "yes_count": yes_count,
+                        "responses": stored_responses,
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify(
+            {
+                "status": "success",
+                "message": "PQI 4 saved successfully!",
+                "assessment_id": normalized_assessment_id,
+                "complete": complete_flag,
+                "score": score,
+                "yes_count": yes_count,
+                "question_count": len(question_ids),
+            }
+        )
 
     @app.route("/api/assessments/delete", methods=["POST"])
     def delete_assessments():

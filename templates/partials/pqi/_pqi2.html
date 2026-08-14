@@ -80,7 +80,7 @@
 	const bandRows = {{ pqi1_band_rows | tojson }};
 	const assessmentId = {{ editing_assessment_id | tojson }};
 	const saveUrl = "{{ pqi2_save_url }}";
-	const pqi2Complete = {{ pqi2_complete | tojson }};
+	let pqi2Complete = {{ pqi2_complete | tojson }};
 	const questionIds = Array.from({ length: {{ pqi2_question_count }} }, (_, index) => String(index + 1));
 	const rows = Array.from(document.querySelectorAll('#pqi2-card [data-pqi2-question-id]'));
 	const summaryText = document.getElementById('pqi2-summary-text');
@@ -192,10 +192,7 @@
 
 		if (statusMessage) {
 			saveState.textContent = statusMessage;
-			return;
-		}
-
-		if (!hasChanges) {
+		} else if (!hasChanges) {
 			saveState.textContent = pqi2Complete ? 'PQI 2 marked as complete' : 'PQI 2 Saved';
 		} else if (allAnswered) {
 			saveState.textContent = `Ready to complete with score ${bandLabel}`;
@@ -231,15 +228,16 @@
 				},
 				body: JSON.stringify(payload),
 			});
-			const result = await response.json();
+			const result = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				throw new Error(result.message || 'Unable to save PQI 2');
+				throw new Error(result.message || 'No assessment selected, unable to save');
 			}
 
 			lastSavedSnapshot = snapshot;
+			pqi2Complete = targetButton === saveButton;
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 2 marked as complete';
 		} catch (error) {
-			statusMessage = error instanceof Error ? error.message : 'Unable to save PQI 2';
+			statusMessage = 'No assessment selected, unable to save';
 		} finally {
 			targetButton.disabled = false;
 			saveState.textContent = statusMessage;

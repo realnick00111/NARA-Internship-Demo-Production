@@ -61,7 +61,7 @@
 	const bandRows = {{ pqi1_band_rows | tojson }};
 	const assessmentId = {{ editing_assessment_id | tojson }};
 	const saveUrl = "{{ pqi1_save_url }}";
-	const pqi1Complete = {{ pqi1_complete | tojson }};
+	let pqi1Complete = {{ pqi1_complete | tojson }};
 	const certifiedInput = document.getElementById('ece-iii-certified-count');
 	const totalInput = document.getElementById('total-teaching-staff-count');
 	const warningBanner = document.getElementById('pqi1-warning');
@@ -146,14 +146,11 @@
 			warningBanner.style.setProperty('display', 'none', 'important');
 		}
 
-		if (statusMessage) {
-			saveState.textContent = statusMessage;
-			return;
-		}
-
 		const hasChanges = lastSavedSnapshot === null || snapshot.certified !== lastSavedSnapshot.certified || snapshot.total !== lastSavedSnapshot.total;
 		saveButton.disabled = !valid || (lastSavedSnapshot !== null && !hasChanges && pqi1Complete);
-		if (lastSavedSnapshot !== null && !hasChanges) {
+		if (statusMessage) {
+			saveState.textContent = statusMessage;
+		} else if (lastSavedSnapshot !== null && !hasChanges) {
 			saveState.textContent = pqi1Complete ? 'PQI 1 marked as complete' : 'PQI 1 Saved';
 		} else if (valid) {
 			saveState.textContent = `Ready to complete with score ${bandLabel(percentageValue)}`;
@@ -205,6 +202,7 @@
 			}
 
 			lastSavedSnapshot = getCurrentSnapshot();
+			pqi1Complete = targetButton === saveButton;
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 1 marked as complete';
 			saveState.textContent = statusMessage;
 		} catch (error) {

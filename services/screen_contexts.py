@@ -9,6 +9,10 @@ from constants import (
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
     PQI2_ENVIRONMENT_QUESTIONS,
+    PQI4_BAND_MAPPING,
+    PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS,
+    PQI5_CHILD_PROGRESS_QUESTIONS,
+    PQI5_QUESTION_POINTS,
     PQI3_RECORD_COUNT,
     WORKFLOW_PROGRESS_BY_STATUS,
 )
@@ -23,6 +27,8 @@ from services.formatters import (
     calculate_pqi1_score,
     calculate_pqi2_score,
     calculate_pqi3_score,
+    calculate_pqi4_score,
+    calculate_pqi5_points,
     format_date_label,
     format_timestamp_label,
     get_status_chip_class,
@@ -38,6 +44,22 @@ def get_current_assessment_row() -> dict | None:
     if assessment_id is None:
         return None
     return get_assessment_row_by_id(int(assessment_id))
+
+
+def get_assessment_label(assessment_row: dict | object | None = None, *, assessment_id: int | None = None) -> str:
+    if assessment_row is not None:
+        try:
+            assessment_id = assessment_row["id"]
+        except (KeyError, TypeError):
+            if hasattr(assessment_row, "get"):
+                assessment_id = assessment_row.get("id")
+            else:
+                assessment_id = None
+
+    if assessment_id is None:
+        return "No assessment selected"
+
+    return f"Assessment ASMT-{int(assessment_id):05d}"
 
 
 def _load_json_object(raw_value: object, default: dict) -> dict:
@@ -86,9 +108,10 @@ def _build_pqi3_records(raw_entry: object) -> list[dict]:
 
 
 def build_pqi3_context(preview: bool = False) -> dict:
-    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+    assessment_row = get_current_assessment_row()
     assessment_id = assessment_row["id"] if assessment_row is not None else None
-    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "ASMT-not implemented"
+    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "No assessment selected"
+    assessment_label = get_assessment_label(assessment_row)
     pqi_findings = _load_json_object(assessment_row["pqi_findings"], {}) if assessment_row is not None else {}
     pqi3_entry = pqi_findings.get("pqi3", {}) if isinstance(pqi_findings, dict) else {}
     records = _build_pqi3_records(pqi3_entry)
@@ -99,6 +122,7 @@ def build_pqi3_context(preview: bool = False) -> dict:
     score = calculate_pqi3_score(records)
     return {
         "assessment_code": assessment_code,
+        "assessment_label": assessment_label,
         "editing_assessment_id": assessment_id,
         "pqi3_records": records[:4] if preview else records,
         "pqi3_preview": preview,
@@ -114,7 +138,7 @@ def build_pqi3_context(preview: bool = False) -> dict:
 
 
 def build_contact_hours_context() -> dict:
-    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+    assessment_row = get_current_assessment_row()
 
     contact_hours_form = {
         "to1": "",
@@ -137,10 +161,12 @@ def build_contact_hours_context() -> dict:
             contact_hours_form[key] = "" if value is None else str(value)
 
     assessment_id = assessment_row["id"] if assessment_row is not None else None
-    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "ASMT-not implemented"
+    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "No assessment selected"
+    assessment_label = get_assessment_label(assessment_row)
 
     return {
         "assessment_code": assessment_code,
+        "assessment_label": assessment_label,
         "editing_assessment_id": assessment_id,
         "contact_hours_form": contact_hours_form,
         "save_indicator_label": f"Autosaved {format_timestamp_label(assessment_row['modified_at'])}" if assessment_row is not None else "Autosaved --",
@@ -148,23 +174,33 @@ def build_contact_hours_context() -> dict:
 
 
 def build_pqi1_context() -> dict:
-    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+    assessment_row = get_current_assessment_row()
 
     pqi1_form = {
         "certified_teaching_staff": "",
         "total_teaching_staff": "",
     }
     assessment_id = None
-    assessment_code = "ASMT-not implemented"
+    assessment_code = "No assessment selected"
+    assessment_label = "No assessment selected"
     score = None
     pqi1_complete = False
     pqi2_form = {str(index): "" for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)}
     pqi2_complete = False
     pqi2_score = None
+    pqi4_form = {str(index): "" for index, _ in enumerate(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, start=1)}
+    pqi4_complete = False
+    pqi4_score = None
+    pqi5_form = {str(index): "" for index, _ in enumerate(PQI5_CHILD_PROGRESS_QUESTIONS, start=1)}
+    pqi5_complete = False
+    pqi5_base_points = None
+    pqi5_bonus_point = None
+    pqi5_score = None
 
     if assessment_row is not None:
         assessment_id = assessment_row["id"]
         assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else assessment_code
+        assessment_label = get_assessment_label(assessment_row)
 
         pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
         pqi1_entry = pqi_findings.get("pqi1") if isinstance(pqi_findings, dict) else {}
@@ -208,17 +244,54 @@ def build_pqi1_context() -> dict:
             pqi2_complete = bool(pqi2_entry.get("complete", False))
             pqi2_score = calculate_pqi2_score([pqi2_form[str(index)] for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)])
 
+        pqi4_entry = pqi_findings.get("pqi4") if isinstance(pqi_findings, dict) else {}
+        if isinstance(pqi4_entry, dict):
+            responses = pqi4_entry.get("responses")
+            if isinstance(responses, dict):
+                for index, _ in enumerate(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, start=1):
+                    key = str(index)
+                    raw_value = responses.get(key, responses.get(f"4.{key}"))
+                    pqi4_form[key] = normalize_yes_no(raw_value) or ""
+
+            pqi4_complete = bool(pqi4_entry.get("complete", False))
+            pqi4_score = calculate_pqi4_score([pqi4_form[str(index)] for index, _ in enumerate(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, start=1)])
+
+        pqi5_entry = pqi_findings.get("pqi5") if isinstance(pqi_findings, dict) else {}
+        if isinstance(pqi5_entry, dict):
+            responses = pqi5_entry.get("responses")
+            if isinstance(responses, dict):
+                for index, _ in enumerate(PQI5_CHILD_PROGRESS_QUESTIONS, start=1):
+                    key = str(index)
+                    raw_value = responses.get(key, responses.get(f"5.{key}"))
+                    pqi5_form[key] = normalize_yes_no(raw_value) or ""
+
+            pqi5_complete = bool(pqi5_entry.get("complete", False))
+            pqi5_points = calculate_pqi5_points([pqi5_form[str(index)] for index, _ in enumerate(PQI5_CHILD_PROGRESS_QUESTIONS, start=1)])
+            if pqi5_points is not None:
+                pqi5_base_points, pqi5_bonus_point, pqi5_score = pqi5_points
+
     pqi2_question_count = len(PQI2_ENVIRONMENT_QUESTIONS)
     pqi2_completed_count = sum(1 for value in pqi2_form.values() if value in {"yes", "no"})
     pqi2_yes_count = sum(1 for value in pqi2_form.values() if value == "yes")
     pqi2_all_answered = pqi2_completed_count == pqi2_question_count
     pqi2_percentage = (pqi2_yes_count / pqi2_question_count) * 100 if pqi2_all_answered else None
     pqi2_score_label = f"Score {pqi2_score}" if pqi2_score is not None else f"{pqi2_completed_count} of {pqi2_question_count} answered"
+    pqi4_question_count = len(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS)
+    pqi4_completed_count = sum(1 for value in pqi4_form.values() if value in {"yes", "no"})
+    pqi4_yes_count = sum(1 for value in pqi4_form.values() if value == "yes")
+    pqi4_all_answered = pqi4_completed_count == pqi4_question_count
+    pqi4_percentage = round((pqi4_yes_count / pqi4_question_count) * 100, 2) if pqi4_all_answered else None
+    pqi4_score_label = f"Score {pqi4_score}" if pqi4_score is not None else f"{pqi4_completed_count} of {pqi4_question_count} answered"
+
+    pqi5_question_count = len(PQI5_CHILD_PROGRESS_QUESTIONS)
+    pqi5_completed_count = sum(1 for value in pqi5_form.values() if value in {"yes", "no"})
+    pqi5_score_label = f"Score {pqi5_score}" if pqi5_score is not None else f"{pqi5_completed_count} of {pqi5_question_count} answered"
 
     pqi3_context = build_pqi3_context()
 
     return {
         "assessment_code": assessment_code,
+        "assessment_label": assessment_label,
         "editing_assessment_id": assessment_id,
         "pqi1_form": pqi1_form,
         "pqi1_score": score,
@@ -238,6 +311,28 @@ def build_pqi1_context() -> dict:
         "pqi2_yes_count": pqi2_yes_count,
         "pqi2_percentage": pqi2_percentage,
         "pqi2_save_url": url_for("save_pqi2"),
+        "pqi4_questions": PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS,
+        "pqi4_form": pqi4_form,
+        "pqi4_complete": pqi4_complete,
+        "pqi4_score": pqi4_score,
+        "pqi4_score_label": pqi4_score_label,
+        "pqi4_question_count": pqi4_question_count,
+        "pqi4_completed_count": pqi4_completed_count,
+        "pqi4_yes_count": pqi4_yes_count,
+        "pqi4_percentage": pqi4_percentage,
+        "pqi4_band_rows": [{"percentage": percentage, "band": band} for percentage, band in PQI4_BAND_MAPPING.items()],
+        "pqi4_save_url": url_for("save_pqi4"),
+        "pqi5_questions": PQI5_CHILD_PROGRESS_QUESTIONS,
+        "pqi5_points": PQI5_QUESTION_POINTS,
+        "pqi5_form": pqi5_form,
+        "pqi5_complete": pqi5_complete,
+        "pqi5_base_points": pqi5_base_points,
+        "pqi5_bonus_point": pqi5_bonus_point,
+        "pqi5_score": pqi5_score,
+        "pqi5_score_label": pqi5_score_label,
+        "pqi5_question_count": pqi5_question_count,
+        "pqi5_completed_count": pqi5_completed_count,
+        "pqi5_save_url": url_for("save_pqi5"),
         **pqi3_context,
     }
 
@@ -353,8 +448,13 @@ def build_new_assessment_context() -> dict:
             }
         )
 
+    assessment_label = get_assessment_label(current_assessment)
+    if current_assessment is None:
+        assessment_label = "Create assessment"
+
     return {
         "assessment_form": assessment_form,
+        "assessment_label": assessment_label,
         "editing_assessment_id": current_assessment["id"] if current_assessment is not None else None,
         "facility_type_options": FACILITY_TYPE_OPTIONS,
     }
@@ -389,15 +489,18 @@ def build_facility_identification_context() -> dict:
             }
         )
 
+    assessment_label = get_assessment_label(current_assessment)
+
     return {
         "facility_form": facility_form,
+        "assessment_label": assessment_label,
         "editing_assessment_id": current_assessment["id"] if current_assessment is not None else None,
         "facility_type_options": FACILITY_TYPE_OPTIONS,
     }
 
 
 def build_assessment_progress_context() -> dict:
-    assessment_row = get_current_assessment_row() or get_most_recent_assessment_row()
+    assessment_row = get_current_assessment_row()
 
     if assessment_row is None:
         assessment_row = {
@@ -418,7 +521,8 @@ def build_assessment_progress_context() -> dict:
     progress_percent = WORKFLOW_PROGRESS_BY_STATUS.get(normalize_text(status_text), 68)
     complete_count = max(0, min(62, round(62 * progress_percent / 100)))
     assessment_id = assessment_row["id"]
-    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "ASMT-not implemented"
+    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "No assessment selected"
+    assessment_label = get_assessment_label(assessment_row)
 
     reference_label = str(
         assessment_row["external_case_number"] or assessment_row["external_inspection_id"] or "not implemented"
@@ -510,6 +614,7 @@ def build_assessment_progress_context() -> dict:
 
     return {
         "assessment_code": assessment_code,
+        "assessment_label": assessment_label,
         "assessment_name": assessment_name,
         "assessment_status": status_text,
         "assessment_status_chip_class": get_status_chip_class(status_text),

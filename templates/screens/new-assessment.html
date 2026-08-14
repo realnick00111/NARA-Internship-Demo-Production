@@ -1,11 +1,8 @@
 <div class="page-header">
 	<div>
-		<div class="eyebrow">Create assessment</div>
-		<h1>{{ 'Edit Assessment' if editing_assessment_id else 'New Assessment' }}</h1>
+		<div class="eyebrow">{{ assessment_label }}</div>
+		<h1>{{ 'Assessment Setup' if editing_assessment_id else 'New Assessment' }}</h1>
 		<p>Start the record, confirm the scope, and capture the identifiers before evidence entry begins.</p>
-		{% if editing_assessment_id %}
-		<p class="muted">Editing assessment ASMT-{{ "%05d"|format(editing_assessment_id) }}</p>
-		{% endif %}
 	</div>
 </div>
 
@@ -95,12 +92,13 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Draft save failed');
+				const result = await response.json().catch(() => ({}));
+				throw new Error(result.message || 'No assessment selected, unable to save');
 			}
 
 			setStatus('Draft saved');
 		} catch (error) {
-			setStatus('Draft save unavailable');
+			setStatus('No assessment selected, unable to save');
 		}
 	});
 

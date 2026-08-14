@@ -123,6 +123,28 @@ PQI2_ENVIRONMENT_QUESTIONS = [
     "There is evidence of the children's interests and projects in the classroom.",
 ]
 
+PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS = [
+    "The program provides communication, education, and informational materials and opportunities for families that are delivered in a way that meets their diverse needs.",
+    "The program communicates with families using different modes of communication, and at least one mode promotes two-way communication.",
+    "The program demonstrates respect and engages in ongoing two-way communication. The program respects each family's strengths, choices, and goals for their children.",
+]
+
+PQI4_BAND_MAPPING = {
+    0: 1,
+    33.33: 2,
+    66.67: 3,
+    100: 4,
+}
+
+PQI5_CHILD_PROGRESS_QUESTIONS = [
+    "The program holds qualifying conferences with families at least twice yearly.",
+    "The program provides a written developmental-progress report for each child.",
+    "The program engages in culturally and linguistically appropriate interactions with children and families.",
+]
+
+# Points awarded per question, in the same order as PQI5_CHILD_PROGRESS_QUESTIONS; the last question is the bonus point.
+PQI5_QUESTION_POINTS = [2, 1, 1]
+
 PQI3_RECORD_COUNT = 10
 
 PQI_BAND_MAPPING = {

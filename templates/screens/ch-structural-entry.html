@@ -1,7 +1,7 @@
 <div class="structural-entry-page">
 	<div class="page-header">
 		<div>
-			<div class="eyebrow">{{ assessment_code }}</div>
+			<div class="eyebrow">{{ assessment_label }}</div>
 			<h1>CH Structural Entry</h1>
 		</div>
 		<div class="head-actions"></div>
@@ -268,12 +268,13 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Contact hours save failed');
+				const result = await response.json().catch(() => ({}));
+				throw new Error(result.message || 'No assessment selected, unable to save');
 			}
 
 			saveState.textContent = 'Draft saved';
 		} catch (error) {
-			saveState.textContent = 'Draft save unavailable';
+			saveState.textContent = 'No assessment selected, unable to save';
 		}
 	});
 

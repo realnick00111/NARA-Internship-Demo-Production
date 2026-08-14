@@ -1,6 +1,6 @@
 <div class="page-header">
 	<div>
-		<div class="eyebrow">Assessment DM-2026-00184</div>
+		<div class="eyebrow">{{ assessment_label }}</div>
 		<h1>Facility and External Identification</h1>
 		<p>Confirm the location, licensing identifiers, and any linked contacts before the evidence workflow begins.</p>
 	</div>
@@ -102,12 +102,13 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Draft save failed');
+				const result = await response.json().catch(() => ({}));
+				throw new Error(result.message || 'No assessment selected, unable to save');
 			}
 
 			setStatus('Draft saved');
 		} catch (error) {
-			setStatus('Draft save unavailable');
+			setStatus(error instanceof Error && /assessment|not found|unable to save/i.test(error.message) ? 'No assessment selected, unable to save' : 'No assessment selected, unable to save');
 		}
 	});
 })();

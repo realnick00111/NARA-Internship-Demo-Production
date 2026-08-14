@@ -78,16 +78,15 @@ video {
 	position: sticky;
 	top: 0;
 	z-index: 20;
-	height: var(--topbar-height);
+	height: 72px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 16px;
-	padding: 0 clamp(16px, 2vw, 28px);
-	background: rgba(255, 255, 255, .92);
-	backdrop-filter: blur(12px);
+	padding: 0 28px;
+	background: #fff;
 	border-bottom: 1px solid var(--line);
-	box-shadow: 0 8px 26px rgba(18, 30, 48, .06)
+	box-shadow: none
 }
 
 .branding {
@@ -97,16 +96,16 @@ video {
 }
 
 .brand-mark {
-	width: 44px;
-	height: 44px;
-	border-radius: 13px;
+	width: 42px;
+	height: 42px;
+	border-radius: 12px;
 	background: linear-gradient(135deg, var(--purple), var(--teal));
 	color: #fff;
 	display: grid;
 	place-items: center;
 	font-weight: 800;
 	letter-spacing: .06em;
-	box-shadow: 0 10px 22px rgba(92, 42, 122, .2)
+	box-shadow: none
 }
 
 .brand-copy {
@@ -117,7 +116,8 @@ video {
 
 .brand-copy strong {
 	font-size: 16px;
-	line-height: 1.1
+	line-height: 1.1;
+	font-weight: 800
 }
 
 .brand-copy span,
@@ -134,17 +134,30 @@ video {
 .top-cluster {
 	display: flex;
 	align-items: center;
-	gap: 14px;
+	gap: 10px;
 	margin-left: auto
 }
 
 .tenant {
-	padding-right: 14px;
+	padding-right: 18px;
 	border-right: 1px solid var(--line);
-	text-align: right;
 	display: flex;
 	flex-direction: column;
-	gap: 2px
+	text-align: right;
+	font-size: 12px;
+	line-height: 1.2
+}
+
+.tenant-kicker {
+	font-size: 9px;
+	text-transform: uppercase;
+	letter-spacing: .12em;
+	color: var(--muted)
+}
+
+.tenant strong {
+	font-size: 12px;
+	line-height: 1.2
 }
 
 .user {
@@ -154,10 +167,10 @@ video {
 }
 
 .user-badge {
-	width: 40px;
-	height: 40px;
+	width: 38px;
+	height: 38px;
 	border-radius: 50%;
-	background: #ebe1f1;
+	background: #ede5f2;
 	color: var(--purple);
 	display: grid;
 	place-items: center;
@@ -167,7 +180,17 @@ video {
 .user-copy {
 	display: flex;
 	flex-direction: column;
-	line-height: 1.1
+	font-size: 12px;
+	line-height: 1.2
+}
+
+.user-copy strong {
+	font-size: 12px
+}
+
+.user-copy span {
+	font-size: 11px;
+	color: var(--muted)
 }
 
 .app-sidebar {
@@ -573,6 +596,197 @@ video {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) 320px;
 	gap: 14px
+}
+
+.hierarchy-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 300px;
+	gap: 14px;
+	align-items: start
+}
+
+.tabs {
+	display: flex;
+	border-bottom: 1px solid var(--line);
+	margin-bottom: 13px
+}
+
+.tabs button,
+.hierarchy-tabs button {
+	flex: 0 0 auto;
+	white-space: nowrap;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	padding: 10px 15px;
+	color: #687586;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer
+}
+
+.tabs button.active,
+.hierarchy-tabs button.active {
+	color: var(--purple);
+	font-weight: 800;
+	border-bottom-color: var(--purple)
+}
+
+.hierarchy-tabs {
+	overflow-x: auto;
+	flex-wrap: nowrap
+}
+
+.level {
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	margin-bottom: 10px;
+	overflow: hidden
+}
+
+.level-head {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	padding: 11px;
+	background: #f8f9fb
+}
+
+.level-head > div {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-width: 0
+}
+
+.level-head small {
+	color: var(--muted)
+}
+
+.level-num {
+	width: 31px;
+	height: 31px;
+	border-radius: 50%;
+	background: #e7ebf0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 800;
+	flex: none
+}
+
+.level.complete {
+	border-color: #b8dbbe
+}
+
+.level.complete .level-head {
+	background: #f0f9f2
+}
+
+.level.partial {
+	border-color: #e6ca8d
+}
+
+.level.partial .level-head {
+	background: #fff9ec
+}
+
+.level.locked {
+	opacity: .65
+}
+
+.criteria {
+	padding: 9px 13px;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px
+}
+
+.criteria label {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	font-size: 11px;
+	line-height: 1.35
+}
+
+.criteria input[type="checkbox"] {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 13px;
+	height: 13px;
+	margin: 2px 0 0;
+	border: 1.5px solid #9aa7b4;
+	border-radius: 4px;
+	background: #fff;
+	position: relative;
+	flex: none;
+	box-shadow: none
+}
+
+.criteria input[type="checkbox"]:checked {
+	background: linear-gradient(135deg, var(--purple), var(--purple2));
+	border-color: var(--purple)
+}
+
+.criteria input[type="checkbox"]:checked::after {
+	content: "";
+	position: absolute;
+	left: 3px;
+	top: 0;
+	width: 4px;
+	height: 8px;
+	border: solid #fff;
+	border-width: 0 2px 2px 0;
+	transform: rotate(45deg)
+}
+
+.criteria label span:last-child {
+	display: block;
+	padding-top: 1px
+}
+
+.partial-box {
+	margin: 0 13px 12px;
+	padding: 10px;
+	background: #fff7e7;
+	border-radius: 7px
+}
+
+.partial-box label {
+	font-size: 10px;
+	font-weight: 800
+}
+
+.partial-box .input {
+	margin-top: 5px
+}
+
+.partial-box p {
+	font-size: 10px;
+	color: var(--muted);
+	margin: 7px 0 0
+}
+
+.score-card {
+	text-align: center
+}
+
+.score-card > span {
+	font-size: 11px;
+	color: var(--muted)
+}
+
+.score-card > strong {
+	display: block;
+	font-size: 48px;
+	color: var(--purple);
+	margin: 8px
+}
+
+.score-card p {
+	margin-bottom: 0
 }
 
 .table-wrap {
@@ -2237,7 +2451,8 @@ td span {
 	.login-page,
 	.grid.three,
 	.grid.two,
-	.paper-grid {
+	.paper-grid,
+	.hierarchy-layout {
 		grid-template-columns: 1fr
 	}
 
@@ -2272,6 +2487,10 @@ td span {
 	.sticky-actions .button,
 	.sticky-actions > div > .button {
 		width: 100%
+	}
+
+	.criteria {
+		grid-template-columns: 1fr
 	}
 
 	.hide-on-large {

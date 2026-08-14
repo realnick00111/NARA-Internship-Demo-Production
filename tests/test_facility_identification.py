@@ -108,12 +108,19 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('Sunrise Learning Center', rendered)
 
     def test_new_assessment_uses_facility_type_dropdown(self):
-        assessment_id = self.insert_assessment()
+        response = self.client.get("/screens/new-assessment")
+        rendered = response.data.decode("utf-8")
 
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<div class="eyebrow">Create assessment</div>', rendered)
+
+        assessment_id = self.insert_assessment()
         with app.test_request_context("/"):
             set_current_assessment(assessment_id)
             rendered = app.view_functions["screen"]("new-assessment")
 
+        self.assertIn('<div class="eyebrow">Assessment ASMT-', rendered)
+        self.assertNotIn('<div class="eyebrow">Create assessment</div>', rendered)
         self.assertIn('<select class="select" id="facility-type" name="facility_type">', rendered)
         self.assertIn('<option value="Mixed Age" selected>Mixed Age</option>', rendered)
         self.assertIn('<option value="Preschool">Preschool</option>', rendered)
@@ -143,6 +150,23 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('href="/screens/validation-summary"', rendered)
         self.assertIn('href="/screens/pqi3-sample"', rendered)
         self.assertIn('href="/screens/audit-history"', rendered)
+
+    def test_assessment_label_uses_current_selection_or_placeholder(self):
+        response = self.client.get("/screens/facility-identification")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<div class="eyebrow">No assessment selected</div>', rendered)
+
+        assessment_id = self.insert_assessment()
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/screens/facility-identification")
+        rendered = response.data.decode("utf-8")
+
+        self.assertIn('<div class="eyebrow">Assessment ASMT-', rendered)
+        self.assertNotIn('<div class="eyebrow">No assessment selected</div>', rendered)
 
     def test_pqi3_screen_uses_single_current_layout(self):
         response = self.client.get("/screens/pqi3-sample")
@@ -187,6 +211,10 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="pqi2-save-button"', rendered)
         self.assertIn('Co-teaching is evident.', rendered)
         self.assertIn('Unawnsered', rendered)
+        self.assertIn('href="#pqi-5"', rendered)
+        self.assertIn('id="pqi5-draft-save-button"', rendered)
+        self.assertIn('id="pqi5-save-button"', rendered)
+        self.assertIn('qualifying conferences with families at least twice yearly.', rendered)
 
     def test_save_pqi1_persists_nested_json(self):
         assessment_id = self.insert_assessment()
@@ -273,6 +301,90 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         payload = response.get_json()
         self.assertEqual(payload["message"], "Answer all PQI 2 questions before completing")
+
+    def test_save_pqi5_persists_nested_json(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.post(
+            "/api/assessments/pqi5",
+            json={
+                "complete": True,
+                "responses": {
+                    "5.1": "yes",
+                    "5.2": "yes",
+                    "5.3": "no",
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+
+        self.assertIsNotNone(saved_row)
+        saved_findings = json.loads(saved_row[0])
+        self.assertEqual(saved_findings["pqi5"]["base_points"], 3)
+        self.assertEqual(saved_findings["pqi5"]["bonus_point"], 0)
+        self.assertEqual(saved_findings["pqi5"]["score"], 3)
+        self.assertEqual(saved_findings["pqi5"]["responses"]["5.3"], "no")
+
+    def test_save_pqi5_complete_requires_all_answers(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.post(
+            "/api/assessments/pqi5",
+            json={
+                "complete": True,
+                "responses": {
+                    "5.1": "yes",
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        payload = response.get_json()
+        self.assertEqual(payload["message"], "Answer all PQI 5 questions before completing")
+
+    def test_pqi4_renders_and_uses_static_percentage_bands(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+        self.assertIn('id="pqi4-card"', rendered)
+        self.assertIn("Opportunities for Staff and Families to Get to Know Each Other", rendered)
+        self.assertIn("meets their diverse needs", rendered)
+
+        cases = [
+            ({"4.1": "no", "4.2": "no", "4.3": "no"}, 1),
+            ({"4.1": "yes", "4.2": "no", "4.3": "no"}, 2),
+            ({"4.1": "yes", "4.2": "yes", "4.3": "no"}, 3),
+            ({"4.1": "yes", "4.2": "yes", "4.3": "yes"}, 4),
+        ]
+        for responses, expected_score in cases:
+            response = self.client.post(
+                "/api/assessments/pqi4",
+                json={"complete": True, "responses": responses},
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.get_json()["score"], expected_score)
+
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        saved_findings = json.loads(saved_row[0])
+        self.assertEqual(saved_findings["pqi4"]["score"], 4)
+        self.assertEqual(saved_findings["pqi4"]["responses"]["4.3"], "yes")
 
     def test_save_pqi3_persists_and_reloads_records_and_notes(self):
         assessment_id = self.insert_assessment()
