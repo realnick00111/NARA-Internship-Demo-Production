@@ -133,7 +133,7 @@ def build_pqi3_context(preview: bool = False) -> dict:
         "editing_assessment_id": assessment_id,
         "pqi3_records": records[:4] if preview else records,
         "pqi3_preview": preview,
-        "pqi3_complete": bool(pqi3_entry.get("completed", pqi3_entry.get("complete", False))) and complete,
+        "pqi3_complete": bool(pqi3_entry.get("completed", pqi3_entry.get("complete", False))),
         "pqi3_completed_count": completed_count,
         "pqi3_positive_count": positive_count,
         "pqi3_percentage": percentage,

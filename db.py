@@ -100,7 +100,7 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
             visit_date TEXT NOT NULL,
             inspection_type TEXT NOT NULL,
             assessor TEXT NOT NULL DEFAULT 'not implemented',
-            status TEXT NOT NULL DEFAULT 'not implemented',
+            status TEXT NOT NULL DEFAULT 'draft',
             external_case_number TEXT,
             external_inspection_id TEXT,
             contact_hours TEXT NOT NULL DEFAULT '{}',

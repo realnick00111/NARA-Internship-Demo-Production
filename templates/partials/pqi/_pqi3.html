@@ -8,6 +8,18 @@
 		<div class="score-block"><span>Provisional</span><strong id="pqi3-score-top">{% if pqi3_score is not none %}Score {{ pqi3_score }}{% else %}Score unavailable{% endif %}</strong></div>
 	</div>
 
+	<div class="pqi-complete-card" id="pqi3-complete-card" role="status" aria-live="polite"{% if not pqi3_complete %} hidden{% endif %}>
+		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+		<span>PQI 3 marked as complete</span>
+	</div>
+	<div class="alert info pqi2-summary-card" id="pqi3-summary-card" role="status" aria-live="polite"{% if pqi3_complete %} hidden{% endif %}>
+		<div class="alert-icon">i</div>
+		<div>
+			<strong>Records complete</strong>
+			<span id="pqi3-summary-text">{{ pqi3_completed_count }} of 10 records complete</span>
+		</div>
+	</div>
+
 	<div class="pqi3-table-wrap">
 		<table class="sample-table full">
 			<thead><tr><th>Anonymous record</th><th>Emergent curriculum</th><th>Co-learning</th><th>Documented learning for future planning</th><th>Derived result</th><th>Evidence</th></tr></thead>
@@ -60,6 +72,9 @@
 	let completeInitially = {{ pqi3_complete | tojson }};
 	const fields = ['emergent_curriculum', 'co_learning', 'documented_learning_future_planning'];
 	const rows = Array.from(document.querySelectorAll('#pqi3-card [data-pqi3-record]'));
+	const completionCard = document.getElementById('pqi3-complete-card');
+	const summaryCard = document.getElementById('pqi3-summary-card');
+	const summaryText = document.getElementById('pqi3-summary-text');
 	const positiveCountNode = document.getElementById('pqi3-positive-count');
 	const percentageNode = document.getElementById('pqi3-percentage');
 	const scoreNode = document.getElementById('pqi3-score');
@@ -68,6 +83,13 @@
 	const saveState = document.getElementById('pqi3-save-state');
 	const draftButton = document.getElementById('pqi3-draft-save-button');
 	const completeButton = document.getElementById('pqi3-save-button');
+	const syncCompletionState = () => {
+		if (completionCard) completionCard.hidden = !completeInitially;
+		if (summaryCard) summaryCard.hidden = completeInitially;
+		if (typeof window.syncPqiNavCompletionState === 'function') {
+			window.syncPqiNavCompletionState('pqi-3', completeInitially, completeInitially ? `Score ${scoreNode.textContent}` : null);
+		}
+	};
 	const rowRecordKey = (row) => `record ${row.dataset.pqi3Record}`;
 	const recordState = Object.fromEntries(rows.map((row) => [rowRecordKey(row), Object.fromEntries(fields.map((field) => [field, row.getAttribute(`data-${field}`) || '']))]));
 	const syncRowState = (row) => {
@@ -99,6 +121,8 @@
 			result.textContent = positive ? 'Positive' : complete ? 'Not positive' : 'Incomplete';
 		});
 		const allComplete = completeCount === 10; const percentage = positiveCount * 10; const score = band(percentage); const changed = JSON.stringify(records) !== lastSaved;
+		syncCompletionState();
+		summaryText.textContent = `${completeCount} of 10 records complete`;
 		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
 	};
 	rows.forEach((row) => {

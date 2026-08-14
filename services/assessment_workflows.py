@@ -167,7 +167,7 @@ def build_assessment_fields(
 
 
 def create_assessment_entry(assessment_data: dict) -> int:
-    fields = build_assessment_fields(assessment_data, status="not implemented")
+    fields = build_assessment_fields(assessment_data, status="draft")
     return upsert_assessment_fields(fields)
 
 

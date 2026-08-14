@@ -16,7 +16,7 @@ ASSESSMENT_ROW_SELECT = """
         a.visit_date,
         a.inspection_type,
         a.assessor,
-        COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
+        COALESCE(NULLIF(trim(a.status), ''), 'draft') AS status,
         a.external_case_number,
         a.external_inspection_id,
         COALESCE(NULLIF(trim(a.contact_hours), ''), '{}') AS contact_hours,
@@ -102,7 +102,7 @@ def _assessment_fields_from_payload(fields: dict) -> dict[str, str | None]:
         "visit_date": _clean_text(fields.get("visit_date")),
         "inspection_type": _clean_text(fields.get("inspection_type")),
         "assessor": _clean_text(fields.get("assessor"), "not implemented") or "not implemented",
-        "status": _clean_text(fields.get("status"), "not implemented") or "not implemented",
+        "status": _clean_text(fields.get("status"), "draft") or "draft",
         "external_case_number": _clean_text(fields.get("external_case_number")) or None,
         "external_inspection_id": _clean_text(fields.get("external_inspection_id")) or None,
     }

@@ -8,7 +8,11 @@
 		<span class="chip info">Yes/No checklist</span>
 	</div>
 
-	<div class="alert info pqi2-summary-card" role="status" aria-live="polite">
+	<div class="pqi-complete-card" id="pqi2-complete-card" role="status" aria-live="polite"{% if not pqi2_complete %} hidden{% endif %}>
+		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+		<span>PQI 2 marked as complete</span>
+	</div>
+	<div class="alert info pqi2-summary-card" id="pqi2-summary-card" role="status" aria-live="polite"{% if pqi2_complete %} hidden{% endif %}>
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Fields completed</strong>
@@ -88,6 +92,8 @@
 	let pqi2Complete = {{ pqi2_complete | tojson }};
 	const questionIds = Array.from({ length: {{ pqi2_question_count }} }, (_, index) => String(index + 1));
 	const rows = Array.from(document.querySelectorAll('#pqi2-card [data-pqi2-question-id]'));
+	const completionCard = document.getElementById('pqi2-complete-card');
+	const summaryCard = document.getElementById('pqi2-summary-card');
 	const summaryText = document.getElementById('pqi2-summary-text');
 	const yesCountDisplay = document.getElementById('pqi2-yes-count-display');
 	const totalCountDisplay = document.getElementById('pqi2-total-count-display');
@@ -98,6 +104,13 @@
 	const draftSaveButton = document.getElementById('pqi2-draft-save-button');
 	const saveButton = document.getElementById('pqi2-save-button');
 	const optionalNote = document.getElementById('pqi2-optional-note');
+	const syncCompletionState = () => {
+		if (completionCard) completionCard.hidden = !pqi2Complete;
+		if (summaryCard) summaryCard.hidden = pqi2Complete;
+		if (typeof window.syncPqiNavCompletionState === 'function') {
+			window.syncPqiNavCompletionState('pqi-2', pqi2Complete, pqi2Complete ? `Score ${bandDisplay.textContent}` : null);
+		}
+	};
 
 	if (!rows.length || !summaryText || !yesCountDisplay || !totalCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;
@@ -193,6 +206,7 @@
 		const percentage = allAnswered ? (yesCount / totalCount) * 100 : null;
 		const bandLabel = allAnswered ? getBandLabel(percentage) : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
+		syncCompletionState();
 
 		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
 		yesCountDisplay.textContent = String(yesCount);
@@ -251,6 +265,7 @@
 
 			lastSavedSnapshot = snapshot;
 			pqi2Complete = targetButton === saveButton;
+			syncCompletionState();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 2 marked as complete';
 		} catch (error) {
 			statusMessage = 'No assessment selected, unable to save';

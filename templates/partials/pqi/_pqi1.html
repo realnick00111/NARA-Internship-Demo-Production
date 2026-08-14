@@ -8,6 +8,11 @@
 		<span class="chip info">Percentage indicator</span>
 	</div>
 
+	<div class="pqi-complete-card" id="pqi1-complete-card" role="status" aria-live="polite"{% if not pqi1_complete %} hidden{% endif %}>
+		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+		<span>PQI 1 marked as complete</span>
+	</div>
+
 	<div class="grid two form-grid" id="pqi1-form">
 		<label class="field">
 			<div class="labelrow"><label for="ece-iii-certified-count">ECE III-certified teaching staff</label><span class="req">Required</span></div>
@@ -74,6 +79,15 @@
 	const saveState = document.getElementById('pqi1-save-state');
 	const draftSaveButton = document.getElementById('pqi1-draft-save-button');
 	const saveButton = document.getElementById('pqi1-save-button');
+	const completeCard = document.getElementById('pqi1-complete-card');
+	const syncCompletionState = () => {
+		if (completeCard) {
+			completeCard.hidden = !pqi1Complete;
+		}
+		if (typeof window.syncPqiNavCompletionState === 'function') {
+			window.syncPqiNavCompletionState('pqi-1', pqi1Complete, pqi1Complete ? `Score ${bandLabel((Number(certifiedInput.value) / Number(totalInput.value)) * 100)}` : null);
+		}
+	};
 
 	if (!certifiedInput || !totalInput || !warningBanner || !warningText || !certifiedDisplay || !totalDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;
@@ -148,6 +162,7 @@
 		}
 
 		const hasChanges = lastSavedSnapshot === null || snapshot.certified !== lastSavedSnapshot.certified || snapshot.total !== lastSavedSnapshot.total;
+		syncCompletionState();
 		saveButton.disabled = !valid || (lastSavedSnapshot !== null && !hasChanges && pqi1Complete);
 		if (statusMessage) {
 			saveState.textContent = statusMessage;
@@ -204,6 +219,7 @@
 
 			lastSavedSnapshot = getCurrentSnapshot();
 			pqi1Complete = targetButton === saveButton;
+			syncCompletionState();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 1 marked as complete';
 			saveState.textContent = statusMessage;
 		} catch (error) {

@@ -340,6 +340,11 @@ def register_routes(app: Flask) -> None:
                     "emergent_curriculum", "co_learning", "documented_learning_future_planning"
                 )
             )
+            record["derived_result"] = (
+                "positive" if record["positive"]
+                else "not_positive" if record["complete"]
+                else "incomplete"
+            )
             records.append(record)
 
         complete_flag = bool(payload.get("completed", payload.get("complete", False)))

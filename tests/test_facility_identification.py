@@ -217,6 +217,35 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="pqi5-save-button"', rendered)
         self.assertIn('qualifying conferences with families at least twice yearly.', rendered)
 
+    def test_pqi_completion_cards_follow_saved_db_flags(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi2": {"complete": True, "responses": {"2.1": "yes", "2.2": "yes", "2.3": "yes", "2.4": "yes", "2.5": "yes", "2.6": "yes", "2.7": "yes", "2.8": "yes", "2.9": "yes", "2.10": "no", "2.11": "no"}},
+                    "pqi3": {"completed": True, "records": {"record 1": {"emergent_curriculum": "yes", "co_learning": "yes", "documented_learning_future_planning": "yes"}, "record 2": {"emergent_curriculum": "yes", "co_learning": "yes", "documented_learning_future_planning": "yes"}}},
+                    "pqi4": {"complete": True, "responses": {"4.1": "yes", "4.2": "yes", "4.3": "yes", "4.4": "yes"}},
+                    "pqi5": {"complete": True, "responses": {"5.1": "yes", "5.2": "yes", "5.3": "no", "5.4": "yes"}},
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+        self.assertIn('id="pqi2-complete-card"', rendered)
+        self.assertIn('id="pqi3-complete-card"', rendered)
+        self.assertIn('id="pqi4-complete-card"', rendered)
+        self.assertIn('id="pqi5-complete-card"', rendered)
+        self.assertNotIn('id="pqi2-summary-card"', rendered)
+        self.assertNotIn('id="pqi3-summary-card"', rendered)
+        self.assertNotIn('id="pqi4-summary-card"', rendered)
+        self.assertNotIn('id="pqi5-summary-card"', rendered)
+
     def test_save_pqi1_persists_nested_json(self):
         assessment_id = self.insert_assessment()
 

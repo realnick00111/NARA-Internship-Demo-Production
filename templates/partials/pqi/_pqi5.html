@@ -8,7 +8,11 @@
 		<span class="chip info">Yes/No checklist</span>
 	</div>
 
-	<div class="alert info pqi2-summary-card" role="status" aria-live="polite">
+	<div class="pqi-complete-card" id="pqi5-complete-card" role="status" aria-live="polite"{% if not pqi5_complete %} hidden{% endif %}>
+		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+		<span>PQI 5 marked as complete</span>
+	</div>
+	<div class="alert info pqi2-summary-card" id="pqi5-summary-card" role="status" aria-live="polite"{% if pqi5_complete %} hidden{% endif %}>
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Fields completed</strong>
@@ -93,6 +97,8 @@
 	const questionPoints = {{ pqi5_points | tojson }};
 	const questionIds = Array.from({ length: {{ pqi5_question_count }} }, (_, index) => String(index + 1));
 	const rows = Array.from(document.querySelectorAll('#pqi5-card [data-pqi5-question-id]'));
+	const completionCard = document.getElementById('pqi5-complete-card');
+	const summaryCard = document.getElementById('pqi5-summary-card');
 	const summaryText = document.getElementById('pqi5-summary-text');
 	const baseDisplay = document.getElementById('pqi5-base-display');
 	const bonusDisplay = document.getElementById('pqi5-bonus-display');
@@ -179,6 +185,13 @@
 	};
 
 	const snapshotsMatch = (left, right) => questionIds.every((questionId) => normalizeChoice(left[questionId]) === normalizeChoice(right[questionId]));
+	const syncCompletionState = () => {
+		if (completionCard) completionCard.hidden = !pqi5Complete;
+		if (summaryCard) summaryCard.hidden = pqi5Complete;
+		if (typeof window.syncPqiNavCompletionState === 'function') {
+			window.syncPqiNavCompletionState('pqi-5', pqi5Complete, pqi5Complete ? `${totalDisplay.textContent} points` : null);
+		}
+	};
 
 	const updateView = () => {
 		const snapshot = getSnapshot();
@@ -196,6 +209,7 @@
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
 
 		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
+		syncCompletionState();
 		baseDisplay.textContent = basePoints === null ? '-' : String(basePoints);
 		bonusDisplay.textContent = bonusPoint === null ? '-' : String(bonusPoint);
 		totalDisplay.textContent = totalPoints === null ? '-' : String(totalPoints);
@@ -250,6 +264,7 @@
 
 			lastSavedSnapshot = snapshot;
 			pqi5Complete = targetButton === saveButton;
+			syncCompletionState();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 5 marked as complete';
 		} catch (error) {
 			statusMessage = 'No assessment selected, unable to save';

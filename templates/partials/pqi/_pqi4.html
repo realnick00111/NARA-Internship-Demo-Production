@@ -8,6 +8,18 @@
 		<span class="chip info">Yes/No checklist</span>
 	</div>
 
+	<div class="pqi-complete-card" id="pqi4-complete-card" role="status" aria-live="polite"{% if not pqi4_complete %} hidden{% endif %}>
+		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+		<span>PQI 4 marked as complete</span>
+	</div>
+	<div class="alert info pqi2-summary-card" id="pqi4-summary-card" role="status" aria-live="polite"{% if pqi4_complete %} hidden{% endif %}>
+		<div class="alert-icon">i</div>
+		<div>
+			<strong>Fields completed</strong>
+			<span id="pqi4-summary-text">{{ pqi4_completed_count }} of {{ pqi4_question_count }} completed</span>
+		</div>
+	</div>
+
 	<table class="sample-table pqi2-table">
 		<thead><tr><th>Policy and practice criterion</th><th>Response</th></tr></thead>
 		<tbody>
@@ -47,6 +59,9 @@
 	let pqi4Complete = {{ pqi4_complete | tojson }};
 	const questionIds = Array.from({ length: {{ pqi4_question_count }} }, (_, index) => String(index + 1));
 	const rows = Array.from(document.querySelectorAll('#pqi4-card [data-pqi4-question-id]'));
+	const completionCard = document.getElementById('pqi4-complete-card');
+	const summaryCard = document.getElementById('pqi4-summary-card');
+	const summaryText = document.getElementById('pqi4-summary-text');
 	const yesCountDisplay = document.getElementById('pqi4-yes-count-display');
 	const percentageDisplay = document.getElementById('pqi4-percentage-display');
 	const bandDisplay = document.getElementById('pqi4-band-display');
@@ -55,6 +70,13 @@
 	const draftSaveButton = document.getElementById('pqi4-draft-save-button');
 	const saveButton = document.getElementById('pqi4-save-button');
 	const optionalNote = document.getElementById('pqi4-optional-note');
+	const syncCompletionState = () => {
+		if (completionCard) completionCard.hidden = !pqi4Complete;
+		if (summaryCard) summaryCard.hidden = pqi4Complete;
+		if (typeof window.syncPqiNavCompletionState === 'function') {
+			window.syncPqiNavCompletionState('pqi-4', pqi4Complete, pqi4Complete ? `Score ${bandDisplay.textContent}` : null);
+		}
+	};
 	if (!rows.length || !yesCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) return;
 
 	const syncOptionalNoteHeight = () => {
@@ -92,6 +114,8 @@
 		const matchingBand = percentage === null ? null : bandRows.find((row) => Number(row.percentage.toFixed(2)) === Number(percentage.toFixed(2)));
 		const score = matchingBand ? matchingBand.band : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
+		syncCompletionState();
+		summaryText.textContent = `${completedCount} of ${questionIds.length} completed`;
 		yesCountDisplay.textContent = String(yesCount);
 		percentageDisplay.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`;
 		bandDisplay.textContent = score;
@@ -111,6 +135,7 @@
 			if (!response.ok) throw new Error(result.message || 'No assessment selected, unable to save');
 			lastSavedSnapshot = getSnapshot();
 			pqi4Complete = button === saveButton;
+			syncCompletionState();
 			statusMessage = button === saveButton ? 'PQI 4 marked as complete' : 'Draft saved';
 		} catch (error) { statusMessage = 'No assessment selected, unable to save'; }
 		finally { button.disabled = false; updateView(); }
