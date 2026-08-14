@@ -41,6 +41,7 @@ from services.formatters import (
     names_are_similar,
     normalize_yes_no,
     normalize_text,
+    round_percentage_half_up,
 )
 from session_state import get_current_assessment
 
@@ -124,7 +125,7 @@ def build_pqi3_context(preview: bool = False) -> dict:
     completed_count = sum(1 for record in records if record["complete"])
     positive_count = sum(1 for record in records if record["positive"])
     complete = completed_count == PQI3_RECORD_COUNT
-    percentage = (positive_count / PQI3_RECORD_COUNT) * 100
+    percentage = round_percentage_half_up((positive_count / PQI3_RECORD_COUNT) * 100)
     score = calculate_pqi3_score(records)
     return {
         "assessment_code": assessment_code,
@@ -314,9 +315,11 @@ def build_pqi1_context() -> dict:
     pqi2_form = {str(index): "" for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)}
     pqi2_complete = False
     pqi2_score = None
+    pqi2_optional_note = ""
     pqi4_form = {str(index): "" for index, _ in enumerate(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, start=1)}
     pqi4_complete = False
     pqi4_score = None
+    pqi4_optional_note = ""
     pqi5_form = {str(index): "" for index, _ in enumerate(PQI5_CHILD_PROGRESS_QUESTIONS, start=1)}
     pqi5_complete = False
     pqi5_base_points = None
@@ -370,6 +373,8 @@ def build_pqi1_context() -> dict:
             pqi2_complete = bool(pqi2_entry.get("complete", False))
             pqi2_score = calculate_pqi2_score([pqi2_form[str(index)] for index, _ in enumerate(PQI2_ENVIRONMENT_QUESTIONS, start=1)])
 
+        pqi2_optional_note = str((pqi_findings.get("pqi2") if isinstance(pqi_findings, dict) else {}).get("optional_note", "") or "").strip() if isinstance(pqi_findings, dict) and isinstance(pqi_findings.get("pqi2"), dict) else ""
+
         pqi4_entry = pqi_findings.get("pqi4") if isinstance(pqi_findings, dict) else {}
         if isinstance(pqi4_entry, dict):
             responses = pqi4_entry.get("responses")
@@ -381,6 +386,8 @@ def build_pqi1_context() -> dict:
 
             pqi4_complete = bool(pqi4_entry.get("complete", False))
             pqi4_score = calculate_pqi4_score([pqi4_form[str(index)] for index, _ in enumerate(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, start=1)])
+
+        pqi4_optional_note = str((pqi_findings.get("pqi4") if isinstance(pqi_findings, dict) else {}).get("optional_note", "") or "").strip() if isinstance(pqi_findings, dict) and isinstance(pqi_findings.get("pqi4"), dict) else ""
 
         pqi5_entry = pqi_findings.get("pqi5") if isinstance(pqi_findings, dict) else {}
         if isinstance(pqi5_entry, dict):
@@ -400,13 +407,13 @@ def build_pqi1_context() -> dict:
     pqi2_completed_count = sum(1 for value in pqi2_form.values() if value in {"yes", "no"})
     pqi2_yes_count = sum(1 for value in pqi2_form.values() if value == "yes")
     pqi2_all_answered = pqi2_completed_count == pqi2_question_count
-    pqi2_percentage = (pqi2_yes_count / pqi2_question_count) * 100 if pqi2_all_answered else None
+    pqi2_percentage = round_percentage_half_up((pqi2_yes_count / pqi2_question_count) * 100) if pqi2_all_answered else None
     pqi2_score_label = f"Score {pqi2_score}" if pqi2_score is not None else f"{pqi2_completed_count} of {pqi2_question_count} answered"
     pqi4_question_count = len(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS)
     pqi4_completed_count = sum(1 for value in pqi4_form.values() if value in {"yes", "no"})
     pqi4_yes_count = sum(1 for value in pqi4_form.values() if value == "yes")
     pqi4_all_answered = pqi4_completed_count == pqi4_question_count
-    pqi4_percentage = round((pqi4_yes_count / pqi4_question_count) * 100, 2) if pqi4_all_answered else None
+    pqi4_percentage = round_percentage_half_up((pqi4_yes_count / pqi4_question_count) * 100) if pqi4_all_answered else None
     pqi4_score_label = f"Score {pqi4_score}" if pqi4_score is not None else f"{pqi4_completed_count} of {pqi4_question_count} answered"
 
     pqi5_question_count = len(PQI5_CHILD_PROGRESS_QUESTIONS)
@@ -436,6 +443,7 @@ def build_pqi1_context() -> dict:
         "pqi2_completed_count": pqi2_completed_count,
         "pqi2_yes_count": pqi2_yes_count,
         "pqi2_percentage": pqi2_percentage,
+        "pqi2_optional_note": pqi2_optional_note,
         "pqi2_save_url": url_for("save_pqi2"),
         "pqi4_questions": PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS,
         "pqi4_form": pqi4_form,
@@ -446,6 +454,7 @@ def build_pqi1_context() -> dict:
         "pqi4_completed_count": pqi4_completed_count,
         "pqi4_yes_count": pqi4_yes_count,
         "pqi4_percentage": pqi4_percentage,
+        "pqi4_optional_note": pqi4_optional_note,
         "pqi4_band_rows": [{"percentage": percentage, "band": band} for percentage, band in PQI4_BAND_MAPPING.items()],
         "pqi4_save_url": url_for("save_pqi4"),
         "pqi5_questions": PQI5_CHILD_PROGRESS_QUESTIONS,

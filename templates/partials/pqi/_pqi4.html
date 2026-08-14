@@ -25,8 +25,13 @@
 		</tbody>
 	</table>
 
+	<div class="pqi4-note-wrap">
+		<label class="label" for="pqi4-optional-note">Optional note</label>
+		<textarea class="textarea pqi4-note-box" id="pqi4-optional-note" rows="1" aria-label="Optional note for PQI 4">{{ pqi4_optional_note }}</textarea>
+	</div>
+
 	<div class="pqi1-calculation-box" style="margin-top: 12px;"><div class="formula-strip pqi1-formula pqi2-formula" aria-live="polite">
-		<div><span>Yes responses</span><strong id="pqi4-yes-count-display">{{ pqi4_yes_count }}</strong></div><div class="operator">/</div><div><span>Total criteria</span><strong>{{ pqi4_question_count }}</strong></div><div class="operator">x 100 =</div><div><span>Percentage</span><strong id="pqi4-percentage-display">{% if pqi4_percentage is not none %}{{ '%.2f%%' % pqi4_percentage }}{% else %}-{% endif %}</strong></div><div class="operator">-&gt;</div><div><span>Ordinal score</span><strong id="pqi4-band-display">{% if pqi4_score is not none %}{{ pqi4_score }}{% else %}-{% endif %}</strong></div><div class="formula-note" id="pqi4-formula-note">Answer all questions to calculate the ordinal score.</div>
+		<div><span>Yes responses</span><strong id="pqi4-yes-count-display">{{ pqi4_yes_count }}</strong></div><div class="operator">/</div><div><span>Total criteria</span><strong>{{ pqi4_question_count }}</strong></div><div class="operator">x 100 =</div><div><span>Percentage</span><strong id="pqi4-percentage-display">{% if pqi4_percentage is not none %}{{ pqi4_percentage }}%{% else %}-{% endif %}</strong></div><div class="operator">-&gt;</div><div><span>Ordinal score</span><strong id="pqi4-band-display">{% if pqi4_score is not none %}{{ pqi4_score }}{% else %}-{% endif %}</strong></div><div class="formula-note" id="pqi4-formula-note">Answer all questions to calculate the ordinal score.</div>
 	</div></div>
 
 	<div class="card-actions" style="margin-top: 16px; justify-content: flex-end;"><div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
@@ -49,8 +54,17 @@
 	const saveState = document.getElementById('pqi4-save-state');
 	const draftSaveButton = document.getElementById('pqi4-draft-save-button');
 	const saveButton = document.getElementById('pqi4-save-button');
+	const optionalNote = document.getElementById('pqi4-optional-note');
 	if (!rows.length || !yesCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) return;
 
+	const syncOptionalNoteHeight = () => {
+		if (!optionalNote) return;
+		const lineHeight = Number.parseFloat(getComputedStyle(optionalNote).lineHeight || '20');
+		const baseline = Math.max(lineHeight * 1.5, 36);
+		optionalNote.style.height = 'auto';
+		const nextHeight = Math.max(optionalNote.scrollHeight, baseline);
+		optionalNote.style.height = `${nextHeight}px`;
+	};
 	const normalizeChoice = (value) => ['yes', 'no'].includes(String(value || '').trim().toLowerCase()) ? String(value).trim().toLowerCase() : '';
 	const getSnapshot = () => Object.fromEntries(rows.map((row) => [row.dataset.pqi4QuestionId, normalizeChoice(row.dataset.pqi4Response)]));
 	const snapshotsMatch = (left, right) => questionIds.every((questionId) => left[questionId] === right[questionId]);
@@ -68,19 +82,20 @@
 		});
 	};
 
+	const roundHalfUpWhole = (value) => Math.floor(value + 0.5);
 	const updateView = () => {
 		const snapshot = getSnapshot();
 		const completedCount = questionIds.filter((questionId) => snapshot[questionId]).length;
 		const yesCount = questionIds.filter((questionId) => snapshot[questionId] === 'yes').length;
 		const allAnswered = completedCount === questionIds.length;
-		const percentage = allAnswered ? Number(((yesCount / questionIds.length) * 100).toFixed(2)) : null;
-		const matchingBand = bandRows.find((row) => row.percentage === percentage);
+		const percentage = allAnswered ? ((yesCount / questionIds.length) * 100) : null;
+		const matchingBand = percentage === null ? null : bandRows.find((row) => Number(row.percentage.toFixed(2)) === Number(percentage.toFixed(2)));
 		const score = matchingBand ? matchingBand.band : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
 		yesCountDisplay.textContent = String(yesCount);
-		percentageDisplay.textContent = percentage === null ? '-' : `${percentage.toFixed(2)}%`;
+		percentageDisplay.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`;
 		bandDisplay.textContent = score;
-		formulaNote.textContent = allAnswered ? bandRows.map((row) => `${row.percentage}% = ${row.band}`).join(' | ') : 'Answer all questions to calculate the ordinal score.';
+		formulaNote.textContent = allAnswered ? bandRows.map((row) => `${roundHalfUpWhole(row.percentage)}% = ${row.band}`).join(' | ') : 'Answer all questions to calculate the ordinal score.';
 		saveButton.disabled = !allAnswered || (!hasChanges && pqi4Complete);
 		if (statusMessage) saveState.textContent = statusMessage;
 		else if (!hasChanges) saveState.textContent = pqi4Complete ? 'PQI 4 marked as complete' : 'PQI 4 saved';
@@ -91,7 +106,7 @@
 		if (button === saveButton && saveButton.disabled) return;
 		button.disabled = true;
 		try {
-			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assessment_id: assessmentId, responses: getSnapshot(), complete: button === saveButton }) });
+			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assessment_id: assessmentId, responses: getSnapshot(), optional_note: optionalNote ? optionalNote.value : '', complete: button === saveButton }) });
 			const result = await response.json().catch(() => ({}));
 			if (!response.ok) throw new Error(result.message || 'No assessment selected, unable to save');
 			lastSavedSnapshot = getSnapshot();
@@ -101,6 +116,10 @@
 		finally { button.disabled = false; updateView(); }
 	};
 
+	if (optionalNote) {
+		optionalNote.addEventListener('input', syncOptionalNoteHeight);
+		syncOptionalNoteHeight();
+	}
 	rows.forEach((row) => {
 		updateRow(row, normalizeChoice(row.dataset.pqi4Response));
 		row.querySelectorAll('[data-pqi4-choice]').forEach((button) => button.addEventListener('click', () => { statusMessage = ''; updateRow(row, button.dataset.pqi4Choice); updateView(); }));

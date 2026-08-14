@@ -67,12 +67,21 @@
 		</div>
 	</div>
 
-	<div class="card-actions" style="margin-top: 16px; justify-content: flex-end;">
+	<div class="card-actions" style="margin-top: 16px; justify-content: space-between;">
+		<button class="button secondary" id="pqi5-details-toggle" type="button" aria-expanded="false" aria-controls="pqi5-details-panel">Details</button>
 		<div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
 			<span class="save-indicator" id="pqi5-save-state">Answer all questions to complete PQI 5</span>
 			<button class="button secondary" id="pqi5-draft-save-button" type="button">Save Draft</button>
 			<button class="button primary" id="pqi5-save-button" type="button" disabled>Complete PQI 5</button>
 		</div>
+	</div>
+	<div class="pqi5-details-panel" id="pqi5-details-panel" hidden>
+		<p>1) The program does have regularly scheduled (at least 2xs/year) parent conferences in which the children’s developmental progress is discussed AND provides the family with a report of their child’s developmental progress. Y/N (5.1) (Score 3 points).<br>
+		If “Yes” then go to Number 4. If “No”, then go to numbers 2 and 3.</p>
+		<p>2) The program has regularly scheduled (at least 2xs/year) parent conferences in which the children's developmental progress is discussed, but it does not provide a report to the parents on their child’s developmental progress. Y/N (5.2) (Score 2 points).</p>
+		<p>3) If the program does not have regularly scheduled (at least 2xs/year) parent conferences, does it provide the family with a report of their child's developmental progress. Y/N (5.3) (Score 1 point).<br>
+		Go to Number 4.</p>
+		<p>4) All these interactions are done in a culturally and linguistically appropriate way representing the parents being served. Y/N (5.4) (Score 1 point)</p>
 	</div>
 </div>
 
@@ -92,6 +101,17 @@
 	const saveState = document.getElementById('pqi5-save-state');
 	const draftSaveButton = document.getElementById('pqi5-draft-save-button');
 	const saveButton = document.getElementById('pqi5-save-button');
+	const detailsToggle = document.getElementById('pqi5-details-toggle');
+	const detailsPanel = document.getElementById('pqi5-details-panel');
+
+	if (detailsToggle && detailsPanel) {
+		detailsToggle.addEventListener('click', () => {
+			const isExpanded = detailsToggle.getAttribute('aria-expanded') === 'true';
+			detailsToggle.setAttribute('aria-expanded', String(!isExpanded));
+			detailsPanel.hidden = isExpanded;
+			detailsToggle.textContent = isExpanded ? 'Details' : 'Hide Details';
+		});
+	}
 
 	if (!rows.length || !summaryText || !baseDisplay || !bonusDisplay || !totalDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;

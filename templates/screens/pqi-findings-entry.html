@@ -29,12 +29,19 @@
 		width: 100%;
 		max-width: 100%;
 		justify-content: flex-start;
-		align-items: center;
+		align-items: stretch;
 	}
 
 	#pqi-findings-entry .pqi1-formula > div {
 		min-width: 0;
 		flex: 0 0 auto;
+	}
+
+	#pqi-findings-entry .pqi1-formula .formula-note {
+		flex-basis: 100%;
+		width: 100%;
+		padding: 6px 4px 0;
+		margin-top: 2px;
 	}
 
 	#pqi-findings-entry .pqi5-table {
@@ -50,6 +57,7 @@
 	#pqi-findings-entry .pqi5-table td:nth-child(2) {
 		width: 18%;
 		white-space: nowrap;
+		text-align: center;
 	}
 
 	#pqi-findings-entry .pqi5-table th:nth-child(3),

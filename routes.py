@@ -158,6 +158,7 @@ def register_routes(app: Flask) -> None:
         if not isinstance(responses, dict):
             return jsonify({"status": "error", "message": "responses must be an object"}), 400
 
+        optional_note = str(payload.get("optional_note", "") or "").strip()
         complete_flag = bool(payload.get("complete", False))
         question_ids = [str(index) for index in range(1, len(PQI2_ENVIRONMENT_QUESTIONS) + 1)]
         normalized_index_responses: dict[str, str | None] = {}
@@ -201,6 +202,7 @@ def register_routes(app: Flask) -> None:
                         "question_count": len(question_ids),
                         "yes_count": yes_count,
                         "responses": stored_responses,
+                        "optional_note": optional_note,
                     }
                 },
             )
@@ -504,6 +506,7 @@ def register_routes(app: Flask) -> None:
         if not isinstance(responses, dict):
             return jsonify({"status": "error", "message": "responses must be an object"}), 400
 
+        optional_note = str(payload.get("optional_note", "") or "").strip()
         complete_flag = bool(payload.get("complete", False))
         question_ids = [str(index) for index in range(1, len(PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS) + 1)]
         normalized_responses = {
@@ -530,6 +533,7 @@ def register_routes(app: Flask) -> None:
                         "question_count": len(question_ids),
                         "yes_count": yes_count,
                         "responses": stored_responses,
+                        "optional_note": optional_note,
                     }
                 },
             )

@@ -53,13 +53,18 @@
 		</tbody>
 	</table>
 
+	<div class="pqi4-note-wrap">
+		<label class="label" for="pqi2-optional-note">Optional note</label>
+		<textarea class="textarea pqi4-note-box" id="pqi2-optional-note" rows="1" aria-label="Optional note for PQI 2">{{ pqi2_optional_note }}</textarea>
+	</div>
+
 	<div class="pqi1-calculation-box" style="margin-top: 12px;">
 		<div class="formula-strip pqi1-formula pqi2-formula" aria-live="polite">
 			<div><span>Yes responses</span><strong id="pqi2-yes-count-display">{{ pqi2_yes_count }}</strong></div>
 			<div class="operator">/</div>
 			<div><span>Total criteria</span><strong id="pqi2-total-count-display">{{ pqi2_question_count }}</strong></div>
 			<div class="operator">x 100 =</div>
-			<div><span>Percentage</span><strong id="pqi2-percentage-display">{% if pqi2_percentage is not none %}{{ '%.1f%%' % pqi2_percentage }}{% else %}-{% endif %}</strong></div>
+			<div><span>Percentage</span><strong id="pqi2-percentage-display">{% if pqi2_percentage is not none %}{{ pqi2_percentage }}%{% else %}-{% endif %}</strong></div>
 			<div class="operator">-&gt;</div>
 			<div><span>Ordinal score</span><strong id="pqi2-band-display">{% if pqi2_score is not none %}{{ pqi2_score }}{% else %}-{% endif %}</strong></div>
 			<div class="formula-note" id="pqi2-formula-note">Answer all questions to calculate the ordinal score.</div>
@@ -92,11 +97,20 @@
 	const saveState = document.getElementById('pqi2-save-state');
 	const draftSaveButton = document.getElementById('pqi2-draft-save-button');
 	const saveButton = document.getElementById('pqi2-save-button');
+	const optionalNote = document.getElementById('pqi2-optional-note');
 
 	if (!rows.length || !summaryText || !yesCountDisplay || !totalCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;
 	}
 
+	const syncOptionalNoteHeight = () => {
+		if (!optionalNote) return;
+		const lineHeight = Number.parseFloat(getComputedStyle(optionalNote).lineHeight || '20');
+		const baseline = Math.max(lineHeight * 1.5, 36);
+		optionalNote.style.height = 'auto';
+		const nextHeight = Math.max(optionalNote.scrollHeight, baseline);
+		optionalNote.style.height = `${nextHeight}px`;
+	};
 	let statusMessage = '';
 	const normalizeChoice = (value) => {
 		if (typeof value !== 'string') {
@@ -158,7 +172,8 @@
 		updateView();
 	};
 
-	const formatPercentage = (value) => value === null ? '-' : `${value.toFixed(1)}%`;
+	const roundHalfUpWhole = (value) => Math.floor(value + 0.5);
+	const formatPercentage = (value) => value === null ? '-' : `${roundHalfUpWhole(value)}%`;
 	const getBandLabel = (percentage) => {
 		if (percentage === null) {
 			return '-';
@@ -209,6 +224,7 @@
 		const snapshot = getSnapshot();
 		const payload = {
 			responses: snapshot,
+			optional_note: optionalNote ? optionalNote.value : '',
 			complete: targetButton === saveButton,
 		};
 
@@ -245,6 +261,10 @@
 		}
 	};
 
+	if (optionalNote) {
+		optionalNote.addEventListener('input', syncOptionalNoteHeight);
+		syncOptionalNoteHeight();
+	}
 	rows.forEach((row) => {
 		const currentValue = normalizeChoice(row.getAttribute('data-pqi2-response'));
 		row.setAttribute('data-pqi2-response', currentValue);

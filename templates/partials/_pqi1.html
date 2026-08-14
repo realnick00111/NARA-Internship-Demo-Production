@@ -90,7 +90,8 @@
 		lastSavedSnapshot = { ...initialSnapshot };
 	}
 	const formatCount = (value) => value === null ? '—' : String(value);
-	const formatPercentage = (value) => value === null ? '—' : `${value.toFixed(1)}%`;
+	const roundHalfUpWhole = (value) => Math.floor(value + 0.5);
+	const formatPercentage = (value) => value === null ? '—' : `${roundHalfUpWhole(value)}%`;
 	const bandLabel = (percentage) => {
 		if (percentage === null) {
 			return '—';

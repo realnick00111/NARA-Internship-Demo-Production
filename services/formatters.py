@@ -1,5 +1,6 @@
 from datetime import datetime
 from difflib import SequenceMatcher
+from decimal import Decimal, ROUND_HALF_UP
 
 from constants import (
     PQI4_BAND_MAPPING,
@@ -13,6 +14,12 @@ from constants import (
 
 def normalize_text(value: str | None) -> str:
     return " ".join(str(value or "").casefold().split())
+
+
+def round_percentage_half_up(value: float | int) -> int:
+    if value is None:
+        raise TypeError("value cannot be None")
+    return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
 def format_date_label(date_value: str | None) -> str:

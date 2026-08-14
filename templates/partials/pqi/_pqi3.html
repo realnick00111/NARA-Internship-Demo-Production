@@ -39,7 +39,7 @@
 	<div class="formula-strip" aria-live="polite">
 		<div><span>Positive records</span><strong id="pqi3-positive-count">{{ pqi3_positive_count }}</strong></div>
 		<div class="operator">/</div><div><span>Required sample</span><strong>10</strong></div>
-		<div class="operator">x 100 =</div><div><span>Percentage</span><strong id="pqi3-percentage">{% if pqi3_percentage is not none %}{{ '%.1f%%' % pqi3_percentage }}{% else %}-{% endif %}</strong></div>
+		<div class="operator">x 100 =</div><div><span>Percentage</span><strong id="pqi3-percentage">{% if pqi3_percentage is not none %}{{ pqi3_percentage }}%{% else %}-{% endif %}</strong></div>
 		<div class="operator">-&gt;</div><div><span>Ordinal score</span><strong id="pqi3-score">{% if pqi3_score is not none %}{{ pqi3_score }}{% else %}-{% endif %}</strong></div>
 		<div class="formula-note" id="pqi3-formula-note">{% if pqi3_complete %}All ten records are complete.{% else %}Complete all ten records to calculate the ordinal score.{% endif %}</div>
 	</div>
@@ -80,6 +80,7 @@
 	};
 	const snapshot = () => Object.fromEntries(rows.map((row) => [rowRecordKey(row), { ...(recordState[rowRecordKey(row)] || {}), notes: row.querySelector('.pqi3-notes')?.value || '' }]));
 	let lastSaved = JSON.stringify(snapshot());
+	const roundHalfUpWhole = (value) => Math.floor(value + 0.5);
 	const band = (percentage) => { const found = bandRows.find((row) => percentage >= row.min && percentage <= row.max); return found ? found.band : null; };
 	const update = () => {
 		const records = snapshot();
@@ -98,7 +99,7 @@
 			result.textContent = positive ? 'Positive' : complete ? 'Not positive' : 'Incomplete';
 		});
 		const allComplete = completeCount === 10; const percentage = positiveCount * 10; const score = band(percentage); const changed = JSON.stringify(records) !== lastSaved;
-		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${percentage.toFixed(1)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
+		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
 	};
 	rows.forEach((row) => {
 		syncRowState(row);
