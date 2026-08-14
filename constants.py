@@ -99,6 +99,7 @@ DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
     "external_inspection_number": "INS-2026-0714-22",
     "visit_date": "2026-07-14",
     "assigned_primary_inspector": "Jordan Davis",
+    "inspector_name": "Jordan Davis",
     "inspector_identifier": "EMP-10482",
     "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
 }
