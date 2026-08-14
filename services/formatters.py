@@ -1,7 +1,14 @@
 from datetime import datetime
 from difflib import SequenceMatcher
 
-from constants import PQI4_BAND_MAPPING, PQI5_QUESTION_POINTS, PQI_BAND_MAPPING, STATUS_CLASS_MAP
+from constants import (
+    PQI4_BAND_MAPPING,
+    PQI5_QUESTION_POINTS,
+    PQI6_SCORE_MODIFIER_REQUIREMENTS,
+    PQI7_SCORE_MODIFIER_REQUIREMENTS,
+    PQI_BAND_MAPPING,
+    STATUS_CLASS_MAP,
+)
 
 
 def normalize_text(value: str | None) -> str:
@@ -130,6 +137,50 @@ def calculate_pqi5_points(responses: list[object]) -> tuple[int, int, int] | Non
     )
     bonus_point = PQI5_QUESTION_POINTS[-1] if normalized_responses[-1] == "yes" else 0
     return base_points, bonus_point, base_points + bonus_point
+
+
+def calculate_pqi6_score_modifier(score: int, responses: dict[str, list[bool] | list[object]] | None) -> str:
+    if score not in PQI6_SCORE_MODIFIER_REQUIREMENTS:
+        return ""
+
+    if not isinstance(responses, dict):
+        return ""
+
+    modifier_rule = PQI6_SCORE_MODIFIER_REQUIREMENTS[score]
+    next_level = str(modifier_rule["next_level"])
+    next_level_responses = responses.get(next_level, [])
+    if not isinstance(next_level_responses, list):
+        return ""
+
+    relevant_items = next_level_responses[: len(next_level_responses)]
+    met_count = sum(1 for value in relevant_items if bool(value))
+    required_met = modifier_rule["required_met"]
+    return "+" if met_count >= required_met else ""
+
+
+def format_pqi6_score(score: int, modifier: str = "") -> str:
+    if score <= 0:
+        return "0"
+    return f"{score}{modifier}" if modifier else str(score)
+
+
+def calculate_pqi7_score_modifier(score: int, responses: dict[str, list[bool] | list[object]] | None) -> str:
+    if score not in PQI7_SCORE_MODIFIER_REQUIREMENTS or not isinstance(responses, dict):
+        return ""
+
+    modifier_rule = PQI7_SCORE_MODIFIER_REQUIREMENTS[score]
+    next_level_responses = responses.get(str(modifier_rule["next_level"]), [])
+    if not isinstance(next_level_responses, list):
+        return ""
+
+    met_count = sum(1 for value in next_level_responses if bool(value))
+    return "+" if met_count >= modifier_rule["required_met"] else ""
+
+
+def format_pqi7_score(score: int, modifier: str = "") -> str:
+    if score <= 0:
+        return "0"
+    return f"{score}{modifier}" if modifier else str(score)
 
 
 def calculate_pqi3_score(records: list[dict]) -> int | None:

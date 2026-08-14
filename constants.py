@@ -27,6 +27,7 @@ SCREEN_ORDER = [
     "pqi3-sample",
     "pqi3",
     "pqi6-8-hierarchy",
+    "pqi7",
     "pqi9-10-timed",
     "validation-summary",
     "calculation-review",
@@ -53,6 +54,7 @@ NAV_BY_SCREEN = {
     "pqi3-sample": "assessments",
     "pqi3": "assessments",
     "pqi6-8-hierarchy": "assessments",
+    "pqi7": "assessments",
     "pqi9-10-timed": "assessments",
     "validation-summary": "assessments",
     "calculation-review": "assessments",
@@ -171,6 +173,41 @@ PQI6_HIERARCHY = {
         "Children independently use rich language with adults and peers",
         "Staff use observation evidence to refine language and interaction practices",
     ],
+}
+
+PQI6_SCORE_MODIFIER_REQUIREMENTS = {
+    1: {"next_level": 2, "required_met": 2},
+    2: {"next_level": 3, "required_met": 1},
+    3: {"next_level": 4, "required_met": 1},
+}
+
+PQI7_HIERARCHY = {
+    "Level 1": [
+        "Staff never initiate turn-taking conversations with children",
+        "Staff questions are often not appropriate for children, or no questions are asked",
+        "Staff respond negatively when children cannot answer questions",
+    ],
+    "Level 2": [
+        "Staff sometimes initiate conversations with children",
+        "Staff sometimes ask children appropriate questions and wait for the child to respond",
+        "Staff respond neutrally or positively to children who cannot answer questions and questions asked are sometimes meaningful to children",
+    ],
+    "Level 3": [
+        "Staff initiate engaging conversations with children throughout the observation",
+        "Staff often personalize questions and or conversations for individual children",
+        "Staff often pay attention to children's questions, verbal or nonverbal, and answer in a satisfying manner for the child",
+        "Staff ask questions in which children show interest in answering",
+    ],
+    "Level 4": [
+        "Staff frequently have turn-taking conversations with children throughout the observations and use many appropriate questions during both play and routines",
+        "Staff ask children appropriate questions, wait a reasonable time for child response, and then answer if needed",
+    ],
+}
+
+PQI7_SCORE_MODIFIER_REQUIREMENTS = {
+    1: {"next_level": 2, "required_met": 2},
+    2: {"next_level": 3, "required_met": 2},
+    3: {"next_level": 4, "required_met": 1},
 }
 
 PQI_BAND_MAPPING = {

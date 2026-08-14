@@ -92,6 +92,66 @@
 	#pqi-findings-entry .pqi2-summary-card {
 		margin-bottom: 12px;
 	}
+
+	#pqi-findings-entry .pqi68-card {
+		display: flex;
+		align-items: center;
+		gap: 18px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		padding: 14px 18px;
+		margin-bottom: 12px;
+	}
+
+	#pqi-findings-entry .pqi68-card.status-empty {
+		border-color: #98a4b1;
+		background: #dfe4ea;
+	}
+
+	#pqi-findings-entry .pqi68-card.status-draft {
+		border-color: #e6ca8d;
+		background: #fff9ec;
+	}
+
+	#pqi-findings-entry .pqi68-card.status-complete {
+		border-color: #b8dbbe;
+		background: #f0f9f2;
+	}
+
+	#pqi-findings-entry .pqi68-label {
+		flex: none;
+		font-size: 20px;
+		font-weight: 800;
+		color: var(--purple);
+		min-width: 64px;
+	}
+
+	#pqi-findings-entry .pqi68-info {
+		flex: 1;
+		min-width: 0;
+	}
+
+	#pqi-findings-entry .pqi68-info small {
+		display: block;
+		color: var(--muted);
+	}
+
+	#pqi-findings-entry .pqi68-score {
+		flex: none;
+		text-align: center;
+	}
+
+	#pqi-findings-entry .pqi68-score span {
+		display: block;
+		font-size: 11px;
+		color: var(--muted);
+	}
+
+	#pqi-findings-entry .pqi68-score strong {
+		display: block;
+		font-size: 22px;
+		color: var(--purple);
+	}
 </style>
 
 <div class="page-header">
@@ -245,9 +305,44 @@
 					<div>
 						<span class="section-kicker">PQI 6-8</span>
 						<h2>Observational Levels</h2>
-						<p>The hierarchy workflow has not been implemented yet.</p>
+						<p>Hierarchical criteria scored across three observational indicators.</p>
 					</div>
-					<span class="chip neutral">Coming soon</span>
+				</div>
+
+				<div class="pqi68-card status-empty">
+					<div class="pqi68-label">PQI 6</div>
+					<div class="pqi68-info">
+						<strong>Language &amp; Interaction</strong>
+						<small>No hierarchy criteria have been recorded yet.</small>
+					</div>
+					<span class="chip neutral">Empty</span>
+					<div class="pqi68-score"><span>Score</span><strong>0</strong></div>
+				</div>
+
+				<div class="pqi68-card status-draft">
+					<div class="pqi68-label">PQI 7</div>
+					<div class="pqi68-info">
+						<strong>Learning Environment</strong>
+						<small>Some hierarchy levels are partially met.</small>
+					</div>
+					<span class="chip warning">Draft</span>
+					<div class="pqi68-score"><span>Score</span><strong>2</strong></div>
+				</div>
+
+				<div class="pqi68-card status-complete">
+					<div class="pqi68-label">PQI 8</div>
+					<div class="pqi68-info">
+						<strong>Responsive Care</strong>
+						<small>All hierarchy levels have been completed.</small>
+					</div>
+					<span class="chip success">Complete</span>
+					<div class="pqi68-score"><span>Score</span><strong>4</strong></div>
+				</div>
+			</div>
+
+			<div class="card" style="margin-top: 14px;">
+				<div class="card-actions" style="justify-content: flex-start;">
+					<a class="button secondary" href="{{ url_for('screen', screen_id='pqi6-8-hierarchy') }}">Open PQI 6-8</a>
 				</div>
 			</div>
 		</div>

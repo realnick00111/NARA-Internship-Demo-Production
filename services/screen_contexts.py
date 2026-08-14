@@ -15,6 +15,7 @@ from constants import (
     PQI5_QUESTION_POINTS,
     PQI3_RECORD_COUNT,
     PQI6_HIERARCHY,
+    PQI7_HIERARCHY,
     WORKFLOW_PROGRESS_BY_STATUS,
 )
 from repositories.assessments import (
@@ -30,7 +31,11 @@ from services.formatters import (
     calculate_pqi3_score,
     calculate_pqi4_score,
     calculate_pqi5_points,
+    calculate_pqi6_score_modifier,
     format_date_label,
+    format_pqi6_score,
+    calculate_pqi7_score_modifier,
+    format_pqi7_score,
     format_timestamp_label,
     get_status_chip_class,
     names_are_similar,
@@ -184,16 +189,77 @@ def build_pqi6_context() -> dict:
         )
         previous_level_complete = previous_level_complete and is_complete
 
+    score_modifier = calculate_pqi6_score_modifier(highest_complete_level, raw_responses)
+    score_display = format_pqi6_score(highest_complete_level, score_modifier)
+
     return {
         "assessment_label": assessment_label,
         "editing_assessment_id": assessment_id,
         "pqi6_levels": levels,
+        "pqi6_score": highest_complete_level,
+        "pqi6_score_modifier": score_modifier,
+        "pqi6_score_display": score_display,
         "pqi6_calculated_level": highest_complete_level,
         "pqi6_partial_descriptor": str(pqi6_entry.get("partial_descriptor", "") or "").strip(),
         "pqi6_observation_notes": str(pqi6_entry.get("observation_notes", "") or "").strip(),
         "pqi6_complete": bool(pqi6_entry.get("complete", False)),
         "pqi6_save_url": url_for("save_pqi6"),
         "pqi6_back_href": url_for("screen", screen_id="pqi-findings-entry"),
+    }
+
+
+def build_pqi7_context() -> dict:
+    assessment_row = get_current_assessment_row()
+    assessment_id = assessment_row["id"] if assessment_row is not None else None
+    assessment_label = get_assessment_label(assessment_row)
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {}) if assessment_row is not None else {}
+    pqi7_entry = pqi_findings.get("pqi7", {}) if isinstance(pqi_findings, dict) else {}
+    pqi7_entry = pqi7_entry if isinstance(pqi7_entry, dict) else {}
+    raw_responses = pqi7_entry.get("responses", {})
+    raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
+
+    levels = []
+    highest_complete_level = 0
+    previous_level_complete = True
+    for level_number, (level_name, criteria) in enumerate(PQI7_HIERARCHY.items(), start=1):
+        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, []))
+        raw_level_responses = raw_level_responses if isinstance(raw_level_responses, list) else []
+        responses = [
+            bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
+            for index in range(len(criteria))
+        ]
+        met_count = sum(responses)
+        is_complete = met_count == len(criteria)
+        if not previous_level_complete:
+            status = "locked"
+        elif is_complete:
+            status = "complete"
+            highest_complete_level = level_number
+        elif met_count:
+            status = "partial"
+        else:
+            status = "empty"
+        levels.append({
+            "number": level_number,
+            "name": level_name,
+            "criteria": [{"text": criterion, "checked": responses[index]} for index, criterion in enumerate(criteria)],
+            "criteria_count": len(criteria),
+            "met_count": met_count,
+            "status": status,
+        })
+        previous_level_complete = previous_level_complete and is_complete
+
+    score_modifier = calculate_pqi7_score_modifier(highest_complete_level, raw_responses)
+    return {
+        "assessment_label": assessment_label,
+        "editing_assessment_id": assessment_id,
+        "pqi7_levels": levels,
+        "pqi7_score_display": format_pqi7_score(highest_complete_level, score_modifier),
+        "pqi7_partial_descriptor": str(pqi7_entry.get("partial_descriptor", "") or "").strip(),
+        "pqi7_observation_notes": str(pqi7_entry.get("observation_notes", "") or "").strip(),
+        "pqi7_complete": bool(pqi7_entry.get("complete", False)),
+        "pqi7_save_url": url_for("save_pqi7"),
+        "pqi7_back_href": url_for("screen", screen_id="pqi6-8-hierarchy"),
     }
 
 
