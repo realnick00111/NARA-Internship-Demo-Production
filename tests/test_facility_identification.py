@@ -447,6 +447,47 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(saved_findings["pqi3"]["record 1"]["notes"], "Numeric-key note 1")
         self.assertTrue(saved_findings["pqi3"]["completed"])
 
+    def test_save_pqi6_persists_hierarchy_state_and_locks_later_levels(self):
+        assessment_id = self.insert_assessment()
+        response = self.client.post(
+            "/api/assessments/pqi6",
+            json={
+                "assessment_id": assessment_id,
+                "complete": True,
+                "responses": {
+                    "1": [True, True, True],
+                    "2": [True, True, False, False],
+                    "3": [True, True, True, True],
+                    "4": [False, False, False, False],
+                },
+                "partial_descriptor": "Level 2 was observed inconsistently.",
+                "observation_notes": "Observed during the afternoon classroom visit.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["calculated_level"], 1)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        saved_findings = json.loads(saved_row[0])
+        pqi6 = saved_findings["pqi6"]
+        self.assertTrue(pqi6["complete"])
+        self.assertEqual(pqi6["calculated_level"], 1)
+        self.assertEqual(pqi6["responses"]["2"], [True, True, False, False])
+        self.assertEqual(pqi6["responses"]["3"], [False, False, False, False])
+        self.assertEqual(pqi6["partial_descriptor"], "Level 2 was observed inconsistently.")
+        self.assertEqual(pqi6["observation_notes"], "Observed during the afternoon classroom visit.")
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi6-8-hierarchy").get_data(as_text=True)
+        self.assertIn("Level 2 was observed inconsistently.", rendered)
+        self.assertIn("Observed during the afternoon classroom visit.", rendered)
+        self.assertIn('id="pqi6-save-button" type="button" disabled', rendered)
+
     def test_save_assignment_draft_populates_facility_name(self):
         draft_payload = {
             "local_record_name": "North Harbor Child Care",

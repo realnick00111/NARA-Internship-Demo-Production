@@ -14,6 +14,7 @@ from constants import (
     PQI5_CHILD_PROGRESS_QUESTIONS,
     PQI5_QUESTION_POINTS,
     PQI3_RECORD_COUNT,
+    PQI6_HIERARCHY,
     WORKFLOW_PROGRESS_BY_STATUS,
 )
 from repositories.assessments import (
@@ -134,6 +135,65 @@ def build_pqi3_context(preview: bool = False) -> dict:
         "pqi3_save_url": url_for("save_pqi3"),
         "pqi3_full_href": url_for("screen", screen_id="pqi3"),
         "pqi3_back_href": url_for("screen", screen_id="pqi-findings-entry"),
+    }
+
+
+def build_pqi6_context() -> dict:
+    assessment_row = get_current_assessment_row()
+    assessment_id = assessment_row["id"] if assessment_row is not None else None
+    assessment_label = get_assessment_label(assessment_row)
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {}) if assessment_row is not None else {}
+    pqi6_entry = pqi_findings.get("pqi6", {}) if isinstance(pqi_findings, dict) else {}
+    pqi6_entry = pqi6_entry if isinstance(pqi6_entry, dict) else {}
+    raw_responses = pqi6_entry.get("responses", {})
+    raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
+
+    levels = []
+    highest_complete_level = 0
+    previous_level_complete = True
+    for level_number, (level_name, criteria) in enumerate(PQI6_HIERARCHY.items(), start=1):
+        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, []))
+        raw_level_responses = raw_level_responses if isinstance(raw_level_responses, list) else []
+        responses = [
+            bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
+            for index in range(len(criteria))
+        ]
+        met_count = sum(responses)
+        is_complete = met_count == len(criteria)
+        if not previous_level_complete:
+            status = "locked"
+        elif is_complete:
+            status = "complete"
+            highest_complete_level = level_number
+        elif met_count:
+            status = "partial"
+        else:
+            status = "empty"
+        levels.append(
+            {
+                "number": level_number,
+                "name": level_name,
+                "criteria": [
+                    {"text": criterion, "checked": responses[index]}
+                    for index, criterion in enumerate(criteria)
+                ],
+                "criteria_count": len(criteria),
+                "met_count": met_count,
+                "status": status,
+            }
+        )
+        previous_level_complete = previous_level_complete and is_complete
+
+    return {
+        "assessment_label": assessment_label,
+        "editing_assessment_id": assessment_id,
+        "pqi6_levels": levels,
+        "pqi6_calculated_level": highest_complete_level,
+        "pqi6_partial_descriptor": str(pqi6_entry.get("partial_descriptor", "") or "").strip(),
+        "pqi6_observation_notes": str(pqi6_entry.get("observation_notes", "") or "").strip(),
+        "pqi6_complete": bool(pqi6_entry.get("complete", False)),
+        "pqi6_save_url": url_for("save_pqi6"),
+        "pqi6_back_href": url_for("screen", screen_id="pqi-findings-entry"),
     }
 
 

@@ -147,6 +147,32 @@ PQI5_QUESTION_POINTS = [2, 1, 1]
 
 PQI3_RECORD_COUNT = 10
 
+PQI6_HIERARCHY = {
+    "Foundational practice": [
+        "Staff respond when children initiate communication",
+        "Staff use respectful and age-appropriate language",
+        "Children have regular opportunities to communicate",
+    ],
+    "Consistent practice": [
+        "Staff extend children's ideas through follow-up questions",
+        "Conversations include more than one exchange",
+        "Language is adapted to individual developmental levels",
+        "Visual or contextual supports are used when needed",
+    ],
+    "Advanced practice": [
+        "Staff intentionally introduce new vocabulary",
+        "Children are encouraged to explain reasoning",
+        "Staff connect current discussion to prior learning",
+        "Peer-to-peer dialogue is intentionally supported",
+    ],
+    "Sustained exemplary practice": [
+        "Staff facilitate extended, child-led conversations that build on children's ideas",
+        "Language and interaction strategies consistently support complex thinking",
+        "Children independently use rich language with adults and peers",
+        "Staff use observation evidence to refine language and interaction practices",
+    ],
+}
+
 PQI_BAND_MAPPING = {
     (0, 25): 1,
     (26, 50): 2,

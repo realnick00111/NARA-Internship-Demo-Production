@@ -692,8 +692,20 @@ video {
 	background: #fff9ec
 }
 
+.level.empty {
+	border-color: #98a4b1
+}
+
+.level.empty .level-head {
+	background: #dfe4ea
+}
+
 .level.locked {
-	opacity: .65
+	border-color: #d7dce2
+}
+
+.level.locked .level-head {
+	background: #f4f6f8
 }
 
 .criteria {

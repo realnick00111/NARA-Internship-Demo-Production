@@ -1,6 +1,6 @@
 <div class="page-header">
 	<div>
-		<div class="eyebrow">Assessment DM-2026-00184</div>
+		<div class="eyebrow">{{ assessment_label }}</div>
 		<h1>PQI 6-8 Hierarchy</h1>
 	</div>
 </div>
@@ -11,54 +11,136 @@
 	<button type="button" role="tab" aria-selected="false">PQI 8 · Responsive Care</button>
 </div>
 
-<div class="hierarchy-layout">
+<div class="hierarchy-layout" id="pqi6-card">
 	<section class="card">
 		<div class="card-head">
 			<div>
 				<h2>Hierarchical criteria</h2>
 				<p>The score is the highest level for which every criterion is met.</p>
 			</div>
-			<span class="chip info">Highest complete: Level 2</span>
+			<span class="chip info" id="pqi6-highest-complete">Highest complete: Level {{ pqi6_calculated_level }}</span>
 		</div>
 
-		<div class="level complete">
-			<div class="level-head"><span class="level-num">1</span><div><strong>Level 1 - Foundational practice</strong><small>All 3 criteria met</small></div><span class="chip success">Complete</span></div>
+		{% for level in pqi6_levels %}
+		<div class="level {{ level.status }}" data-pqi6-level="{{ level.number }}">
+			<div class="level-head">
+				<span class="level-num">{{ level.number }}</span>
+				<div><strong>Level {{ level.number }} - {{ level.name }}</strong><small data-pqi6-summary>{% if level.status == 'complete' %}All {{ level.criteria_count }} criteria met{% elif level.status == 'partial' %}{{ level.met_count }} of {{ level.criteria_count }} criteria met{% elif level.status == 'empty' %}0 of {{ level.criteria_count }} criteria met{% else %}Level {{ level.number - 1 }} must be complete first{% endif %}</small></div>
+				<span class="chip {% if level.status == 'complete' %}success{% elif level.status == 'partial' %}warning{% else %}neutral{% endif %}" data-pqi6-status>{{ level.status | title }}</span>
+			</div>
 			<div class="criteria">
-				<label><input type="checkbox" checked disabled><span>Staff respond when children initiate communication</span></label>
-				<label><input type="checkbox" checked disabled><span>Staff use respectful and age-appropriate language</span></label>
-				<label><input type="checkbox" checked disabled><span>Children have regular opportunities to communicate</span></label>
+				{% for criterion in level.criteria %}
+				<label><input type="checkbox" data-pqi6-criterion="{{ loop.index0 }}"{% if criterion.checked %} checked{% endif %}><span>{{ criterion.text }}</span></label>
+				{% endfor %}
+			</div>
+			<div class="partial-box" data-pqi6-partial-box{% if level.status != 'partial' %} hidden{% endif %}>
+				<label for="pqi6-partial-descriptor-{{ level.number }}">Partial descriptor</label>
+				<input class="input" id="pqi6-partial-descriptor-{{ level.number }}" data-pqi6-partial-descriptor type="text" value="{{ pqi6_partial_descriptor }}">
+				<p>Describe the partial observations for this level.</p>
 			</div>
 		</div>
+		{% endfor %}
 
-		<div class="level complete">
-			<div class="level-head"><span class="level-num">2</span><div><strong>Level 2 - Consistent practice</strong><small>All 4 criteria met</small></div><span class="chip success">Complete</span></div>
-			<div class="criteria">
-				<label><input type="checkbox" checked disabled><span>Staff extend children's ideas through follow-up questions</span></label>
-				<label><input type="checkbox" checked disabled><span>Conversations include more than one exchange</span></label>
-				<label><input type="checkbox" checked disabled><span>Language is adapted to individual developmental levels</span></label>
-				<label><input type="checkbox" checked disabled><span>Visual or contextual supports are used when needed</span></label>
+		<div class="card-actions" style="margin-top: 16px; justify-content: space-between;">
+			<a class="button ghost" href="{{ pqi6_back_href }}">Return to PQI list</a>
+			<div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
+				<span class="save-indicator" id="pqi6-save-state">{% if pqi6_complete %}PQI 6 marked as complete{% else %}Unsaved changes{% endif %}</span>
+				<button class="button secondary" id="pqi6-draft-save-button" type="button">Save Draft</button>
+				<button class="button primary" id="pqi6-save-button" type="button"{% if pqi6_complete %} disabled{% endif %}>Complete PQI 6</button>
 			</div>
-		</div>
-
-		<div class="level partial">
-			<div class="level-head"><span class="level-num">3</span><div><strong>Level 3 - Advanced practice</strong><small>2 of 4 criteria met</small></div><span class="chip warning">Partial</span></div>
-			<div class="criteria">
-				<label><input type="checkbox" checked disabled><span>Staff intentionally introduce new vocabulary</span></label>
-				<label><input type="checkbox" checked disabled><span>Children are encouraged to explain reasoning</span></label>
-				<label><input type="checkbox" disabled><span>Staff connect current discussion to prior learning</span></label>
-				<label><input type="checkbox" disabled><span>Peer-to-peer dialogue is intentionally supported</span></label>
-			</div>
-			<div class="partial-box"><label>Partial descriptor</label><div class="input">Level 2 fully met; Level 3 partially observed</div><p>Agency policy must define whether partial levels are stored only as a descriptor or used numerically.</p></div>
-		</div>
-
-		<div class="level locked">
-			<div class="level-head"><span class="level-num">4</span><div><strong>Level 4 - Sustained exemplary practice</strong><small>Level 3 must be complete first</small></div><span class="chip neutral">Locked</span></div>
 		</div>
 	</section>
 
 	<aside class="side-stack">
-		<div class="card score-card"><span>Current calculated level</span><strong>2</strong><p>Level 2 is the highest level with all criteria met.</p></div>
-		<div class="alert warning vertical"><div class="alert-icon">!</div><div><strong>Partial credit decision required</strong><span>The supplied summary mentions an “X+” descriptor but does not define standard numeric treatment. This prototype preserves the descriptor without changing the score.</span></div></div>
-		<div class="card"><h3>Evidence and notes</h3><div class="textarea small">Level 3 practices were observed inconsistently across classrooms.</div><div class="upload">+ Attach observation notes</div></div>
+		<div class="card score-card"><span>Current calculated level</span><strong id="pqi6-calculated-level">{{ pqi6_calculated_level }}</strong><p id="pqi6-calculated-description">Level {{ pqi6_calculated_level }} is the highest level with all criteria met.</p></div>
+		<div class="card"><h3>Evidence and notes</h3><textarea class="textarea small" id="pqi6-observation-notes" aria-label="Observation notes">{{ pqi6_observation_notes }}</textarea></div>
 	</aside>
 </div>
+
+<script>
+(() => {
+	const assessmentId = {{ editing_assessment_id | tojson }};
+	const saveUrl = "{{ pqi6_save_url }}";
+	let completeInitially = {{ pqi6_complete | tojson }};
+	const levelNodes = Array.from(document.querySelectorAll('#pqi6-card [data-pqi6-level]'));
+	const descriptorInputs = Array.from(document.querySelectorAll('[data-pqi6-partial-descriptor]'));
+	const observationNotes = document.getElementById('pqi6-observation-notes');
+	const highestComplete = document.getElementById('pqi6-highest-complete');
+	const calculatedLevel = document.getElementById('pqi6-calculated-level');
+	const calculatedDescription = document.getElementById('pqi6-calculated-description');
+	const saveState = document.getElementById('pqi6-save-state');
+	const draftButton = document.getElementById('pqi6-draft-save-button');
+	const completeButton = document.getElementById('pqi6-save-button');
+	const responseState = Object.fromEntries(levelNodes.map((node) => [node.dataset.pqi6Level, Array.from(node.querySelectorAll('[data-pqi6-criterion]')).map((checkbox) => checkbox.checked)]));
+	let partialDescriptor = descriptorInputs[0]?.value || '';
+	const snapshot = () => ({ responses: responseState, partial_descriptor: partialDescriptor, observation_notes: observationNotes.value });
+	let lastSaved = JSON.stringify(snapshot());
+
+	const update = () => {
+		let previousLevelComplete = true;
+		let highestLevel = 0;
+		let partialLevel = null;
+		levelNodes.forEach((node) => {
+			const levelNumber = node.dataset.pqi6Level;
+			const responses = responseState[levelNumber];
+			const checkboxes = Array.from(node.querySelectorAll('[data-pqi6-criterion]'));
+			if (!previousLevelComplete) responses.fill(false);
+			const metCount = responses.filter(Boolean).length;
+			const isComplete = metCount === responses.length;
+			const status = !previousLevelComplete ? 'locked' : isComplete ? 'complete' : metCount ? 'partial' : 'empty';
+			if (status === 'complete') highestLevel = Number(levelNumber);
+			if (status === 'partial') partialLevel = levelNumber;
+			node.className = `level ${status}`;
+			node.querySelector('[data-pqi6-summary]').textContent = status === 'complete' ? `All ${responses.length} criteria met` : status === 'partial' ? `${metCount} of ${responses.length} criteria met` : status === 'empty' ? `0 of ${responses.length} criteria met` : `Level ${Number(levelNumber) - 1} must be complete first`;
+			const statusNode = node.querySelector('[data-pqi6-status]');
+			statusNode.className = `chip ${status === 'complete' ? 'success' : status === 'partial' ? 'warning' : 'neutral'}`;
+			statusNode.textContent = status[0].toUpperCase() + status.slice(1);
+			checkboxes.forEach((checkbox, index) => {
+				checkbox.checked = responses[index];
+				checkbox.disabled = status === 'locked';
+			});
+			node.querySelector('[data-pqi6-partial-box]').hidden = status !== 'partial';
+			previousLevelComplete = previousLevelComplete && isComplete;
+		});
+		descriptorInputs.forEach((input) => { input.value = partialDescriptor; input.disabled = partialLevel === null || input.closest('[data-pqi6-level]').dataset.pqi6Level !== partialLevel; });
+		highestComplete.textContent = `Highest complete: Level ${highestLevel}`;
+		calculatedLevel.textContent = highestLevel;
+		calculatedDescription.textContent = `Level ${highestLevel} is the highest level with all criteria met.`;
+		const changed = JSON.stringify(snapshot()) !== lastSaved;
+		completeButton.disabled = completeInitially;
+		saveState.textContent = changed ? 'Unsaved changes' : completeInitially ? 'PQI 6 marked as complete' : 'Draft saved';
+	};
+
+	levelNodes.forEach((node) => {
+		node.querySelectorAll('[data-pqi6-criterion]').forEach((checkbox) => {
+			checkbox.addEventListener('change', () => {
+				responseState[node.dataset.pqi6Level][Number(checkbox.dataset.pqi6Criterion)] = checkbox.checked;
+				update();
+			});
+		});
+	});
+	descriptorInputs.forEach((input) => input.addEventListener('input', () => { partialDescriptor = input.value; update(); }));
+	observationNotes.addEventListener('input', update);
+	const persist = async (button) => {
+		const payload = { ...snapshot(), complete: button === completeButton };
+		if (assessmentId !== null) payload.assessment_id = assessmentId;
+		button.disabled = true;
+		try {
+			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+			const result = await response.json().catch(() => ({}));
+			if (!response.ok) throw new Error(result.message || 'No assessment selected, unable to save');
+			lastSaved = JSON.stringify(snapshot());
+			completeInitially = button === completeButton;
+			saveState.textContent = completeInitially ? 'PQI 6 marked as complete' : 'Draft saved';
+		} catch (error) {
+			saveState.textContent = error.message || 'Unable to save PQI 6';
+		} finally {
+			if (button === draftButton) draftButton.disabled = false;
+			update();
+		}
+	};
+	draftButton.addEventListener('click', () => persist(draftButton));
+	completeButton.addEventListener('click', () => persist(completeButton));
+	update();
+})();
+</script>
