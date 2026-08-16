@@ -3,7 +3,17 @@ from pathlib import Path
 from flask import abort, render_template, render_template_string
 from markupsafe import Markup
 
-from constants import NAV_BY_SCREEN, PARTIALS_DIR, PQI_BAND_MAPPING, SCREENS_DIR, SCREEN_ORDER, STANDALONE_SCREENS
+from constants import (
+    NAV_BY_SCREEN,
+    PARTIALS_DIR,
+    PQI_BAND_MAPPING,
+    PQI910_LIKERT_SCORE_RANGE,
+    PQI910_OBSERVATION_COUNT,
+    PQI910_OBSERVATION_DURATION_SECONDS,
+    SCREENS_DIR,
+    SCREEN_ORDER,
+    STANDALONE_SCREENS,
+)
 from services.screen_contexts import (
     build_assessment_list_context,
     build_assessment_progress_context,
@@ -29,6 +39,14 @@ def build_pqi1_band_rows() -> list[dict[str, int]]:
         {"min": lower_bound, "max": upper_bound, "band": band}
         for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1])
     ]
+
+
+def build_pqi910_context() -> dict:
+    return {
+        "pqi910_observation_count": PQI910_OBSERVATION_COUNT,
+        "pqi910_duration_seconds": PQI910_OBSERVATION_DURATION_SECONDS,
+        "pqi910_likert_scores": PQI910_LIKERT_SCORE_RANGE,
+    }
 
 
 def render_screen_section(screen_id: str) -> str:
@@ -65,6 +83,8 @@ def render_screen_section(screen_id: str) -> str:
         content = render_template_string(content, **build_pqi7_context())
     elif screen_id == "pqi8":
         content = render_template_string(content, **build_pqi8_context())
+    elif screen_id == "pqi9-10-timed":
+        content = render_template_string(content, **build_pqi910_context())
 
     if screen_id in STANDALONE_SCREENS:
         inner_html = content

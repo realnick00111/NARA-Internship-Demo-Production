@@ -1,31 +1,135 @@
-<div class="page-header">
-	<div>
-		<div class="eyebrow">Timed observation</div>
-		<h1>PQI 9-10 Timed Observation</h1>
-		<p>Capture time-sensitive observations during the timed sample window and keep the clock visible while entering notes.</p>
+<div class="pqi910-page">
+	<div class="page-header">
+		<div>
+			<div class="eyebrow">Assessment DM-2026-00184</div>
+			<h1>PQI 9-10 Timed Observation</h1>
+		</div>
 	</div>
-	<div class="action-row"><button class="button secondary">Pause timer</button><button class="button primary">Submit observation</button></div>
+
+	<div class="tabs pqi910-tabs"><button class="active" type="button">PQI 9 · Attention</button><button type="button">PQI 10 · Warmth</button></div>
+	<div class="alert info pqi2-summary-card" id="pqi910-summary-card" role="status" aria-live="polite">
+		<div class="alert-icon">i</div>
+		<div><strong>Trials Completed</strong><span id="pqi910-summary-text">0 of {{ pqi910_observation_count }} complete</span></div>
+	</div>
+	<div class="pqi910-layout">
+		<section class="card">
+			<div class="card-head pqi910-card-head">
+				<div>
+					<h2>{{ pqi910_observation_count }} timed observations</h2>
+					<p>Complete {{ pqi910_observation_count }} {{ (pqi910_duration_seconds // 60) }}-minute observations and assign a Likert score from {{ pqi910_likert_scores[0] }} to {{ pqi910_likert_scores[-1] }}.</p>
+				</div>
+				<div class="pqi910-timer"><span>Observation 07</span><strong id="pqi910-timer-display" aria-live="polite">02:00</strong><button id="pqi910-pause-button" type="button">Start</button><button id="pqi910-reset-button" type="button">Reset</button></div>
+			</div>
+			<div class="pqi910-table-wrap">
+				<table class="observation-table">
+					<thead><tr><th>Sequence</th><th>Duration</th><th>Likert score</th><th>Notes</th><th>Status</th></tr></thead>
+					<tbody>
+						{% for observation_number in range(1, pqi910_observation_count + 1) %}
+						<tr data-pqi910-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi910_duration_seconds // 60, pqi910_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for observation {{ observation_number }}">{% for score in pqi910_likert_scores %}<button type="button" data-pqi910-score="{{ score }}" aria-pressed="false">{{ score }}</button>{% endfor %}</div></td><td><button class="iconbtn" type="button">Add note</button></td><td><span class="chip warning" data-pqi910-status>Pending</span></td></tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		</section>
+		<aside class="side-stack">
+			<div class="card average-card"><span>Average preview</span><strong>3.67</strong><div class="rounding"><span>Configured rounding</span><b>Nearest whole number</b></div><div class="final-score"><span>Provisional score</span><strong>4</strong></div><p>Final score is calculated only after all ten observations are complete.</p></div>
+			<div class="card"><h3>Observation guidance</h3><ul class="checklist"><li>Use the same duration for each observation</li><li>Record one score per sequence</li><li>Add notes for unusual conditions</li><li>Do not identify individual children</li></ul></div>
+		</aside>
+	</div>
+	<div class="sticky-actions pqi910-actions"><button id="pqi910-back-button" class="button secondary" type="button">Back to PQI list</button><div><span class="save-indicator" id="pqi910-save-state">0 of {{ pqi910_observation_count }} complete</span><button class="button secondary" type="button">Save draft</button><button class="button primary" type="button">Start next observation</button></div></div>
+	<div class="pqi910-stamp">Prototype - Demonstration Data</div>
 </div>
 
-<div class="split">
-	<section class="panel">
-		<div class="hero" style="margin-bottom:14px">
-			<div><div class="section-label" style="color:#bce8df">Observation timer</div><h2 style="margin-top:6px">06:42</h2><p>Window remains active for the current sampling session.</p></div>
-			<div class="hero-score"><strong>10</strong><span>observations logged</span></div>
-		</div>
-		<div class="table-wrap">
-			<table>
-				<thead><tr><th>Time</th><th>Observation</th><th>Result</th></tr></thead>
-				<tbody>
-					<tr><td>09:12</td><td>Transition observed with no interruption</td><td><span class="chip success">Pass</span></td></tr>
-					<tr><td>09:17</td><td>Materials prepared before arrival</td><td><span class="chip success">Pass</span></td></tr>
-					<tr><td>09:22</td><td>Follow-up note pending for one activity</td><td><span class="chip warning">Review</span></td></tr>
-				</tbody>
-			</table>
-		</div>
-	</section>
-	<aside class="stack">
-		<div class="panel"><div class="panel-head"><div><h3>Quick note</h3><p>Keep one concise sentence per event.</p></div></div><textarea class="textarea">Observer noted a clean transition and uninterrupted supervision during the sampled interval.</textarea></div>
-		<div class="panel"><div class="panel-head"><div><h3>Window status</h3><p>Time remaining in the current session.</p></div></div><div class="metric teal"><div class="metric-label">Remaining</div><div class="metric-value">03:18</div></div></div>
-	</aside>
-</div>
+<script>
+(() => {
+	const timerDisplay = document.getElementById('pqi910-timer-display');
+	const pauseButton = document.getElementById('pqi910-pause-button');
+	const resetButton = document.getElementById('pqi910-reset-button');
+	const backButton = document.getElementById('pqi910-back-button');
+	const initialSeconds = {{ pqi910_duration_seconds }};
+	const observationRows = Array.from(document.querySelectorAll('[data-pqi910-observation]'));
+	const summaryText = document.getElementById('pqi910-summary-text');
+	const saveState = document.getElementById('pqi910-save-state');
+	let remainingSeconds = initialSeconds;
+	let timerId = null;
+
+	if (!timerDisplay || !pauseButton || !resetButton || !backButton || !summaryText || !saveState) {
+		return;
+	}
+
+	const updateObservationState = (row, selectedButton) => {
+		row.querySelectorAll('[data-pqi910-score]').forEach((button) => {
+			const selected = button === selectedButton;
+			button.classList.toggle('selected', selected);
+			button.setAttribute('aria-pressed', String(selected));
+		});
+		const status = row.querySelector('[data-pqi910-status]');
+		const complete = selectedButton !== null;
+		status.className = `chip ${complete ? 'success' : 'warning'}`;
+		status.textContent = complete ? 'Complete' : 'Pending';
+		const completedCount = observationRows.filter((candidate) => candidate.querySelector('[data-pqi910-score].selected')).length;
+		summaryText.textContent = `${completedCount} of ${observationRows.length} complete`;
+		saveState.textContent = `${completedCount} of ${observationRows.length} complete`;
+	};
+
+	observationRows.forEach((row) => {
+		row.querySelectorAll('[data-pqi910-score]').forEach((button) => {
+			button.addEventListener('click', () => updateObservationState(row, button));
+		});
+		updateObservationState(row, null);
+	});
+
+	const formatTime = (seconds) => {
+		const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+		const remainder = (seconds % 60).toString().padStart(2, '0');
+		return `${minutes}:${remainder}`;
+	};
+
+	const renderTimer = () => {
+		timerDisplay.textContent = formatTime(remainingSeconds);
+	};
+
+	const stopTimer = () => {
+		if (timerId !== null) {
+			window.clearInterval(timerId);
+			timerId = null;
+		}
+	};
+
+	const startTimer = () => {
+		stopTimer();
+		timerId = window.setInterval(() => {
+			if (remainingSeconds <= 0) {
+				stopTimer();
+				pauseButton.textContent = 'Resume';
+				return;
+			}
+			remainingSeconds -= 1;
+			renderTimer();
+		}, 1000);
+		pauseButton.textContent = 'Pause';
+	};
+
+	pauseButton.addEventListener('click', () => {
+		if (timerId === null) {
+			startTimer();
+			return;
+		}
+		stopTimer();
+		pauseButton.textContent = 'Resume';
+	});
+
+	resetButton.addEventListener('click', () => {
+		stopTimer();
+		remainingSeconds = initialSeconds;
+		renderTimer();
+		pauseButton.textContent = 'Start';
+	});
+
+	backButton.addEventListener('click', () => {
+		window.location.href = '/screens/pqi-findings-entry';
+	});
+
+	renderTimer();
+})();
+</script>

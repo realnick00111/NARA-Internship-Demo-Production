@@ -1249,6 +1249,169 @@ td span {
 	font-size: 12px
 }
 
+.pqi910-page {
+	min-width: 0
+}
+
+.pqi910-tabs {
+	margin-bottom: 13px
+}
+
+.pqi910-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 280px;
+	gap: 14px;
+	align-items: start
+}
+
+.pqi910-layout > .card {
+	min-width: 0
+}
+
+.pqi910-card-head {
+	margin-bottom: 14px
+}
+
+.pqi910-timer {
+	background: #212936;
+	color: #fff;
+	border-radius: 9px;
+	padding: 8px 11px;
+	display: flex;
+	gap: 9px;
+	align-items: center;
+	flex: none
+}
+
+.pqi910-timer span {
+	font-size: 9px;
+	color: #c8d0da
+}
+
+.pqi910-timer strong {
+	font-size: 18px
+}
+
+.pqi910-timer button {
+	border: 1px solid rgba(255, 255, 255, .19);
+	background: rgba(255, 255, 255, .06);
+	color: #fff;
+	border-radius: 5px;
+	padding: 4px 7px;
+	font-size: 10px;
+	cursor: pointer
+}
+
+.pqi910-table-wrap {
+	overflow-x: auto;
+	margin: 0 -1px
+}
+
+.observation-table {
+	min-width: 690px
+}
+
+.observation-table td {
+	padding: 7px 9px
+}
+
+.observation-table td span {
+	display: inline-flex;
+	margin-top: 0
+}
+
+.likert {
+	display: flex;
+	gap: 4px
+}
+
+.likert button {
+	width: 29px;
+	height: 28px;
+	border: 1px solid #b8c1cc;
+	background: #fff;
+	border-radius: 5px;
+	cursor: pointer
+}
+
+.likert button.selected {
+	background: var(--purple);
+	color: #fff;
+	border-color: var(--purple)
+}
+
+.iconbtn {
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--teal);
+	font-size: 11px;
+	font-weight: 700;
+	cursor: pointer
+}
+
+.average-card {
+	text-align: center
+}
+
+.average-card > span {
+	color: var(--muted)
+}
+
+.average-card > strong {
+	display: block;
+	font-size: 45px;
+	margin: 8px
+}
+
+.average-card .rounding {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	padding-top: 10px;
+	border-top: 1px solid var(--line);
+	font-size: 11px;
+	text-align: left
+}
+
+.average-card .rounding span,
+.average-card .final-score span {
+	color: var(--muted)
+}
+
+.average-card .final-score {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 12px;
+	margin-top: 10px;
+	padding: 10px;
+	background: #f4edf8;
+	border-radius: 8px;
+	font-size: 11px;
+	text-align: left
+}
+
+.average-card .final-score strong {
+	font-size: 24px;
+	color: var(--purple)
+}
+
+.average-card p {
+	margin-bottom: 0
+}
+
+.pqi910-actions {
+	margin-top: 14px
+}
+
+.pqi910-stamp {
+	margin-top: 12px;
+	color: var(--muted);
+	font-size: 10px;
+	text-align: right
+}
+
 .section-kicker {
 	font-size: 10px;
 	text-transform: uppercase;
@@ -2514,7 +2677,8 @@ td span {
 	.grid.three,
 	.grid.two,
 	.paper-grid,
-	.hierarchy-layout {
+	.hierarchy-layout,
+	.pqi910-layout {
 		grid-template-columns: 1fr
 	}
 
@@ -2553,6 +2717,15 @@ td span {
 
 	.criteria {
 		grid-template-columns: 1fr
+	}
+
+	.pqi910-card-head {
+		flex-wrap: wrap
+	}
+
+	.pqi910-timer {
+		width: 100%;
+		justify-content: space-between
 	}
 
 	.hide-on-large {
@@ -2599,6 +2772,32 @@ td span {
 	.pqi3-sample-card .score-block {
 		width: 100%;
 		text-align: left
+	}
+
+	.pqi910-page .card {
+		padding: 14px
+	}
+
+	.pqi910-timer {
+		flex-wrap: wrap;
+		justify-content: flex-start
+	}
+
+	.pqi910-timer strong {
+		margin-right: auto
+	}
+
+	.pqi910-actions > div {
+		align-items: stretch;
+		flex-direction: column
+	}
+
+	.pqi910-actions .save-indicator {
+		text-align: center
+	}
+
+	.pqi910-actions .button {
+		width: 100%
 	}
 }
 

@@ -152,6 +152,10 @@ PQI5_QUESTION_POINTS = [2, 1, 1]
 
 PQI3_RECORD_COUNT = 10
 
+PQI910_OBSERVATION_COUNT = 12
+PQI910_OBSERVATION_DURATION_SECONDS = 2 * 60
+PQI910_LIKERT_SCORE_RANGE = tuple(range(1, 5)) # (1, n + 1)
+
 PQI6_HIERARCHY = {
     "Foundational practice": [
         "Staff respond when children initiate communication",

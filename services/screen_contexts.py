@@ -117,6 +117,37 @@ def _build_pqi3_records(raw_entry: object) -> list[dict]:
     return records
 
 
+def _build_pqi68_card(pqi_number: int, entry: object, hierarchy: dict) -> dict:
+    entry = entry if isinstance(entry, dict) else {}
+    raw_responses = entry.get("responses", {})
+    raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
+    score = 0
+    has_input = False
+
+    for level_number, (level_name, criteria) in enumerate(hierarchy.items(), start=1):
+        raw_level = raw_responses.get(str(level_number), raw_responses.get(level_name, []))
+        raw_level = raw_level if isinstance(raw_level, list) else []
+        checked_count = sum(bool(value) for value in raw_level[: len(criteria)])
+        has_input = has_input or checked_count > 0
+        if checked_count == len(criteria):
+            score = level_number
+        else:
+            break
+
+    has_input = has_input or bool(str(entry.get("partial_descriptor", "") or "").strip())
+    has_input = has_input or bool(str(entry.get("observation_notes", "") or "").strip())
+    has_input = has_input or bool(entry.get("score"))
+    complete = bool(entry.get("complete", False))
+    status = "complete" if complete else "draft" if has_input else "empty"
+    status_label = status.title()
+    return {
+        "number": pqi_number,
+        "status": status,
+        "status_label": status_label,
+        "score": score,
+    }
+
+
 def build_pqi3_context(preview: bool = False) -> dict:
     assessment_row = get_current_assessment_row()
     assessment_id = assessment_row["id"] if assessment_row is not None else None
@@ -383,6 +414,12 @@ def build_pqi1_context() -> dict:
     pqi5_base_points = None
     pqi5_bonus_point = None
     pqi5_score = None
+    pqi68_cards = [
+        _build_pqi68_card(6, {}, PQI6_HIERARCHY),
+        _build_pqi68_card(7, {}, PQI7_HIERARCHY),
+        _build_pqi68_card(8, {}, PQI8_HIERARCHY),
+    ]
+    pqi68_complete_count = 0
 
     if assessment_row is not None:
         assessment_id = assessment_row["id"]
@@ -390,6 +427,12 @@ def build_pqi1_context() -> dict:
         assessment_label = get_assessment_label(assessment_row)
 
         pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
+        pqi68_cards = [
+            _build_pqi68_card(6, pqi_findings.get("pqi6"), PQI6_HIERARCHY),
+            _build_pqi68_card(7, pqi_findings.get("pqi7"), PQI7_HIERARCHY),
+            _build_pqi68_card(8, pqi_findings.get("pqi8"), PQI8_HIERARCHY),
+        ]
+        pqi68_complete_count = sum(card["status"] == "complete" for card in pqi68_cards)
         pqi1_entry = pqi_findings.get("pqi1") if isinstance(pqi_findings, dict) else {}
         if isinstance(pqi1_entry, dict):
             pqi1_complete = bool(pqi1_entry.get("complete", False))
@@ -526,6 +569,9 @@ def build_pqi1_context() -> dict:
         "pqi5_question_count": pqi5_question_count,
         "pqi5_completed_count": pqi5_completed_count,
         "pqi5_save_url": url_for("save_pqi5"),
+        "pqi68_cards": pqi68_cards,
+        "pqi68_complete_count": pqi68_complete_count,
+        "pqi68_complete": pqi68_complete_count == 3,
         **pqi3_context,
     }
 

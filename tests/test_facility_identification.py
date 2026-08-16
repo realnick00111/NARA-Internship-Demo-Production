@@ -253,6 +253,56 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertNotIn('id="pqi4-summary-card"', rendered)
         self.assertNotIn('id="pqi5-summary-card"', rendered)
 
+    def test_pqi68_cards_show_empty_draft_and_complete_statuses(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi7": {"responses": {"1": [True, False, False]}},
+                    "pqi8": {"complete": True, "responses": {"1": [True, True]}},
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+        self.assertIn('class="pqi68-card status-empty"', rendered)
+        self.assertIn('class="pqi68-card status-draft"', rendered)
+        self.assertIn('class="pqi68-card status-complete"', rendered)
+        self.assertIn('0 of 3 complete', rendered)
+        self.assertIn('id="pqi68-complete-card"', rendered)
+        self.assertIn('<strong>1</strong>', rendered)
+        self.assertIn('<strong>0</strong>', rendered)
+        self.assertIn('<strong>1</strong>', rendered)
+
+    def test_pqi68_completion_banner_shows_when_all_three_are_complete(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi6": {"complete": True, "responses": {"1": [True] * 3, "2": [True] * 4, "3": [True] * 4, "4": [True] * 4}},
+                    "pqi7": {"complete": True, "responses": {"1": [True] * 3, "2": [True] * 3, "3": [True] * 4, "4": [True] * 2}},
+                    "pqi8": {"complete": True, "responses": {"1": [True] * 2, "2": [True] * 2, "3": [True] * 2, "4": [True] * 2}},
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+        self.assertIn('3 of 3 complete', rendered)
+        self.assertIn('id="pqi68-complete-card" role="status" aria-live="polite">', rendered)
+        self.assertIn("PQI 6-8 marked as complete", rendered)
+
     def test_save_pqi1_persists_nested_json(self):
         assessment_id = self.insert_assessment()
 
