@@ -7,6 +7,7 @@ from constants import (
     PQI5_QUESTION_POINTS,
     PQI6_SCORE_MODIFIER_REQUIREMENTS,
     PQI7_SCORE_MODIFIER_REQUIREMENTS,
+    PQI8_SCORE_MODIFIER_REQUIREMENTS,
     PQI_BAND_MAPPING,
     STATUS_CLASS_MAP,
 )
@@ -185,6 +186,25 @@ def calculate_pqi7_score_modifier(score: int, responses: dict[str, list[bool] | 
 
 
 def format_pqi7_score(score: int, modifier: str = "") -> str:
+    if score <= 0:
+        return "0"
+    return f"{score}{modifier}" if modifier else str(score)
+
+
+def calculate_pqi8_score_modifier(score: int, responses: dict[str, list[bool] | list[object]] | None) -> str:
+    if score not in PQI8_SCORE_MODIFIER_REQUIREMENTS or not isinstance(responses, dict):
+        return ""
+
+    modifier_rule = PQI8_SCORE_MODIFIER_REQUIREMENTS[score]
+    next_level_responses = responses.get(str(modifier_rule["next_level"]), [])
+    if not isinstance(next_level_responses, list):
+        return ""
+
+    met_count = sum(1 for value in next_level_responses if bool(value))
+    return "+" if met_count >= modifier_rule["required_met"] else ""
+
+
+def format_pqi8_score(score: int, modifier: str = "") -> str:
     if score <= 0:
         return "0"
     return f"{score}{modifier}" if modifier else str(score)

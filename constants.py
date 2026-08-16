@@ -28,6 +28,7 @@ SCREEN_ORDER = [
     "pqi3",
     "pqi6-8-hierarchy",
     "pqi7",
+    "pqi8",
     "pqi9-10-timed",
     "validation-summary",
     "calculation-review",
@@ -55,6 +56,7 @@ NAV_BY_SCREEN = {
     "pqi3": "assessments",
     "pqi6-8-hierarchy": "assessments",
     "pqi7": "assessments",
+    "pqi8": "assessments",
     "pqi9-10-timed": "assessments",
     "validation-summary": "assessments",
     "calculation-review": "assessments",
@@ -208,6 +210,31 @@ PQI7_HIERARCHY = {
 PQI7_SCORE_MODIFIER_REQUIREMENTS = {
     1: {"next_level": 2, "required_met": 2},
     2: {"next_level": 3, "required_met": 2},
+    3: {"next_level": 4, "required_met": 1},
+}
+
+PQI8_HIERARCHY = {
+    "Level 1": [
+        "Staff do not draw attention to logical relationships, patterns, or simple cause-and-effect connections during routines and play.",
+        "Concepts are introduced without regard to children's developmental level or without connecting them to concrete experiences.",
+    ],
+    "Level 2": [
+        "Staff occasionally point out simple logical relationships, such as sequence, comparisons, or cause and effect, during daily activities.",
+        "Some concepts are introduced in ways that match children's developmental level and are supported with concrete experiences and guided discussion.",
+    ],
+    "Level 3": [
+        "Staff regularly talk about logical relationships while children explore materials and activities that support reasoning.",
+        "Children are encouraged to explain their thinking and to compare, sort, sequence, or solve simple problems with staff support.",
+    ],
+    "Level 4": [
+        "Staff consistently build reasoning throughout the day by using children's experiences, interests, and daily events to develop logical thinking.",
+        "Concepts are introduced in response to children's questions and needs, and staff support children in connecting ideas to experiences, materials, and problem solving.",
+    ],
+}
+
+PQI8_SCORE_MODIFIER_REQUIREMENTS = {
+    1: {"next_level": 2, "required_met": 1},
+    2: {"next_level": 3, "required_met": 1},
     3: {"next_level": 4, "required_met": 1},
 }
 

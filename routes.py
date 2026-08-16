@@ -1,6 +1,6 @@
 from flask import Flask, abort, jsonify, redirect, request, url_for
 
-from constants import PQI2_ENVIRONMENT_QUESTIONS, PQI3_RECORD_COUNT, PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, PQI5_CHILD_PROGRESS_QUESTIONS, PQI6_HIERARCHY, PQI7_HIERARCHY
+from constants import PQI2_ENVIRONMENT_QUESTIONS, PQI3_RECORD_COUNT, PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, PQI5_CHILD_PROGRESS_QUESTIONS, PQI6_HIERARCHY, PQI7_HIERARCHY, PQI8_HIERARCHY
 from db import log_storage_event
 from rendering import render_page
 from repositories.assessments import (
@@ -18,6 +18,7 @@ from services.formatters import (
     calculate_pqi5_points,
     calculate_pqi6_score_modifier,
     calculate_pqi7_score_modifier,
+    calculate_pqi8_score_modifier,
     normalize_yes_no,
 )
 from session_state import clear_current_assessment, get_current_assessment, set_current_assessment
@@ -475,6 +476,68 @@ def register_routes(app: Flask) -> None:
                 normalized_assessment_id,
                 pqi_findings={
                     "pqi7": {
+                        "complete": complete_flag,
+                        "score": calculated_level,
+                        "score_modifier": score_modifier,
+                        "responses": normalized_responses,
+                        "calculated_level": calculated_level,
+                        "partial_descriptor": partial_descriptor,
+                        "observation_notes": observation_notes,
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify(
+            {
+                "status": "success",
+                "assessment_id": normalized_assessment_id,
+                "complete": complete_flag,
+                "score": calculated_level,
+                "score_modifier": score_modifier,
+                "calculated_level": calculated_level,
+            }
+        )
+
+    @app.route("/api/assessments/pqi8", methods=["POST"])
+    def save_pqi8():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+
+        raw_responses = payload.get("responses")
+        if not isinstance(raw_responses, dict):
+            return jsonify({"status": "error", "message": "responses must be an object"}), 400
+
+        normalized_responses: dict[str, list[bool]] = {}
+        calculated_level = 0
+        previous_level_complete = True
+        for level_number, criteria in enumerate(PQI8_HIERARCHY.values(), start=1):
+            raw_level_responses = raw_responses.get(str(level_number), [])
+            raw_level_responses = raw_level_responses if isinstance(raw_level_responses, list) else []
+            responses = [
+                bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
+                for index in range(len(criteria))
+            ]
+            normalized_responses[str(level_number)] = responses
+            level_complete = all(responses)
+            if previous_level_complete and level_complete:
+                calculated_level = level_number
+            previous_level_complete = previous_level_complete and level_complete
+
+        score_modifier = calculate_pqi8_score_modifier(calculated_level, normalized_responses)
+        partial_descriptor = str(payload.get("partial_descriptor", "") or "").strip()
+        observation_notes = str(payload.get("observation_notes", "") or "").strip()
+        complete_flag = bool(payload.get("complete", False))
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi8": {
                         "complete": complete_flag,
                         "score": calculated_level,
                         "score_modifier": score_modifier,

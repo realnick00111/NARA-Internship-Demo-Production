@@ -15,6 +15,7 @@ from services.screen_contexts import (
     build_pqi3_context,
     build_pqi6_context,
     build_pqi7_context,
+    build_pqi8_context,
     build_new_assessment_context,
 )
 
@@ -62,6 +63,8 @@ def render_screen_section(screen_id: str) -> str:
         content = render_template_string(content, **build_pqi6_context())
     elif screen_id == "pqi7":
         content = render_template_string(content, **build_pqi7_context())
+    elif screen_id == "pqi8":
+        content = render_template_string(content, **build_pqi8_context())
 
     if screen_id in STANDALONE_SCREENS:
         inner_html = content
