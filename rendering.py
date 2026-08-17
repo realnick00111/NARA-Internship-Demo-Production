@@ -26,7 +26,10 @@ from services.screen_contexts import (
     build_pqi6_context,
     build_pqi7_context,
     build_pqi8_context,
+    build_pqi910_context,
     build_new_assessment_context,
+    get_current_assessment_row,
+    get_assessment_label,
 )
 
 
@@ -39,14 +42,6 @@ def build_pqi1_band_rows() -> list[dict[str, int]]:
         {"min": lower_bound, "max": upper_bound, "band": band}
         for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1])
     ]
-
-
-def build_pqi910_context() -> dict:
-    return {
-        "pqi910_observation_count": PQI910_OBSERVATION_COUNT,
-        "pqi910_duration_seconds": PQI910_OBSERVATION_DURATION_SECONDS,
-        "pqi910_likert_scores": PQI910_LIKERT_SCORE_RANGE,
-    }
 
 
 def render_screen_section(screen_id: str) -> str:

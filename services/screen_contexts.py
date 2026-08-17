@@ -178,6 +178,40 @@ def build_pqi3_context(preview: bool = False) -> dict:
     }
 
 
+def build_pqi910_context() -> dict:
+    assessment_row = get_current_assessment_row()
+    assessment_id = assessment_row["id"] if assessment_row is not None else None
+    assessment_label = get_assessment_label(assessment_row)
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {}) if assessment_row is not None else {}
+    pqi9_entry = pqi_findings.get("pqi9", {}) if isinstance(pqi_findings, dict) else {}
+    pqi9_entry = pqi9_entry if isinstance(pqi9_entry, dict) else {}
+    raw_responses = pqi9_entry.get("responses", {})
+    raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
+    saved_scores = {}
+    for observation_number in range(1, 11):
+        raw_value = raw_responses.get(str(observation_number), raw_responses.get(observation_number))
+        if raw_value in (None, ""):
+            continue
+        try:
+            score = int(raw_value)
+        except (TypeError, ValueError):
+            continue
+        if 1 <= score <= 4:
+            saved_scores[str(observation_number)] = score
+
+    return {
+        "assessment_label": assessment_label,
+        "editing_assessment_id": assessment_id,
+        "pqi910_observation_count": 10,
+        "pqi910_duration_seconds": 120,
+        "pqi910_likert_scores": tuple(range(1, 5)),
+        "pqi910_saved_scores": saved_scores,
+        "pqi910_complete": bool(pqi9_entry.get("complete", False)),
+        "pqi910_save_url": url_for("save_pqi9"),
+        "pqi910_back_href": url_for("screen", screen_id="pqi-findings-entry"),
+    }
+
+
 def build_pqi6_context() -> dict:
     assessment_row = get_current_assessment_row()
     assessment_id = assessment_row["id"] if assessment_row is not None else None

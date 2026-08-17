@@ -563,6 +563,64 @@ def register_routes(app: Flask) -> None:
             }
         )
 
+    @app.route("/api/assessments/pqi9", methods=["POST"])
+    def save_pqi9():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+
+        raw_responses = payload.get("responses")
+        if not isinstance(raw_responses, dict):
+            return jsonify({"status": "error", "message": "responses must be an object"}), 400
+
+        normalized_responses: dict[str, int] = {}
+        for observation_number in range(1, 11):
+            raw_value = raw_responses.get(str(observation_number), raw_responses.get(observation_number))
+            if raw_value in (None, ""):
+                continue
+            try:
+                score = int(raw_value)
+            except (TypeError, ValueError):
+                return jsonify({"status": "error", "message": "PQI 9 observation scores must be integers between 1 and 4"}), 400
+
+            if score not in (1, 2, 3, 4):
+                return jsonify({"status": "error", "message": "PQI 9 observation scores must be between 1 and 4"}), 400
+
+            normalized_responses[str(observation_number)] = score
+
+        complete_flag = bool(payload.get("complete", False))
+        if complete_flag and len(normalized_responses) != 10:
+            return jsonify({"status": "error", "message": "Complete all ten PQI 9 observations before completing"}), 400
+
+        average_score = round(sum(normalized_responses.values()) / len(normalized_responses)) if normalized_responses else None
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            update_assessment_json_fields(
+                normalized_assessment_id,
+                pqi_findings={
+                    "pqi9": {
+                        "complete": complete_flag,
+                        "score": average_score,
+                        "responses": normalized_responses,
+                    }
+                },
+            )
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify(
+            {
+                "status": "success",
+                "message": "PQI 9 saved successfully!",
+                "assessment_id": normalized_assessment_id,
+                "complete": complete_flag,
+                "score": average_score,
+            }
+        )
+
     @app.route("/api/assessments/pqi4", methods=["POST"])
     def save_pqi4():
         payload = request.get_json(silent=True) or {}

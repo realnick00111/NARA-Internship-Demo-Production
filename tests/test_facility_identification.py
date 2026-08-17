@@ -176,6 +176,122 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('<div class="eyebrow">Assessment ASMT-', rendered)
         self.assertNotIn('<div class="eyebrow">No assessment selected</div>', rendered)
 
+    def test_pqi9_screen_uses_current_assessment_label(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/screens/pqi9-10-timed")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<div class="eyebrow">Assessment ASMT-', rendered)
+        self.assertNotIn('Assessment DM-2026-00184', rendered)
+
+    def test_pqi9_average_preview_calculates_from_selected_scores(self):
+        response = self.client.get("/screens/pqi9-10-timed")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="pqi910-average-preview"', rendered)
+        self.assertIn('id="pqi910-provisional-score"', rendered)
+        self.assertIn('const averagePreview = document.getElementById(\'pqi910-average-preview\');', rendered)
+        self.assertIn('const provisionalScore = document.getElementById(\'pqi910-provisional-score\');', rendered)
+        self.assertIn('selectedScores.reduce', rendered)
+
+    def test_save_pqi9_persists_nested_json_and_complete_flag(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.post(
+            "/api/assessments/pqi9",
+            json={
+                "complete": True,
+                "responses": {
+                    "1": 4,
+                    "2": 3,
+                    "3": 2,
+                    "4": 4,
+                    "5": 3,
+                    "6": 2,
+                    "7": 4,
+                    "8": 3,
+                    "9": 2,
+                    "10": 3,
+                },
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        self.assertIsNotNone(saved_row)
+        saved_findings = json.loads(saved_row[0])
+        self.assertTrue(saved_findings["pqi9"]["complete"])
+        self.assertEqual(saved_findings["pqi9"]["responses"]["1"], 4)
+        self.assertEqual(saved_findings["pqi9"]["responses"]["10"], 3)
+        self.assertEqual(saved_findings["pqi9"]["score"], 3)
+
+    def test_pqi9_screen_loads_saved_scores_from_db(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi9": {
+                        "complete": True,
+                        "score": 3,
+                        "responses": {"1": 4, "2": 3, "3": 2, "4": 4, "5": 3, "6": 2, "7": 4, "8": 3, "9": 2, "10": 3},
+                    },
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/screens/pqi9-10-timed")
+        rendered = response.data.decode("utf-8")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('const initialSavedScores = {', rendered)
+        self.assertIn('"1": 4', rendered)
+        self.assertIn('"10": 3', rendered)
+
+    def test_pqi9_completion_banner_shows_when_complete(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi9": {
+                        "complete": True,
+                        "score": 3,
+                        "responses": {"1": 4, "2": 3, "3": 2, "4": 4, "5": 3, "6": 2, "7": 4, "8": 3, "9": 2, "10": 3},
+                    },
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/screens/pqi9-10-timed")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('id="pqi910-complete-card"', rendered)
+        self.assertIn('PQI 9 marked as complete', rendered)
+        self.assertNotIn('Trials Completed', rendered)
+
     def test_pqi3_screen_uses_single_current_layout(self):
         response = self.client.get("/screens/pqi3-sample")
         rendered = response.data.decode("utf-8")
