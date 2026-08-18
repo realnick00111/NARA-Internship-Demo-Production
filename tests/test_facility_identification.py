@@ -237,6 +237,35 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(saved_findings["pqi9"]["responses"]["10"], 3)
         self.assertEqual(saved_findings["pqi9"]["score"], 3)
 
+    def test_save_pqi10_persists_independently_from_pqi9(self):
+        assessment_id = self.insert_assessment()
+        responses = {str(index): (index % 4) + 1 for index in range(1, 11)}
+
+        response = self.client.post(
+            "/api/assessments/pqi10",
+            json={"assessment_id": assessment_id, "complete": True, "responses": responses},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        saved_findings = json.loads(saved_row[0])
+        self.assertTrue(saved_findings["pqi10"]["complete"])
+        self.assertEqual(saved_findings["pqi10"]["responses"]["1"], 2)
+        self.assertEqual(saved_findings["pqi10"]["responses"]["10"], 3)
+        self.assertNotIn("pqi9", saved_findings)
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi9-10-timed").get_data(as_text=True)
+        self.assertIn('data-pqi910-tab="pqi10"', rendered)
+        self.assertIn('const saveUrl = "/api/assessments/pqi10";', rendered)
+        self.assertIn('const initialSavedScores = {', rendered)
+        self.assertIn('id="pqi10-complete-card"', rendered)
+
     def test_save_pqi9_persists_and_reloads_trial_notes(self):
         assessment_id = self.insert_assessment()
         responses = {str(index): (index % 4) + 1 for index in range(1, 11)}

@@ -6,7 +6,8 @@
 		</div>
 	</div>
 
-	<div class="tabs pqi910-tabs"><button class="active" type="button">PQI 9 · Attention</button><button type="button">PQI 10 · Warmth</button></div>
+	<div class="tabs pqi910-tabs"><button class="active" type="button" data-pqi910-tab="pqi9">PQI 9 · Attention</button><button type="button" data-pqi910-tab="pqi10">PQI 10 · Warmth</button></div>
+	<div id="pqi9-panel">
 	<div class="pqi-complete-card" id="pqi910-complete-card" role="status" aria-live="polite"{% if not pqi910_complete %} hidden{% endif %}>
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 9 marked as complete</span>
@@ -42,6 +43,35 @@
 	</div>
 	<div class="sticky-actions pqi910-actions"><button id="pqi910-back-button" class="button secondary" type="button">Back to PQI list</button><div><span class="save-indicator" id="pqi910-save-state">0 of {{ pqi910_observation_count }} complete</span><button id="pqi910-draft-save-button" class="button secondary" type="button">Save draft</button><button id="pqi910-complete-button" class="button primary" type="button">Complete PQI 9</button></div></div>
 	<div class="pqi910-stamp">Prototype - Demonstration Data</div>
+</div>
+
+<div id="pqi10-panel" hidden>
+	<div class="pqi-complete-card" id="pqi10-complete-card" role="status" aria-live="polite"{% if not pqi10_complete %} hidden{% endif %}>
+		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+		<span>PQI 10 marked as complete</span>
+	</div>
+	{% if not pqi10_complete %}<div class="alert info pqi2-summary-card" id="pqi10-summary-card" role="status" aria-live="polite">
+		<div class="alert-icon">i</div>
+		<div><strong>PQI 10 Progress</strong><span id="pqi10-summary-text">0 of {{ pqi10_observation_count }} complete</span></div>
+	</div>{% endif %}
+	<div class="pqi910-layout">
+		<section class="card">
+			<div class="card-head pqi910-card-head">
+				<div>
+					<h2>{{ pqi10_observation_count }} timed observations</h2>
+					<p>Complete {{ pqi10_observation_count }} {{ (pqi10_duration_seconds // 60) }}-minute observations and assign a Likert score from {{ pqi10_likert_scores[0] }} to {{ pqi10_likert_scores[-1] }}. For PQI 10, observe whether educators respond warmly, show genuine interest, use encouraging facial expressions and tone, and acknowledge children's feelings and ideas. Please use the following scale to assess your recordings: Likert Scale (1-4) where 1 = Never/Not at All; 2 = Somewhat/Few Instances; 3 = Quite a Bit/Many Instances; 4 = Very Much/Consistently.</p>
+				</div>
+				<div class="pqi910-timer"><span id="pqi10-observation-label">Observation 01</span><strong id="pqi10-timer-display" aria-live="polite">02:00</strong><button id="pqi10-pause-button" type="button">Start</button><button id="pqi10-reset-button" type="button">Reset</button></div>
+			</div>
+			<div class="pqi910-table-wrap"><table class="observation-table"><thead><tr><th>Sequence</th><th>Duration</th><th>Likert score</th><th>Notes</th><th>Status</th></tr></thead><tbody>
+				{% for observation_number in range(1, pqi10_observation_count + 1) %}<tr data-pqi10-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi10_duration_seconds // 60, pqi10_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for PQI 10 observation {{ observation_number }}">{% for score in pqi10_likert_scores %}<button type="button" data-pqi10-score="{{ score }}" aria-pressed="false">{{ score }}</button>{% endfor %}</div></td><td><input class="input pqi10-notes" type="text" aria-label="Notes for PQI 10 observation {{ observation_number }}" placeholder="Add note"></td><td><span class="chip warning" data-pqi10-status>Pending</span></td></tr>{% endfor %}
+			</tbody></table></div>
+		</section>
+		<aside class="side-stack"><div class="card average-card"><span>Average preview</span><strong id="pqi10-average-preview">--</strong><div class="rounding"><span>Configured rounding</span><b>Nearest whole number</b></div><div class="final-score"><span>Provisional score</span><strong id="pqi10-provisional-score">--</strong></div><p>Final score is calculated only after all observations are complete.</p></div><div class="card"><h3>Observation guidance</h3><ul class="checklist"><li>Use the same duration for each observation</li><li>Add notes for unusual conditions</li><li>Do not identify individual children</li></ul></div></aside>
+	</div>
+	<div class="sticky-actions pqi910-actions"><button id="pqi10-back-button" class="button secondary" type="button">Back to PQI list</button><div><span class="save-indicator" id="pqi10-save-state">0 of {{ pqi10_observation_count }} complete</span><button id="pqi10-draft-save-button" class="button secondary" type="button">Save draft</button><button id="pqi10-complete-button" class="button primary" type="button">Complete PQI 10</button></div></div>
+	<div class="pqi910-stamp">Prototype - Demonstration Data</div>
+</div>
 </div>
 
 <script>
@@ -257,5 +287,93 @@
 	});
 
 	renderTimer();
+})();
+</script>
+
+<script>
+(() => {
+	const panel = document.getElementById('pqi10-panel');
+	const assessmentId = {{ editing_assessment_id | tojson }};
+	const saveUrl = "{{ pqi10_save_url }}";
+	const initialSavedScores = {{ pqi10_saved_scores | tojson }};
+	const initialSavedNotes = {{ pqi10_saved_notes | tojson }};
+	let completeFlag = {{ pqi10_complete | tojson }};
+	const observationRows = Array.from(document.querySelectorAll('[data-pqi10-observation]'));
+	const timerDisplay = document.getElementById('pqi10-timer-display');
+	const pauseButton = document.getElementById('pqi10-pause-button');
+	const resetButton = document.getElementById('pqi10-reset-button');
+	const summaryText = document.getElementById('pqi10-summary-text');
+	const summaryCard = document.getElementById('pqi10-summary-card');
+	const completionCard = document.getElementById('pqi10-complete-card');
+	const saveState = document.getElementById('pqi10-save-state');
+	const completeButton = document.getElementById('pqi10-complete-button');
+	const draftButton = document.getElementById('pqi10-draft-save-button');
+	const averagePreview = document.getElementById('pqi10-average-preview');
+	const provisionalScore = document.getElementById('pqi10-provisional-score');
+	const initialSeconds = {{ pqi10_duration_seconds }};
+	let remainingSeconds = initialSeconds;
+	let timerId = null;
+
+	if (!panel || !timerDisplay || !pauseButton || !resetButton || !summaryText || !saveState) return;
+	const getSnapshot = () => Object.fromEntries(observationRows.map((row, index) => {
+		const selected = row.querySelector('[data-pqi10-score].selected');
+		return [String(index + 1), selected ? Number(selected.dataset.pqi10Score) : null];
+	}));
+	const isComplete = () => Object.values(getSnapshot()).every((value) => value !== null);
+	const update = () => {
+		const selectedScores = observationRows.map((row) => row.querySelector('[data-pqi10-score].selected')).filter(Boolean).map((button) => Number(button.dataset.pqi10Score));
+		const completedCount = selectedScores.length;
+		summaryText.textContent = `${completedCount} of ${observationRows.length} complete`;
+		saveState.textContent = `${completedCount} of ${observationRows.length} complete`;
+		averagePreview.textContent = completedCount ? (selectedScores.reduce((sum, score) => sum + score, 0) / completedCount).toFixed(2) : '--';
+		provisionalScore.textContent = completedCount ? Math.round(selectedScores.reduce((sum, score) => sum + score, 0) / completedCount).toString() : '--';
+		const next = observationRows.findIndex((row) => !row.querySelector('[data-pqi10-score].selected')) + 1;
+		document.getElementById('pqi10-observation-label').textContent = `Observation ${(next || observationRows.length).toString().padStart(2, '0')}`;
+		if (completeButton) completeButton.disabled = completeFlag || !isComplete();
+		if (completionCard) completionCard.hidden = !completeFlag;
+		if (summaryCard) summaryCard.hidden = completeFlag;
+	};
+	observationRows.forEach((row, index) => {
+		row.querySelectorAll('[data-pqi10-score]').forEach((button) => button.addEventListener('click', () => {
+			row.querySelectorAll('[data-pqi10-score]').forEach((candidate) => { const selected = candidate === button; candidate.classList.toggle('selected', selected); candidate.setAttribute('aria-pressed', String(selected)); });
+			const status = row.querySelector('[data-pqi10-status]'); status.className = 'chip success'; status.textContent = 'Complete'; update();
+		}));
+		const savedScore = initialSavedScores[String(index + 1)];
+		if (savedScore !== undefined) row.querySelector(`[data-pqi10-score="${savedScore}"]`)?.click();
+		const notesInput = row.querySelector('.pqi10-notes'); if (notesInput) notesInput.value = initialSavedNotes[String(index + 1)] || '';
+	});
+	const persist = async (button) => {
+		const completeAction = button === completeButton;
+		button.disabled = true;
+		try {
+			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assessment_id: assessmentId, responses: getSnapshot(), notes: Object.fromEntries(observationRows.map((row, index) => [String(index + 1), row.querySelector('.pqi10-notes')?.value || ''])), complete: completeAction }) });
+			const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.message || 'Unable to save PQI 10');
+			completeFlag = completeAction; saveState.textContent = completeAction ? 'PQI 10 marked as complete' : 'Draft saved'; update();
+		} catch (error) { saveState.textContent = error.message || 'Unable to save PQI 10'; } finally { if (!completeAction) button.disabled = false; }
+	};
+	if (draftButton) draftButton.addEventListener('click', () => persist(draftButton));
+	if (completeButton) completeButton.addEventListener('click', () => persist(completeButton));
+	const formatTime = (seconds) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+	const stopTimer = () => { if (timerId !== null) { window.clearInterval(timerId); timerId = null; } };
+	const startTimer = () => { stopTimer(); timerId = window.setInterval(() => { if (remainingSeconds <= 0) { stopTimer(); pauseButton.textContent = 'Resume'; return; } remainingSeconds -= 1; timerDisplay.textContent = formatTime(remainingSeconds); }, 1000); pauseButton.textContent = 'Pause'; };
+	const renderTimer = () => { timerDisplay.textContent = formatTime(remainingSeconds); };
+	pauseButton.addEventListener('click', () => { if (timerId === null) startTimer(); else { stopTimer(); pauseButton.textContent = 'Resume'; } });
+	resetButton.addEventListener('click', () => { stopTimer(); remainingSeconds = initialSeconds; renderTimer(); pauseButton.textContent = 'Start'; });
+	const backButton = document.getElementById('pqi10-back-button'); if (backButton) backButton.addEventListener('click', () => { window.location.href = '/screens/pqi-findings-entry'; });
+	update(); renderTimer();
+})();
+</script>
+
+<script>
+(() => {
+	const tabs = Array.from(document.querySelectorAll('[data-pqi910-tab]'));
+	const pqi9Panel = document.getElementById('pqi9-panel');
+	const pqi10Panel = document.getElementById('pqi10-panel');
+	tabs.forEach((tab) => tab.addEventListener('click', () => {
+		const showPqi10 = tab.dataset.pqi910Tab === 'pqi10';
+		tabs.forEach((candidate) => candidate.classList.toggle('active', candidate === tab));
+		if (pqi9Panel) pqi9Panel.hidden = showPqi10;
+		if (pqi10Panel) pqi10Panel.hidden = !showPqi10;
+	}));
 })();
 </script>
