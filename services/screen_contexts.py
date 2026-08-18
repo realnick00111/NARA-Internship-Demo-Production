@@ -623,6 +623,22 @@ def build_pqi1_context() -> dict:
     pqi5_score_label = f"Score {pqi5_score}" if pqi5_score is not None else f"{pqi5_completed_count} of {pqi5_question_count} answered"
 
     pqi3_context = build_pqi3_context()
+    pqi_allowed = build_pqi_access_context(assessment_row)["pqi_allowed"]
+    pqi_progress_units = {
+        "1": (sum(value != "" for value in pqi1_form.values()), 2),
+        "2": (pqi2_completed_count, pqi2_question_count),
+        "3": (pqi3_context["pqi3_completed_count"], PQI3_RECORD_COUNT),
+        "4": (pqi4_completed_count, pqi4_question_count),
+        "5": (pqi5_completed_count, pqi5_question_count),
+        "6": (int(any(card["number"] == 6 and card["status"] == "complete" for card in pqi68_cards)), 1),
+        "7": (int(any(card["number"] == 7 and card["status"] == "complete" for card in pqi68_cards)), 1),
+        "8": (int(any(card["number"] == 8 and card["status"] == "complete" for card in pqi68_cards)), 1),
+        "9": (next(card["completed_count"] for card in pqi910_cards if card["number"] == 9), PQI9_OBSERVATION_COUNT),
+        "10": (next(card["completed_count"] for card in pqi910_cards if card["number"] == 10), PQI10_OBSERVATION_COUNT),
+    }
+    pqi_progress_numerator = sum(completed for number, (completed, _) in pqi_progress_units.items() if pqi_allowed[number])
+    pqi_progress_denominator = sum(total for number, (_, total) in pqi_progress_units.items() if pqi_allowed[number])
+    pqi_progress_percentage = round_percentage_half_up((pqi_progress_numerator / pqi_progress_denominator) * 100) if pqi_progress_denominator else 0
 
     return {
         "assessment_code": assessment_code,
@@ -676,6 +692,10 @@ def build_pqi1_context() -> dict:
         "pqi910_cards": pqi910_cards,
         "pqi910_complete_count": pqi910_complete_count,
         "pqi910_complete": pqi910_complete_count == len(pqi910_cards),
+        "pqi_progress_numerator": pqi_progress_numerator,
+        "pqi_progress_denominator": pqi_progress_denominator,
+        "pqi_progress_percentage": pqi_progress_percentage,
+        "pqi_progress_units": pqi_progress_units,
         **pqi3_context,
     }
 

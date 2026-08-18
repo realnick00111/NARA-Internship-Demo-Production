@@ -202,15 +202,15 @@
 		<strong>Program Quality Indicators</strong>
 		<small>Ten indicators scored using percentage, point, hierarchical, or timed-observation methods.</small>
 	</div>
-	<div><span class="chip warning">28 of 44 complete</span></div>
+	<div><span class="chip warning" id="pqi-progress-summary">{{ pqi_progress_numerator }} of {{ pqi_progress_denominator }} complete</span></div>
 </div>
 
 <div class="pqi-layout">
 	<aside class="pqi-nav">
 		<div class="pqi-progress">
 			<b>PQI progress</b>
-			<span>64%</span>
-			<div class="bar"><i style="width:64%"></i></div>
+			<span id="pqi-progress-percentage">{{ pqi_progress_percentage }}%</span>
+			<div class="bar"><i id="pqi-progress-bar" style="width:{{ pqi_progress_percentage }}%"></i></div>
 		</div>
 		<a class="pqi-item{% if pqi1_complete %} complete{% endif %} active" href="#pqi-1" data-pqi-target="pqi-1" aria-current="page"><span>1</span><div><b>ECE III Educators</b><small>{{ pqi1_score_label }}</small></div></a>
 		<a class="pqi-item{% if pqi2_complete %} complete{% endif %}" href="#pqi-2" data-pqi-target="pqi-2"><span>2</span><div><b>Stimulating Environment</b><small>{{ pqi2_score_label }}</small></div></a>
@@ -411,8 +411,13 @@
 (() => {
 	const defaultTarget = 'pqi-1';
 	const pqiAllowed = {{ pqi_allowed | tojson }};
+	const pqiProgressUnits = {{ pqi_progress_units | tojson }};
 	const navItems = Array.from(document.querySelectorAll('#pqi-findings-entry [data-pqi-target]'));
 	const panels = Array.from(document.querySelectorAll('#pqi-findings-entry [data-pqi-panel]'));
+	const findingsEntry = document.getElementById('pqi-findings-entry');
+	const progressSummary = document.getElementById('pqi-progress-summary');
+	const progressPercentage = document.getElementById('pqi-progress-percentage');
+	const progressBar = document.getElementById('pqi-progress-bar');
 	const lockedControls = (number) => Array.from(document.querySelectorAll(`#pqi-findings-entry [data-pqi-number="${number}"] input, #pqi-findings-entry [data-pqi-number="${number}"] textarea, #pqi-findings-entry [data-pqi-number="${number}"] button`));
 	Object.entries(pqiAllowed).forEach(([number, isAllowed]) => {
 		if (isAllowed) return;
@@ -431,6 +436,28 @@
 			statusNode.textContent = statusText;
 		}
 	};
+
+	const isAnswered = (value) => value === 'yes' || value === 'no';
+	const countAnsweredRows = (selector, attribute) => Array.from(document.querySelectorAll(selector)).filter((row) => isAnswered(row.getAttribute(attribute))).length;
+	const getLiveProgressUnits = () => ({
+		...pqiProgressUnits,
+		'1': [Array.from(document.querySelectorAll('#pqi1-card input[type="number"]')).filter((input) => input.value.trim() !== '').length, pqiProgressUnits['1'][1]],
+		'2': [countAnsweredRows('[data-pqi2-question-id]', 'data-pqi2-response'), pqiProgressUnits['2'][1]],
+		'4': [countAnsweredRows('[data-pqi4-question-id]', 'data-pqi4-response'), pqiProgressUnits['4'][1]],
+		'5': [countAnsweredRows('[data-pqi5-question-id]', 'data-pqi5-response'), pqiProgressUnits['5'][1]],
+	});
+	const syncPqiProgress = () => {
+		const units = getLiveProgressUnits();
+		const numerator = Object.entries(units).reduce((total, [number, [completed]]) => total + (pqiAllowed[number] ? completed : 0), 0);
+		const denominator = Object.entries(units).reduce((total, [number, [, capacity]]) => total + (pqiAllowed[number] ? capacity : 0), 0);
+		const percentage = denominator ? Math.floor((numerator / denominator) * 100 + 0.5) : 0;
+		if (progressSummary) progressSummary.textContent = `${numerator} of ${denominator} complete`;
+		if (progressPercentage) progressPercentage.textContent = `${percentage}%`;
+		if (progressBar) progressBar.style.width = `${percentage}%`;
+	};
+	findingsEntry?.addEventListener('input', syncPqiProgress);
+	findingsEntry?.addEventListener('click', syncPqiProgress);
+	syncPqiProgress();
 
 	if (!navItems.length || !panels.length) {
 		return;

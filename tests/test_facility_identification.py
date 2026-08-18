@@ -397,6 +397,64 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="pqi5-save-button"', rendered)
         self.assertIn('qualifying conferences with families at least twice yearly.', rendered)
 
+    def test_pqi_findings_entry_progress_counts_input_units(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+
+        self.assertIn("0 of 52 complete", rendered)
+        self.assertIn('<span id="pqi-progress-percentage">0%</span>', rendered)
+        self.assertIn('style="width:0%"', rendered)
+
+    def test_pqi_findings_entry_progress_sums_fields_records_and_completions(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi1": {"certified_teaching_staff": 1, "total_teaching_staff": 2},
+                    "pqi2": {"responses": {"2.1": "yes", "2.2": "no"}},
+                    "pqi3": {"records": {"record 1": {"emergent_curriculum": "yes", "co_learning": "yes", "documented_learning_future_planning": "yes"}}},
+                    "pqi4": {"responses": {"4.1": "yes"}},
+                    "pqi5": {"responses": {"5.1": "yes"}},
+                    "pqi6": {"complete": True},
+                    "pqi8": {"complete": True},
+                    "pqi9": {"responses": {"1": 1, "2": 2}},
+                    "pqi10": {"responses": {"1": 3}},
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+
+        self.assertIn("12 of 52 complete", rendered)
+        self.assertIn('<span id="pqi-progress-percentage">23%</span>', rendered)
+
+    def test_pqi_findings_entry_progress_excludes_deactivated_pqi(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute("UPDATE facilities SET type = ? WHERE identifier = ?", ("Preschool", "FAC-008742"))
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (json.dumps({"pqi7": {"complete": True}}), assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+
+        self.assertIn("0 of 51 complete", rendered)
+        self.assertIn('<span id="pqi-progress-percentage">0%</span>', rendered)
+
     def test_pqi_completion_cards_follow_saved_db_flags(self):
         assessment_id = self.insert_assessment()
         self.conn.execute(
