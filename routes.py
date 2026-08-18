@@ -574,20 +574,29 @@ def register_routes(app: Flask) -> None:
         if not isinstance(raw_responses, dict):
             return jsonify({"status": "error", "message": "responses must be an object"}), 400
 
+        raw_notes = payload.get("notes", {})
+        if not isinstance(raw_notes, dict):
+            return jsonify({"status": "error", "message": "notes must be an object"}), 400
+
         normalized_responses: dict[str, int] = {}
+        normalized_notes: dict[str, str] = {}
         for observation_number in range(1, 11):
             raw_value = raw_responses.get(str(observation_number), raw_responses.get(observation_number))
             if raw_value in (None, ""):
-                continue
-            try:
-                score = int(raw_value)
-            except (TypeError, ValueError):
-                return jsonify({"status": "error", "message": "PQI 9 observation scores must be integers between 1 and 4"}), 400
+                pass
+            else:
+                try:
+                    score = int(raw_value)
+                except (TypeError, ValueError):
+                    return jsonify({"status": "error", "message": "PQI 9 observation scores must be integers between 1 and 4"}), 400
 
-            if score not in (1, 2, 3, 4):
-                return jsonify({"status": "error", "message": "PQI 9 observation scores must be between 1 and 4"}), 400
+                if score not in (1, 2, 3, 4):
+                    return jsonify({"status": "error", "message": "PQI 9 observation scores must be between 1 and 4"}), 400
 
-            normalized_responses[str(observation_number)] = score
+                normalized_responses[str(observation_number)] = score
+
+            raw_note = raw_notes.get(str(observation_number), raw_notes.get(observation_number, ""))
+            normalized_notes[str(observation_number)] = str(raw_note or "").strip()
 
         complete_flag = bool(payload.get("complete", False))
         if complete_flag and len(normalized_responses) != 10:
@@ -604,6 +613,7 @@ def register_routes(app: Flask) -> None:
                         "complete": complete_flag,
                         "score": average_score,
                         "responses": normalized_responses,
+                        "notes": normalized_notes,
                     }
                 },
             )

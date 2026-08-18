@@ -11,10 +11,10 @@
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 9 marked as complete</span>
 	</div>
-	<div class="alert info pqi2-summary-card" id="pqi910-summary-card" role="status" aria-live="polite"{% if pqi910_complete %} hidden{% endif %}>
+	{% if not pqi910_complete %}<div class="alert info pqi2-summary-card" id="pqi910-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div><strong>Trials Completed</strong><span id="pqi910-summary-text">0 of {{ pqi910_observation_count }} complete</span></div>
-	</div>
+	</div>{% endif %}
 	<div class="pqi910-layout">
 		<section class="card">
 			<div class="card-head pqi910-card-head">
@@ -29,7 +29,7 @@
 					<thead><tr><th>Sequence</th><th>Duration</th><th>Likert score</th><th>Notes</th><th>Status</th></tr></thead>
 					<tbody>
 						{% for observation_number in range(1, pqi910_observation_count + 1) %}
-						<tr data-pqi910-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi910_duration_seconds // 60, pqi910_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for observation {{ observation_number }}">{% for score in pqi910_likert_scores %}<button type="button" data-pqi910-score="{{ score }}" aria-pressed="false">{{ score }}</button>{% endfor %}</div></td><td><button class="iconbtn" type="button">Add note</button></td><td><span class="chip warning" data-pqi910-status>Pending</span></td></tr>
+						<tr data-pqi910-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi910_duration_seconds // 60, pqi910_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for observation {{ observation_number }}">{% for score in pqi910_likert_scores %}<button type="button" data-pqi910-score="{{ score }}" aria-pressed="false">{{ score }}</button>{% endfor %}</div></td><td><input class="input pqi910-notes" type="text" aria-label="Notes for observation {{ observation_number }}" placeholder="Add note"></td><td><span class="chip warning" data-pqi910-status>Pending</span></td></tr>
 						{% endfor %}
 					</tbody>
 				</table>
@@ -49,6 +49,7 @@
 	const assessmentId = {{ editing_assessment_id | tojson }};
 	const saveUrl = "{{ pqi910_save_url }}";
 	const initialSavedScores = {{ pqi910_saved_scores | tojson }};
+	const initialSavedNotes = {{ pqi910_saved_notes | tojson }};
 	let completeFlag = {{ pqi910_complete | tojson }};
 	const timerDisplay = document.getElementById('pqi910-timer-display');
 	const observationLabel = document.getElementById('pqi910-observation-label');
@@ -81,6 +82,8 @@
 		});
 		return snapshot;
 	};
+
+	const getCurrentNotes = () => Object.fromEntries(observationRows.map((row, index) => [String(index + 1), row.querySelector('.pqi910-notes')?.value || '']));
 
 	const isObservationSetComplete = () => Object.values(getCurrentSnapshot()).every((value) => value !== null && value !== undefined);
 
@@ -145,6 +148,8 @@
 		});
 		const savedScore = initialSavedScores[String(index + 1)];
 		const selectedButton = savedScore !== undefined && savedScore !== null ? row.querySelector(`[data-pqi910-score="${savedScore}"]`) : null;
+		const notesInput = row.querySelector('.pqi910-notes');
+		if (notesInput) notesInput.value = initialSavedNotes[String(index + 1)] || '';
 		updateObservationState(row, selectedButton);
 	});
 
@@ -166,6 +171,7 @@
 		const isCompleteAction = button === completeButton;
 		const payload = {
 			responses: snapshot,
+			notes: getCurrentNotes(),
 			complete: isCompleteAction,
 		};
 		if (assessmentId !== null) payload.assessment_id = assessmentId;

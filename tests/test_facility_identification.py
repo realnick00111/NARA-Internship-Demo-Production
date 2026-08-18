@@ -237,6 +237,34 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(saved_findings["pqi9"]["responses"]["10"], 3)
         self.assertEqual(saved_findings["pqi9"]["score"], 3)
 
+    def test_save_pqi9_persists_and_reloads_trial_notes(self):
+        assessment_id = self.insert_assessment()
+        responses = {str(index): (index % 4) + 1 for index in range(1, 11)}
+        notes = {str(index): f"Trial note {index}" for index in range(1, 11)}
+
+        response = self.client.post(
+            "/api/assessments/pqi9",
+            json={"assessment_id": assessment_id, "responses": responses, "notes": notes},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        saved_findings = json.loads(saved_row[0])
+        self.assertEqual(saved_findings["pqi9"]["notes"]["1"], "Trial note 1")
+        self.assertEqual(saved_findings["pqi9"]["notes"]["10"], "Trial note 10")
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi9-10-timed").get_data(as_text=True)
+        self.assertIn('const initialSavedNotes = {', rendered)
+        self.assertIn('"1": "Trial note 1"', rendered)
+        self.assertIn('"10": "Trial note 10"', rendered)
+        self.assertIn('class="input pqi910-notes"', rendered)
+
     def test_pqi9_screen_loads_saved_scores_from_db(self):
         assessment_id = self.insert_assessment()
         self.conn.execute(
@@ -290,7 +318,7 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="pqi910-complete-card"', rendered)
         self.assertIn('PQI 9 marked as complete', rendered)
-        self.assertNotIn('Trials Completed', rendered)
+        self.assertFalse('Trials Completed' in rendered, 'completed page should not show the trials summary')
 
     def test_pqi3_screen_uses_single_current_layout(self):
         response = self.client.get("/screens/pqi3-sample")

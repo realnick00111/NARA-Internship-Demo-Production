@@ -12,13 +12,13 @@
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 5 marked as complete</span>
 	</div>
-	<div class="alert info pqi2-summary-card" id="pqi5-summary-card" role="status" aria-live="polite"{% if pqi5_complete %} hidden{% endif %}>
+	{% if not pqi5_complete %}<div class="alert info pqi2-summary-card" id="pqi5-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Fields completed</strong>
 			<span id="pqi5-summary-text">{{ pqi5_completed_count }} of {{ pqi5_question_count }} completed</span>
 		</div>
-	</div>
+	</div>{% endif %}
 
 	<table class="sample-table pqi5-table">
 		<thead>

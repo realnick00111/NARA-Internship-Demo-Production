@@ -199,6 +199,13 @@ def build_pqi910_context() -> dict:
         if 1 <= score <= 4:
             saved_scores[str(observation_number)] = score
 
+    raw_notes = pqi9_entry.get("notes", {})
+    raw_notes = raw_notes if isinstance(raw_notes, dict) else {}
+    saved_notes = {
+        str(observation_number): str(raw_notes.get(str(observation_number), raw_notes.get(observation_number, "")) or "").strip()
+        for observation_number in range(1, 11)
+    }
+
     return {
         "assessment_label": assessment_label,
         "editing_assessment_id": assessment_id,
@@ -206,6 +213,7 @@ def build_pqi910_context() -> dict:
         "pqi910_duration_seconds": 120,
         "pqi910_likert_scores": tuple(range(1, 5)),
         "pqi910_saved_scores": saved_scores,
+        "pqi910_saved_notes": saved_notes,
         "pqi910_complete": bool(pqi9_entry.get("complete", False)),
         "pqi910_save_url": url_for("save_pqi9"),
         "pqi910_back_href": url_for("screen", screen_id="pqi-findings-entry"),
