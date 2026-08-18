@@ -8,11 +8,12 @@
 
 	<div class="tabs pqi910-tabs"><button class="active" type="button" data-pqi910-tab="pqi9">PQI 9 · Attention</button><button type="button" data-pqi910-tab="pqi10">PQI 10 · Warmth</button></div>
 	<div id="pqi9-panel">
+	{% if not pqi_allowed['9'] %}<div class="alert danger pqi-disabled-alert" role="alert"><div class="alert-icon">!</div><div><strong>PQI 9 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div></div>{% endif %}
 	<div class="pqi-complete-card" id="pqi910-complete-card" role="status" aria-live="polite"{% if not pqi910_complete %} hidden{% endif %}>
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 9 marked as complete</span>
 	</div>
-	{% if not pqi910_complete %}<div class="alert info pqi2-summary-card" id="pqi910-summary-card" role="status" aria-live="polite">
+	{% if pqi_allowed['9'] and not pqi910_complete %}<div class="alert info pqi2-summary-card" id="pqi910-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div><strong>Trials Completed</strong><span id="pqi910-summary-text">0 of {{ pqi910_observation_count }} complete</span></div>
 	</div>{% endif %}
@@ -23,14 +24,14 @@
 					<h2>{{ pqi910_observation_count }} timed observations</h2>
 					<p>Complete {{ pqi910_observation_count }} {{ (pqi910_duration_seconds // 60) }}-minute observations and assign a Likert score from {{ pqi910_likert_scores[0] }} to {{ pqi910_likert_scores[-1] }}. For PQI 9, observe whether educators look directly at children, use nods and rephrasing, make eye contact, and remain fully attentive without looking away or being distracted by others. Please use the following scale to assess your recordings: Likert Scale (1-4) where 1 = Never/Not at All; 2 = Somewhat/Few Instances; 3 = Quite a Bit/Many Instances; 4 = Very Much/Consistently.</p>
 				</div>
-				<div class="pqi910-timer"><span id="pqi910-observation-label">Observation 01</span><strong id="pqi910-timer-display" aria-live="polite">02:00</strong><button id="pqi910-pause-button" type="button">Start</button><button id="pqi910-reset-button" type="button">Reset</button></div>
+				<div class="pqi910-timer"><span id="pqi910-observation-label">Observation 01</span><strong id="pqi910-timer-display" aria-live="polite">02:00</strong><button id="pqi910-pause-button" type="button"{% if not pqi_allowed['9'] %} disabled aria-disabled="true"{% endif %}>Start</button><button id="pqi910-reset-button" type="button"{% if not pqi_allowed['9'] %} disabled aria-disabled="true"{% endif %}>Reset</button></div>
 			</div>
 			<div class="pqi910-table-wrap">
 				<table class="observation-table">
 					<thead><tr><th>Sequence</th><th>Duration</th><th>Likert score</th><th>Notes</th><th>Status</th></tr></thead>
 					<tbody>
 						{% for observation_number in range(1, pqi910_observation_count + 1) %}
-						<tr data-pqi910-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi910_duration_seconds // 60, pqi910_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for observation {{ observation_number }}">{% for score in pqi910_likert_scores %}<button type="button" data-pqi910-score="{{ score }}" aria-pressed="false">{{ score }}</button>{% endfor %}</div></td><td><input class="input pqi910-notes" type="text" aria-label="Notes for observation {{ observation_number }}" placeholder="Add note"></td><td><span class="chip warning" data-pqi910-status>Pending</span></td></tr>
+						<tr data-pqi910-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi910_duration_seconds // 60, pqi910_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for observation {{ observation_number }}">{% for score in pqi910_likert_scores %}<button type="button" data-pqi910-score="{{ score }}" aria-pressed="false"{% if not pqi_allowed['9'] %} disabled aria-disabled="true"{% endif %}>{{ score }}</button>{% endfor %}</div></td><td><input class="input pqi910-notes" type="text" aria-label="Notes for observation {{ observation_number }}" placeholder="Add note"{% if not pqi_allowed['9'] %} disabled aria-disabled="true"{% endif %}></td><td><span class="chip warning" data-pqi910-status>Pending</span></td></tr>
 						{% endfor %}
 					</tbody>
 				</table>
@@ -41,18 +42,19 @@
 			<div class="card"><h3>Observation guidance</h3><ul class="checklist"><li>Use the same duration for each observation</li><li>Add notes for unusual conditions</li><li>Do not identify individual children</li></ul></div>
 		</aside>
 	</div>
-	<div class="sticky-actions pqi910-actions"><button id="pqi910-back-button" class="button secondary" type="button">Back to PQI list</button><div><span class="save-indicator" id="pqi910-save-state">0 of {{ pqi910_observation_count }} complete</span><button id="pqi910-draft-save-button" class="button secondary" type="button">Save draft</button><button id="pqi910-complete-button" class="button primary" type="button">Complete PQI 9</button></div></div>
+	<div class="sticky-actions pqi910-actions"><button id="pqi910-back-button" class="button secondary" type="button" onclick="window.location.href='{{ pqi910_back_href }}'">Back to PQI list</button><div><span class="save-indicator" id="pqi910-save-state">0 of {{ pqi910_observation_count }} complete</span><button id="pqi910-draft-save-button" class="button secondary" type="button"{% if not pqi_allowed['9'] %} disabled aria-disabled="true"{% endif %}>Save draft</button><button id="pqi910-complete-button" class="button primary" type="button"{% if not pqi_allowed['9'] %} disabled aria-disabled="true"{% endif %}>Complete PQI 9</button></div></div>
 	<div class="pqi910-stamp">Prototype - Demonstration Data</div>
 </div>
 
 <div id="pqi10-panel" hidden>
+	{% if not pqi_allowed['10'] %}<div class="alert danger pqi-disabled-alert" role="alert"><div class="alert-icon">!</div><div><strong>PQI 10 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div></div>{% endif %}
 	<div class="pqi-complete-card" id="pqi10-complete-card" role="status" aria-live="polite"{% if not pqi10_complete %} hidden{% endif %}>
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 10 marked as complete</span>
 	</div>
-	{% if not pqi10_complete %}<div class="alert info pqi2-summary-card" id="pqi10-summary-card" role="status" aria-live="polite">
+	{% if pqi_allowed['10'] and not pqi10_complete %}<div class="alert info pqi2-summary-card" id="pqi10-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
-		<div><strong>PQI 10 Progress</strong><span id="pqi10-summary-text">0 of {{ pqi10_observation_count }} complete</span></div>
+		<div><strong>Observations complete</strong><span id="pqi10-summary-text">0 of {{ pqi10_observation_count }} complete</span></div>
 	</div>{% endif %}
 	<div class="pqi910-layout">
 		<section class="card">
@@ -61,15 +63,15 @@
 					<h2>{{ pqi10_observation_count }} timed observations</h2>
 					<p>Complete {{ pqi10_observation_count }} {{ (pqi10_duration_seconds // 60) }}-minute observations and assign a Likert score from {{ pqi10_likert_scores[0] }} to {{ pqi10_likert_scores[-1] }}. For PQI 10, observe whether educators respond warmly, show genuine interest, use encouraging facial expressions and tone, and acknowledge children's feelings and ideas. Please use the following scale to assess your recordings: Likert Scale (1-4) where 1 = Never/Not at All; 2 = Somewhat/Few Instances; 3 = Quite a Bit/Many Instances; 4 = Very Much/Consistently.</p>
 				</div>
-				<div class="pqi910-timer"><span id="pqi10-observation-label">Observation 01</span><strong id="pqi10-timer-display" aria-live="polite">02:00</strong><button id="pqi10-pause-button" type="button">Start</button><button id="pqi10-reset-button" type="button">Reset</button></div>
+				<div class="pqi910-timer"><span id="pqi10-observation-label">Observation 01</span><strong id="pqi10-timer-display" aria-live="polite">02:00</strong><button id="pqi10-pause-button" type="button"{% if not pqi_allowed['10'] %} disabled aria-disabled="true"{% endif %}>Start</button><button id="pqi10-reset-button" type="button"{% if not pqi_allowed['10'] %} disabled aria-disabled="true"{% endif %}>Reset</button></div>
 			</div>
 			<div class="pqi910-table-wrap"><table class="observation-table"><thead><tr><th>Sequence</th><th>Duration</th><th>Likert score</th><th>Notes</th><th>Status</th></tr></thead><tbody>
-				{% for observation_number in range(1, pqi10_observation_count + 1) %}<tr data-pqi10-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi10_duration_seconds // 60, pqi10_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for PQI 10 observation {{ observation_number }}">{% for score in pqi10_likert_scores %}<button type="button" data-pqi10-score="{{ score }}" aria-pressed="false">{{ score }}</button>{% endfor %}</div></td><td><input class="input pqi10-notes" type="text" aria-label="Notes for PQI 10 observation {{ observation_number }}" placeholder="Add note"></td><td><span class="chip warning" data-pqi10-status>Pending</span></td></tr>{% endfor %}
+				{% for observation_number in range(1, pqi10_observation_count + 1) %}<tr data-pqi10-observation><td><strong>{{ '%02d'|format(observation_number) }}</strong></td><td>{{ '%02d:%02d'|format(pqi10_duration_seconds // 60, pqi10_duration_seconds % 60) }}</td><td><div class="likert" role="group" aria-label="Likert score for PQI 10 observation {{ observation_number }}">{% for score in pqi10_likert_scores %}<button type="button" data-pqi10-score="{{ score }}" aria-pressed="false"{% if not pqi_allowed['10'] %} disabled aria-disabled="true"{% endif %}>{{ score }}</button>{% endfor %}</div></td><td><input class="input pqi10-notes" type="text" aria-label="Notes for PQI 10 observation {{ observation_number }}" placeholder="Add note"{% if not pqi_allowed['10'] %} disabled aria-disabled="true"{% endif %}></td><td><span class="chip warning" data-pqi10-status>Pending</span></td></tr>{% endfor %}
 			</tbody></table></div>
 		</section>
 		<aside class="side-stack"><div class="card average-card"><span>Average preview</span><strong id="pqi10-average-preview">--</strong><div class="rounding"><span>Configured rounding</span><b>Nearest whole number</b></div><div class="final-score"><span>Provisional score</span><strong id="pqi10-provisional-score">--</strong></div><p>Final score is calculated only after all observations are complete.</p></div><div class="card"><h3>Observation guidance</h3><ul class="checklist"><li>Use the same duration for each observation</li><li>Add notes for unusual conditions</li><li>Do not identify individual children</li></ul></div></aside>
 	</div>
-	<div class="sticky-actions pqi910-actions"><button id="pqi10-back-button" class="button secondary" type="button">Back to PQI list</button><div><span class="save-indicator" id="pqi10-save-state">0 of {{ pqi10_observation_count }} complete</span><button id="pqi10-draft-save-button" class="button secondary" type="button">Save draft</button><button id="pqi10-complete-button" class="button primary" type="button">Complete PQI 10</button></div></div>
+	<div class="sticky-actions pqi910-actions"><button id="pqi10-back-button" class="button secondary" type="button" onclick="window.location.href='{{ pqi910_back_href }}'">Back to PQI list</button><div><span class="save-indicator" id="pqi10-save-state">0 of {{ pqi10_observation_count }} complete</span><button id="pqi10-draft-save-button" class="button secondary" type="button"{% if not pqi_allowed['10'] %} disabled aria-disabled="true"{% endif %}>Save draft</button><button id="pqi10-complete-button" class="button primary" type="button"{% if not pqi_allowed['10'] %} disabled aria-disabled="true"{% endif %}>Complete PQI 10</button></div></div>
 	<div class="pqi910-stamp">Prototype - Demonstration Data</div>
 </div>
 </div>
@@ -77,6 +79,7 @@
 <script>
 (() => {
 	const assessmentId = {{ editing_assessment_id | tojson }};
+	const pqi9Allowed = {{ pqi_allowed['9'] | tojson }};
 	const saveUrl = "{{ pqi910_save_url }}";
 	const initialSavedScores = {{ pqi910_saved_scores | tojson }};
 	const initialSavedNotes = {{ pqi910_saved_notes | tojson }};
@@ -100,7 +103,7 @@
 	let timerId = null;
 	let lastSavedSnapshot = JSON.stringify(Object.fromEntries(observationRows.map((row, index) => [String(index + 1), initialSavedScores[String(index + 1)] ?? null])));
 
-	if (!timerDisplay || !observationLabel || !pauseButton || !resetButton || !backButton || !summaryText || !saveState) {
+	if (!timerDisplay || !observationLabel || !pauseButton || !resetButton || !backButton || !saveState) {
 		return;
 	}
 
@@ -127,7 +130,7 @@
 
 	const updateCompletionButtonState = () => {
 		if (!completeButton) return;
-		completeButton.disabled = completeFlag || !isObservationSetComplete();
+		completeButton.disabled = !pqi9Allowed || completeFlag || !isObservationSetComplete();
 	};
 
 	const updateObservationLabel = () => {
@@ -164,7 +167,7 @@
 		status.className = `chip ${complete ? 'success' : 'warning'}`;
 		status.textContent = complete ? 'Complete' : 'Pending';
 		const completedCount = observationRows.filter((candidate) => candidate.querySelector('[data-pqi910-score].selected')).length;
-		summaryText.textContent = `${completedCount} of ${observationRows.length} complete`;
+		if (summaryText) summaryText.textContent = `${completedCount} of ${observationRows.length} complete`;
 		saveState.textContent = `${completedCount} of ${observationRows.length} complete`;
 		updateAveragePreview();
 		updateObservationLabel();
@@ -294,6 +297,7 @@
 (() => {
 	const panel = document.getElementById('pqi10-panel');
 	const assessmentId = {{ editing_assessment_id | tojson }};
+	const pqi10Allowed = {{ pqi_allowed['10'] | tojson }};
 	const saveUrl = "{{ pqi10_save_url }}";
 	const initialSavedScores = {{ pqi10_saved_scores | tojson }};
 	const initialSavedNotes = {{ pqi10_saved_notes | tojson }};
@@ -314,7 +318,7 @@
 	let remainingSeconds = initialSeconds;
 	let timerId = null;
 
-	if (!panel || !timerDisplay || !pauseButton || !resetButton || !summaryText || !saveState) return;
+	if (!panel || !timerDisplay || !pauseButton || !resetButton || !saveState) return;
 	const getSnapshot = () => Object.fromEntries(observationRows.map((row, index) => {
 		const selected = row.querySelector('[data-pqi10-score].selected');
 		return [String(index + 1), selected ? Number(selected.dataset.pqi10Score) : null];
@@ -323,13 +327,13 @@
 	const update = () => {
 		const selectedScores = observationRows.map((row) => row.querySelector('[data-pqi10-score].selected')).filter(Boolean).map((button) => Number(button.dataset.pqi10Score));
 		const completedCount = selectedScores.length;
-		summaryText.textContent = `${completedCount} of ${observationRows.length} complete`;
+		if (summaryText) summaryText.textContent = `${completedCount} of ${observationRows.length} complete`;
 		saveState.textContent = `${completedCount} of ${observationRows.length} complete`;
 		averagePreview.textContent = completedCount ? (selectedScores.reduce((sum, score) => sum + score, 0) / completedCount).toFixed(2) : '--';
 		provisionalScore.textContent = completedCount ? Math.round(selectedScores.reduce((sum, score) => sum + score, 0) / completedCount).toString() : '--';
 		const next = observationRows.findIndex((row) => !row.querySelector('[data-pqi10-score].selected')) + 1;
 		document.getElementById('pqi10-observation-label').textContent = `Observation ${(next || observationRows.length).toString().padStart(2, '0')}`;
-		if (completeButton) completeButton.disabled = completeFlag || !isComplete();
+		if (completeButton) completeButton.disabled = !pqi10Allowed || completeFlag || !isComplete();
 		if (completionCard) completionCard.hidden = !completeFlag;
 		if (summaryCard) summaryCard.hidden = completeFlag;
 	};

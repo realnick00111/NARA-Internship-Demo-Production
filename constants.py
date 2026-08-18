@@ -106,6 +106,50 @@ DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
     "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
 }
 
+NON_PQI_FIELD_REQUIREDNESS = {
+    "new-assessment": {
+        "program": True,
+        "facility_type": True,
+        "inspection_type": True,
+        "assessment_date": True,
+        "visit_date": True,
+        "external_case_number": False,
+        "external_inspection_id": False,
+        "local_record_name": False,
+    },
+    "facility-identification": {
+        "facility_name": True,
+        "facility_identifier": True,
+        "license_number": False,
+        "provider_account_id": False,
+        "program_type": True,
+        "facility_type": True,
+        "physical_address": True,
+        "city_state_postal": True,
+        "region_office": False,
+        "provider_operator_name": False,
+        "external_system": True,
+        "external_case_number": True,
+        "external_inspection_number": False,
+        "visit_date": True,
+        "assigned_primary_inspector": True,
+        "inspector_identifier": False,
+        "assessment_notes": False,
+    },
+    "ch-structural-entry": {
+        "to1": True,
+        "to2": True,
+        "ta": True,
+        "nc": True,
+        "th1": True,
+        "th2": True,
+        "density_model": True,
+        "required_ratio": True,
+        "ratio_source": True,
+        "rwch_reference": True,
+    },
+}
+
 FACILITY_TYPE_OPTIONS = ("Mixed Age", "Preschool", "Infant-Toddler")
 
 FACILITY_TYPE_PQI_MAPPING = {

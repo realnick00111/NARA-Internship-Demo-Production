@@ -222,15 +222,15 @@
 	</aside>
 
 	<section class="pqi-main">
-		<section class="pqi-panel" data-pqi-panel="pqi-1">
+		<section class="pqi-panel" data-pqi-panel="pqi-1" data-pqi-number="1">
 			{% include 'partials/pqi/_pqi1.html' %}
 		</section>
 
-		<section class="pqi-panel" data-pqi-panel="pqi-2" hidden>
+		<section class="pqi-panel" data-pqi-panel="pqi-2" data-pqi-number="2" hidden>
 			{% include 'partials/pqi/_pqi2.html' %}
 		</section>
 
-		<section class="pqi-panel" data-pqi-panel="pqi-3" hidden>
+		<section class="pqi-panel" data-pqi-panel="pqi-3" data-pqi-number="3" hidden>
 			{% set pqi3_preview = True %}
 			{% include 'partials/pqi/_pqi3.html' %}
 			<!--
@@ -325,11 +325,11 @@
 			-->
 		</section>
 
-		<div class="pqi-panel" data-pqi-panel="pqi-4" hidden>
+		<div class="pqi-panel" data-pqi-panel="pqi-4" data-pqi-number="4" hidden>
 			{% include 'partials/pqi/_pqi4.html' %}
 		</div>
 
-		<div class="pqi-panel" data-pqi-panel="pqi-5" hidden>
+		<div class="pqi-panel" data-pqi-panel="pqi-5" data-pqi-number="5" hidden>
 			{% include 'partials/pqi/_pqi5.html' %}
 		</div>
 
@@ -349,14 +349,15 @@
 				</div>
 
 				{% for card in pqi68_cards %}
-				<div class="pqi68-card status-{{ card.status }}">
+				{% set card_disabled = not pqi_allowed[card.number|string] %}
+				<div class="pqi68-card status-{{ 'disabled' if card_disabled else card.status }}">
 					<div class="pqi68-label">PQI {{ card.number }}</div>
 					<div class="pqi68-info">
 						<strong>{% if card.number == 6 %}Language &amp; Interaction{% elif card.number == 7 %}Infant Toddler Observation{% else %}Responsive Care{% endif %}</strong>
-						<small>{% if card.status == 'empty' %}No hierarchy criteria have been recorded yet.{% elif card.status == 'draft' %}Saved draft; the hierarchy is yet marked as complete.{% else %}The hierarchy has been marked complete.{% endif %}</small>
+						<small>{% if card_disabled %}This PQI is disabled for {{ facility_type }}.{% elif card.status == 'empty' %}No hierarchy criteria have been recorded yet.{% elif card.status == 'draft' %}Saved draft; the hierarchy is yet marked as complete.{% else %}The hierarchy has been marked complete.{% endif %}</small>
 					</div>
-					<span class="chip {% if card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ card.status_label }}</span>
-					<div class="pqi68-score"><span>Score</span><strong>{{ card.score }}</strong></div>
+					<span class="chip {% if card_disabled %}danger{% elif card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ 'Disabled' if card_disabled else card.status_label }}</span>
+					<div class="pqi68-score"><span>Score</span><strong>{{ 'Disabled' if card_disabled else card.score }}</strong></div>
 				</div>
 				{% endfor %}
 			</div>
@@ -384,14 +385,15 @@
 				</div>
 
 				{% for card in pqi910_cards %}
-				<div class="pqi68-card status-{{ card.status }}">
+				{% set card_disabled = not pqi_allowed[card.number|string] %}
+				<div class="pqi68-card status-{{ 'disabled' if card_disabled else card.status }}">
 					<div class="pqi68-label">PQI {{ card.number }}</div>
 					<div class="pqi68-info">
 						<strong>{% if card.number == 9 %}Attention{% else %}Warmth{% endif %}</strong>
-						<small>{{ card.completed_count }} of {{ card.observation_count }} observations complete{% if card.status == 'empty' %}; no observations have been recorded yet.{% elif card.status == 'draft' %}; saved draft is not complete.{% else %}; all observations are complete.{% endif %}</small>
+						<small>{% if card_disabled %}This PQI is disabled for {{ facility_type }}.{% else %}{{ card.completed_count }} of {{ card.observation_count }} observations complete{% if card.status == 'empty' %}; no observations have been recorded yet.{% elif card.status == 'draft' %}; saved draft is not complete.{% else %}; all observations are complete.{% endif %}{% endif %}</small>
 					</div>
-					<span class="chip {% if card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ card.status_label }}</span>
-					<div class="pqi68-score"><span>Score</span><strong>{{ card.score }}</strong></div>
+					<span class="chip {% if card_disabled %}danger{% elif card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ 'Disabled' if card_disabled else card.status_label }}</span>
+					<div class="pqi68-score"><span>Score</span><strong>{{ 'Disabled' if card_disabled else card.score }}</strong></div>
 				</div>
 				{% endfor %}
 			</div>
@@ -408,8 +410,15 @@
 <script>
 (() => {
 	const defaultTarget = 'pqi-1';
+	const pqiAllowed = {{ pqi_allowed | tojson }};
 	const navItems = Array.from(document.querySelectorAll('#pqi-findings-entry [data-pqi-target]'));
 	const panels = Array.from(document.querySelectorAll('#pqi-findings-entry [data-pqi-panel]'));
+	const lockedControls = (number) => Array.from(document.querySelectorAll(`#pqi-findings-entry [data-pqi-number="${number}"] input, #pqi-findings-entry [data-pqi-number="${number}"] textarea, #pqi-findings-entry [data-pqi-number="${number}"] button`));
+	Object.entries(pqiAllowed).forEach(([number, isAllowed]) => {
+		if (isAllowed) return;
+		lockedControls(number).forEach((control) => { control.disabled = true; control.setAttribute('aria-disabled', 'true'); });
+		document.querySelector(`#pqi-findings-entry [data-pqi-target="pqi-${number}"]`)?.classList.add('disabled');
+	});
 
 	window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => {
 		const navItem = document.querySelector(`#pqi-findings-entry [data-pqi-target="${targetId}"]`);

@@ -8,6 +8,7 @@ from constants import (
     FACILITY_TYPE_OPTIONS,
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
+    FACILITY_TYPE_PQI_MAPPING,
     PQI2_ENVIRONMENT_QUESTIONS,
     PQI4_BAND_MAPPING,
     PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS,
@@ -686,6 +687,16 @@ def _normalize_facility_type(value: object) -> str:
     if cleaned_value == "Mixed Age Center":
         return "Mixed Age"
     return FACILITY_TYPE_OPTIONS[0]
+
+
+def build_pqi_access_context(assessment_row: dict | None = None) -> dict:
+    row = assessment_row if assessment_row is not None else get_current_assessment_row()
+    facility_type = _normalize_facility_type(row["facility_type"] if row is not None else None)
+    allowed_pqis = FACILITY_TYPE_PQI_MAPPING[facility_type]
+    return {
+        "facility_type": facility_type,
+        "pqi_allowed": {str(number): number in allowed_pqis for number in range(1, 11)},
+    }
 
 
 def build_assessment_list_context() -> dict:

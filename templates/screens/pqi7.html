@@ -11,6 +11,12 @@
 	<button type="button" role="tab" aria-selected="false" onclick="window.location.href='{{ url_for('screen', screen_id='pqi8') }}'">PQI 8 · Responsive Care</button>
 </div>
 
+{% if not pqi_allowed['7'] %}
+<div class="alert danger pqi-disabled-alert" role="alert">
+	<div class="alert-icon">!</div>
+	<div><strong>PQI 7 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div>
+</div>
+{% else %}
 <div class="alert info pqi2-summary-card" role="status" aria-live="polite">
 	<div class="alert-icon">i</div>
 	<div>
@@ -18,8 +24,9 @@
 		<span>Observe the classroom for a minimum of 15 minutes. Once completed, consider where the classroom falls based on the following scale</span>
 	</div>
 </div>
+{% endif %}
 
-<div class="hierarchy-layout" id="pqi7-card">
+<div class="hierarchy-layout" id="pqi7-card" data-pqi-number="7">
 	<section class="card">
 		<div class="card-head">
 			<div>
@@ -52,11 +59,11 @@
 		{% endfor %}
 
 		<div class="card-actions" style="margin-top: 16px; justify-content: space-between;">
-			<a class="button ghost" href="{{ pqi7_back_href }}">Return to PQI 6</a>
+			<a class="button secondary" href="{{ url_for('screen', screen_id='pqi-findings-entry') }}">Return to PQI list</a>
 			<div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
 				<span class="save-indicator" id="pqi7-save-state">{% if pqi7_complete %}PQI 7 marked as complete{% else %}Unsaved changes{% endif %}</span>
-				<button class="button secondary" id="pqi7-draft-save-button" type="button">Save Draft</button>
-				<button class="button primary" id="pqi7-save-button" type="button"{% if pqi7_complete %} disabled{% endif %}>Complete PQI 7</button>
+				<button class="button secondary" id="pqi7-draft-save-button" type="button"{% if not pqi_allowed['7'] %} disabled aria-disabled="true"{% endif %}>Save Draft</button>
+				<button class="button primary" id="pqi7-save-button" type="button"{% if pqi7_complete or not pqi_allowed['7'] %} disabled{% endif %}>Complete PQI 7</button>
 			</div>
 		</div>
 	</section>
@@ -70,6 +77,7 @@
 <script>
 (() => {
 	const assessmentId = {{ editing_assessment_id | tojson }};
+	const pqiAllowed = {{ pqi_allowed | tojson }};
 	const saveUrl = "{{ pqi7_save_url }}";
 	let completeInitially = {{ pqi7_complete | tojson }};
 	const levelNodes = Array.from(document.querySelectorAll('#pqi7-card [data-pqi7-level]'));
@@ -89,6 +97,7 @@
 	const draftButton = document.getElementById('pqi7-draft-save-button');
 	const completeButton = document.getElementById('pqi7-save-button');
 	const responseState = Object.fromEntries(levelNodes.map((node) => [node.dataset.pqi7Level, Array.from(node.querySelectorAll('[data-pqi7-criterion]')).map((checkbox) => checkbox.checked)]));
+	if (!pqiAllowed['7']) document.querySelectorAll('#pqi7-card input, #pqi7-card textarea, #pqi7-card button').forEach((control) => { control.disabled = true; control.setAttribute('aria-disabled', 'true'); });
 	let partialDescriptor = getDescriptorInputs()[0]?.value || '';
 	const ensurePartialBox = (levelNumber) => {
 		const node = levelNodes.find((candidate) => candidate.dataset.pqi7Level === String(levelNumber));
@@ -153,7 +162,7 @@
 		calculatedLevel.textContent = displayScore;
 		calculatedDescription.textContent = `Level ${displayScore} is the highest level with all criteria met.`;
 		const changed = JSON.stringify(snapshot()) !== lastSaved;
-		completeButton.disabled = completeInitially;
+		completeButton.disabled = !pqiAllowed['7'] || completeInitially;
 		saveState.textContent = changed ? 'Unsaved changes' : completeInitially ? 'PQI 7 marked as complete' : 'Draft saved';
 	};
 	levelNodes.forEach((node) => node.querySelectorAll('[data-pqi7-criterion]').forEach((checkbox) => checkbox.addEventListener('change', () => { responseState[node.dataset.pqi7Level][Number(checkbox.dataset.pqi7Criterion)] = checkbox.checked; update(); })));
@@ -174,7 +183,7 @@
 		} catch (error) {
 			saveState.textContent = error.message || 'Unable to save PQI 7';
 		} finally {
-			if (button === draftButton) draftButton.disabled = false;
+			if (button === draftButton && pqiAllowed['7']) draftButton.disabled = false;
 			update();
 		}
 	};

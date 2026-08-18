@@ -10,6 +10,7 @@ from repositories.assessments import (
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
+from services.screen_contexts import build_pqi_access_context
 from services.formatters import (
     calculate_pqi1_score,
     calculate_pqi2_score,
@@ -383,6 +384,9 @@ def register_routes(app: Flask) -> None:
         assessment_id = payload.get("assessment_id") or get_current_assessment()
         if assessment_id is None:
             return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+        assessment_row = get_assessment_row_by_id(int(assessment_id))
+        if assessment_row is None or not build_pqi_access_context(assessment_row)["pqi_allowed"]["6"]:
+            return jsonify({"status": "error", "message": "PQI 6 is not available for this facility type"}), 400
 
         raw_responses = payload.get("responses")
         if not isinstance(raw_responses, dict):
@@ -446,6 +450,9 @@ def register_routes(app: Flask) -> None:
         assessment_id = payload.get("assessment_id") or get_current_assessment()
         if assessment_id is None:
             return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+        assessment_row = get_assessment_row_by_id(int(assessment_id))
+        if assessment_row is None or not build_pqi_access_context(assessment_row)["pqi_allowed"]["7"]:
+            return jsonify({"status": "error", "message": "PQI 7 is not available for this facility type"}), 400
 
         raw_responses = payload.get("responses")
         if not isinstance(raw_responses, dict):
@@ -509,6 +516,9 @@ def register_routes(app: Flask) -> None:
         assessment_id = payload.get("assessment_id") or get_current_assessment()
         if assessment_id is None:
             return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+        assessment_row = get_assessment_row_by_id(int(assessment_id))
+        if assessment_row is None or not build_pqi_access_context(assessment_row)["pqi_allowed"]["8"]:
+            return jsonify({"status": "error", "message": "PQI 8 is not available for this facility type"}), 400
 
         raw_responses = payload.get("responses")
         if not isinstance(raw_responses, dict):

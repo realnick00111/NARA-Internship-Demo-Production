@@ -1,4 +1,4 @@
-<div class="card pqi1-card" id="{{ pqi1_card_id }}">
+<div class="card pqi1-card" id="{{ pqi1_card_id }}" data-pqi-number="1">
 	<div class="card-head">
 		<div>
 			<span class="section-kicker">PQI 1</span>
@@ -7,6 +7,12 @@
 		</div>
 		<span class="chip info">Percentage indicator</span>
 	</div>
+	{% if not pqi_allowed['1'] %}
+	<div class="alert danger pqi-disabled-alert" role="alert">
+		<div class="alert-icon">!</div>
+		<div><strong>PQI 1 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div>
+	</div>
+	{% endif %}
 
 	<div class="pqi-complete-card" id="pqi1-complete-card" role="status" aria-live="polite"{% if not pqi1_complete %} hidden{% endif %}>
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>

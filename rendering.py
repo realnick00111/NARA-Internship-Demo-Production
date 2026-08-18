@@ -5,6 +5,7 @@ from markupsafe import Markup
 
 from constants import (
     NAV_BY_SCREEN,
+    NON_PQI_FIELD_REQUIREDNESS,
     PARTIALS_DIR,
     PQI_BAND_MAPPING,
     PQI910_LIKERT_SCORE_RANGE,
@@ -27,6 +28,7 @@ from services.screen_contexts import (
     build_pqi7_context,
     build_pqi8_context,
     build_pqi910_context,
+    build_pqi_access_context,
     build_new_assessment_context,
     get_current_assessment_row,
     get_assessment_label,
@@ -52,6 +54,7 @@ def render_screen_section(screen_id: str) -> str:
         content = render_template_string(
             content,
             duplicate_warning=build_duplicate_warning_html(),
+            required_fields=NON_PQI_FIELD_REQUIREDNESS[screen_id],
             **build_facility_identification_context(),
         )
     elif screen_id == "agency-dashboard":
@@ -59,27 +62,35 @@ def render_screen_section(screen_id: str) -> str:
     elif screen_id == "assessment-list":
         content = render_template_string(content, **build_assessment_list_context())
     elif screen_id == "pqi-findings-entry":
-        content = render_template_string(content, **build_pqi1_context(), pqi1_band_rows=build_pqi1_band_rows())
+        content = render_template_string(content, **build_pqi1_context(), **build_pqi_access_context(), pqi1_band_rows=build_pqi1_band_rows())
     elif screen_id == "ch-structural-entry":
-        content = render_template_string(content, **build_contact_hours_context())
+        content = render_template_string(
+            content,
+            required_fields=NON_PQI_FIELD_REQUIREDNESS[screen_id],
+            **build_contact_hours_context(),
+        )
     elif screen_id == "new-assessment":
-        content = render_template_string(content, **build_new_assessment_context())
+        content = render_template_string(
+            content,
+            required_fields=NON_PQI_FIELD_REQUIREDNESS[screen_id],
+            **build_new_assessment_context(),
+        )
     elif screen_id == "assessment-progress":
         content = render_template_string(content, **build_assessment_progress_context())
     elif screen_id == "pqi1":
-        content = render_template_string(content, **build_pqi1_context(), pqi1_band_rows=build_pqi1_band_rows())
+        content = render_template_string(content, **build_pqi1_context(), **build_pqi_access_context(), pqi1_band_rows=build_pqi1_band_rows())
     elif screen_id == "pqi3-sample":
-        content = render_template_string(content, **build_pqi3_context(preview=True), pqi1_band_rows=build_pqi1_band_rows())
+        content = render_template_string(content, **build_pqi3_context(preview=True), **build_pqi_access_context(), pqi1_band_rows=build_pqi1_band_rows())
     elif screen_id == "pqi3":
-        content = render_template_string(content, **build_pqi3_context(), pqi1_band_rows=build_pqi1_band_rows())
+        content = render_template_string(content, **build_pqi3_context(), **build_pqi_access_context(), pqi1_band_rows=build_pqi1_band_rows())
     elif screen_id == "pqi6-8-hierarchy":
-        content = render_template_string(content, **build_pqi6_context())
+        content = render_template_string(content, **build_pqi6_context(), **build_pqi_access_context())
     elif screen_id == "pqi7":
-        content = render_template_string(content, **build_pqi7_context())
+        content = render_template_string(content, **build_pqi7_context(), **build_pqi_access_context())
     elif screen_id == "pqi8":
-        content = render_template_string(content, **build_pqi8_context())
+        content = render_template_string(content, **build_pqi8_context(), **build_pqi_access_context())
     elif screen_id == "pqi9-10-timed":
-        content = render_template_string(content, **build_pqi910_context())
+        content = render_template_string(content, **build_pqi910_context(), **build_pqi_access_context())
 
     if screen_id in STANDALONE_SCREENS:
         inner_html = content

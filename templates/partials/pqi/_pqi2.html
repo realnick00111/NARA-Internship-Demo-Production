@@ -1,4 +1,4 @@
-<div class="card pqi2-card" id="pqi2-card">
+<div class="card pqi2-card" id="pqi2-card" data-pqi-number="2">
 	<div class="card-head">
 		<div>
 			<span class="section-kicker">PQI 2</span>
@@ -12,7 +12,10 @@
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 2 marked as complete</span>
 	</div>
-	{% if not pqi2_complete %}<div class="alert info pqi2-summary-card" id="pqi2-summary-card" role="status" aria-live="polite">
+	{% if not pqi_allowed['2'] %}<div class="alert danger pqi-disabled-alert" role="alert">
+		<div class="alert-icon">!</div>
+		<div><strong>PQI 2 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div>
+	</div>{% elif not pqi2_complete %}<div class="alert info pqi2-summary-card" id="pqi2-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Fields completed</strong>

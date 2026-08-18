@@ -12,7 +12,10 @@
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 3 marked as complete</span>
 	</div>
-	{% if not pqi3_complete %}<div class="alert info pqi2-summary-card" id="pqi3-summary-card" role="status" aria-live="polite">
+	{% if not pqi_allowed['3'] %}<div class="alert danger pqi-disabled-alert" role="alert">
+		<div class="alert-icon">!</div>
+		<div><strong>PQI 3 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div>
+	</div>{% elif not pqi3_complete %}<div class="alert info pqi2-summary-card" id="pqi3-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Records complete</strong>

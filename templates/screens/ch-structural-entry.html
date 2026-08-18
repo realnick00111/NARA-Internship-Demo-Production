@@ -28,27 +28,27 @@
 				</div>
 				<div class="form-grid">
 					<div class="field">
-						<div class="labelrow"><label for="to1">Facility opens / first staff arrives (TO₁)</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="to1">Facility opens / first staff arrives (TO₁)</label>{% if required_fields.to1 %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="to1" name="to1" type="time" value="{{ contact_hours_form.to1 }}">
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="to2">Facility closes / last staff leaves (TO₂)</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="to2">Facility closes / last staff leaves (TO₂)</label>{% if required_fields.to2 %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="to2" name="to2" type="time" value="{{ contact_hours_form.to2 }}">
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="ta">Total teaching / caregiving staff (TA)</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="ta">Total teaching / caregiving staff (TA)</label>{% if required_fields.ta %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="ta" name="ta" type="number" min="0" step="1" inputmode="numeric" value="{{ contact_hours_form.ta }}">
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="nc">Children on maximum enrollment day (NC)</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="nc">Children on maximum enrollment day (NC)</label>{% if required_fields.nc %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="nc" name="nc" type="number" min="0" step="1" inputmode="numeric" value="{{ contact_hours_form.nc }}">
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="th1">Last child arrives (TH₁)</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="th1">Last child arrives (TH₁)</label>{% if required_fields.th1 %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="th1" name="th1" type="time" value="{{ contact_hours_form.th1 }}">
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="th2">First child leaves (TH₂)</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="th2">First child leaves (TH₂)</label>{% if required_fields.th2 %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="th2" name="th2" type="time" value="{{ contact_hours_form.th2 }}">
 					</div>
 				</div>
@@ -60,21 +60,21 @@
 				<h3>Reference and model selection</h3>
 				<div class="form-grid">
 					<div class="field">
-						<div class="labelrow"><label for="density-model">Density model</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="density-model">Density model</label>{% if required_fields.density_model %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="density-model" name="density_model" type="text" value="{{ contact_hours_form.density_model }}">
 						<div class="hint">Standard for staggered arrivals and departures.</div>
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="required-ratio">Legally required adult-child ratio</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="required-ratio">Legally required adult-child ratio</label>{% if required_fields.required_ratio %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="required-ratio" name="required_ratio" type="text" value="{{ contact_hours_form.required_ratio }}">
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="ratio-source">Ratio source</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="ratio-source">Ratio source</label>{% if required_fields.ratio_source %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="ratio-source" name="ratio_source" type="text" value="{{ contact_hours_form.ratio_source }}">
 						<div class="hint">Citation, policy table, or agency-approved reference.</div>
 					</div>
 					<div class="field">
-						<div class="labelrow"><label for="rwch-reference">RWCH reference value</label><span class="req">Required</span></div>
+						<div class="labelrow"><label for="rwch-reference">RWCH reference value</label>{% if required_fields.rwch_reference %}<span class="req">Required</span>{% endif %}</div>
 						<input class="input" id="rwch-reference" name="rwch_reference" type="number" min="0" step="any" inputmode="decimal" value="{{ contact_hours_form.rwch_reference }}">
 						<div class="hint">Demonstration value only; replace with an approved conversion-table lookup.</div>
 					</div>
