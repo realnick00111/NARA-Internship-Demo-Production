@@ -369,11 +369,14 @@
 	const tabs = Array.from(document.querySelectorAll('[data-pqi910-tab]'));
 	const pqi9Panel = document.getElementById('pqi9-panel');
 	const pqi10Panel = document.getElementById('pqi10-panel');
-	tabs.forEach((tab) => tab.addEventListener('click', () => {
-		const showPqi10 = tab.dataset.pqi910Tab === 'pqi10';
-		tabs.forEach((candidate) => candidate.classList.toggle('active', candidate === tab));
+	const setActiveTab = (tabName) => {
+		const selectedTab = tabs.find((tab) => tab.dataset.pqi910Tab === tabName) || tabs[0];
+		const showPqi10 = selectedTab?.dataset.pqi910Tab === 'pqi10';
+		tabs.forEach((candidate) => candidate.classList.toggle('active', candidate === selectedTab));
 		if (pqi9Panel) pqi9Panel.hidden = showPqi10;
 		if (pqi10Panel) pqi10Panel.hidden = !showPqi10;
-	}));
+	};
+	tabs.forEach((tab) => tab.addEventListener('click', () => setActiveTab(tab.dataset.pqi910Tab)));
+	setActiveTab(location.hash === '#pqi10' ? 'pqi10' : 'pqi9');
 })();
 </script>

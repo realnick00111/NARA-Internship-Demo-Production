@@ -145,12 +145,36 @@ def _build_pqi68_card(pqi_number: int, entry: object, hierarchy: dict) -> dict:
     has_input = has_input or bool(entry.get("score"))
     complete = bool(entry.get("complete", False))
     status = "complete" if complete else "draft" if has_input else "empty"
-    status_label = status.title()
     return {
         "number": pqi_number,
         "status": status,
-        "status_label": status_label,
+        "status_label": status.title(),
         "score": score,
+    }
+
+
+def _build_pqi910_card(pqi_number: int, entry: object, observation_count: int) -> dict:
+    entry = entry if isinstance(entry, dict) else {}
+    responses = entry.get("responses", {})
+    responses = responses if isinstance(responses, dict) else {}
+    notes = entry.get("notes", {})
+    notes = notes if isinstance(notes, dict) else {}
+    completed_count = sum(value not in (None, "") for value in responses.values())
+    has_input = bool(responses) or any(str(value or "").strip() for value in notes.values())
+    complete = bool(entry.get("complete", False))
+    status = "complete" if complete else "draft" if has_input else "empty"
+    score = entry.get("score")
+    try:
+        score = int(score) if score not in (None, "") else None
+    except (TypeError, ValueError):
+        score = None
+    return {
+        "number": pqi_number,
+        "status": status,
+        "status_label": status.title(),
+        "score": score if score is not None else "--",
+        "completed_count": min(completed_count, observation_count),
+        "observation_count": observation_count,
     }
 
 
@@ -480,6 +504,11 @@ def build_pqi1_context() -> dict:
         _build_pqi68_card(8, {}, PQI8_HIERARCHY),
     ]
     pqi68_complete_count = 0
+    pqi910_cards = [
+        _build_pqi910_card(9, {}, PQI9_OBSERVATION_COUNT),
+        _build_pqi910_card(10, {}, PQI10_OBSERVATION_COUNT),
+    ]
+    pqi910_complete_count = 0
 
     if assessment_row is not None:
         assessment_id = assessment_row["id"]
@@ -493,6 +522,11 @@ def build_pqi1_context() -> dict:
             _build_pqi68_card(8, pqi_findings.get("pqi8"), PQI8_HIERARCHY),
         ]
         pqi68_complete_count = sum(card["status"] == "complete" for card in pqi68_cards)
+        pqi910_cards = [
+            _build_pqi910_card(9, pqi_findings.get("pqi9"), PQI9_OBSERVATION_COUNT),
+            _build_pqi910_card(10, pqi_findings.get("pqi10"), PQI10_OBSERVATION_COUNT),
+        ]
+        pqi910_complete_count = sum(card["status"] == "complete" for card in pqi910_cards)
         pqi1_entry = pqi_findings.get("pqi1") if isinstance(pqi_findings, dict) else {}
         if isinstance(pqi1_entry, dict):
             pqi1_complete = bool(pqi1_entry.get("complete", False))
@@ -632,6 +666,9 @@ def build_pqi1_context() -> dict:
         "pqi68_cards": pqi68_cards,
         "pqi68_complete_count": pqi68_complete_count,
         "pqi68_complete": pqi68_complete_count == 3,
+        "pqi910_cards": pqi910_cards,
+        "pqi910_complete_count": pqi910_complete_count,
+        "pqi910_complete": pqi910_complete_count == len(pqi910_cards),
         **pqi3_context,
     }
 

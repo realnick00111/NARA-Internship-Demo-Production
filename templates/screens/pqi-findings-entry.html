@@ -218,7 +218,7 @@
 		<a class="pqi-item{% if pqi4_complete %} complete{% endif %}" href="#pqi-4" data-pqi-target="pqi-4"><span>4</span><div><b>Staff &amp; Family Opportunities</b><small>{{ pqi4_score_label }}</small></div></a>
 		<a class="pqi-item{% if pqi5_complete %} complete{% endif %}" href="#pqi-5" data-pqi-target="pqi-5"><span>5</span><div><b>Child Progress Reporting</b><small>{{ pqi5_score_label }}</small></div></a>
 		<a class="pqi-item{% if pqi68_complete %} complete{% endif %}" href="#pqi-6-8" data-pqi-target="pqi-6-8"><span>6-8</span><div><b>Observational Levels</b><small>{{ pqi68_complete_count }} of 3 complete</small></div></a>
-		<a class="pqi-item" href="#pqi-9-10" data-pqi-target="pqi-9-10"><span>9-10</span><div><b>Timed Observations</b><small>Not implemented yet</small></div></a>
+		<a class="pqi-item{% if pqi910_complete %} complete{% endif %}" href="#pqi-9-10" data-pqi-target="pqi-9-10"><span>9-10</span><div><b>Timed Observations</b><small>{{ pqi910_complete_count }} of 2 complete</small></div></a>
 	</aside>
 
 	<section class="pqi-main">
@@ -352,7 +352,7 @@
 				<div class="pqi68-card status-{{ card.status }}">
 					<div class="pqi68-label">PQI {{ card.number }}</div>
 					<div class="pqi68-info">
-						<strong>{% if card.number == 6 %}Language &amp; Interaction{% elif card.number == 7 %}Learning Environment{% else %}Responsive Care{% endif %}</strong>
+						<strong>{% if card.number == 6 %}Language &amp; Interaction{% elif card.number == 7 %}Infant Toddler Observation{% else %}Responsive Care{% endif %}</strong>
 						<small>{% if card.status == 'empty' %}No hierarchy criteria have been recorded yet.{% elif card.status == 'draft' %}Saved draft; the hierarchy is not complete.{% else %}The hierarchy has been marked complete.{% endif %}</small>
 					</div>
 					<span class="chip {% if card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ card.status_label }}</span>
@@ -374,9 +374,32 @@
 					<div>
 						<span class="section-kicker">PQI 9-10</span>
 						<h2>Timed Observations</h2>
-						<p>The timed-observation workflow has not been implemented yet.</p>
+						<p>Review completion and provisional scores for the two timed-observation indicators.</p>
 					</div>
-					<span class="chip neutral">Coming soon</span>
+				</div>
+
+				<div class="pqi-complete-card" id="pqi910-complete-card" role="status" aria-live="polite"{% if not pqi910_complete %} hidden{% endif %}>
+					<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+					<span>PQI 9-10 marked as complete</span>
+				</div>
+
+				{% for card in pqi910_cards %}
+				<div class="pqi68-card status-{{ card.status }}">
+					<div class="pqi68-label">PQI {{ card.number }}</div>
+					<div class="pqi68-info">
+						<strong>{% if card.number == 9 %}Attention{% else %}Warmth{% endif %}</strong>
+						<small>{{ card.completed_count }} of {{ card.observation_count }} observations complete{% if card.status == 'empty' %}; no observations have been recorded yet.{% elif card.status == 'draft' %}; saved draft is not complete.{% else %}; all observations are complete.{% endif %}</small>
+					</div>
+					<span class="chip {% if card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ card.status_label }}</span>
+					<div class="pqi68-score"><span>Score</span><strong>{{ card.score }}</strong></div>
+				</div>
+				{% endfor %}
+			</div>
+
+			<div class="card" style="margin-top: 14px;">
+				<div class="card-actions" style="justify-content: flex-start;">
+					<a class="button secondary" href="{{ url_for('screen', screen_id='pqi9-10-timed') }}">Open PQI 9-10</a>
+				</div>
 				</div>
 		</div>
 	</section>

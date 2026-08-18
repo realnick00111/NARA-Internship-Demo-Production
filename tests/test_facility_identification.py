@@ -476,6 +476,36 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="pqi68-complete-card" role="status" aria-live="polite">', rendered)
         self.assertIn("PQI 6-8 marked as complete", rendered)
 
+    def test_pqi910_cards_show_data_and_shared_timed_page_link(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi9": {"responses": {"1": 3, "2": 4}},
+                    "pqi10": {"complete": True, "score": 2, "responses": {str(index): 2 for index in range(1, 11)}},
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+        self.assertIn('class="pqi68-card status-draft"', rendered)
+        self.assertIn('class="pqi68-card status-complete"', rendered)
+        self.assertIn("1 of 2 complete", rendered)
+        self.assertIn("0 of 10 observations complete", rendered)
+        self.assertIn('<strong>2</strong>', rendered)
+        self.assertIn('href="/screens/pqi9-10-timed">Open PQI 9-10</a>', rendered)
+        self.assertNotIn('href="/screens/pqi9-10-timed#pqi9"', rendered)
+        self.assertNotIn('href="/screens/pqi9-10-timed#pqi10"', rendered)
+
+        timed_rendered = self.client.get("/screens/pqi9-10-timed").data.decode("utf-8")
+        self.assertIn("setActiveTab(location.hash === '#pqi10' ? 'pqi10' : 'pqi9')", timed_rendered)
+
     def test_save_pqi1_persists_nested_json(self):
         assessment_id = self.insert_assessment()
 
