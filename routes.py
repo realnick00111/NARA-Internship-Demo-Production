@@ -389,7 +389,7 @@ def register_routes(app: Flask) -> None:
             return jsonify({"status": "error", "message": "responses must be an object"}), 400
 
         normalized_responses: dict[str, list[bool]] = {}
-        calculated_level = 0
+        calculated_level = 1
         previous_level_complete = True
         for level_number, criteria in enumerate(PQI6_HIERARCHY.values(), start=1):
             raw_level_responses = raw_responses.get(str(level_number), [])
@@ -398,7 +398,8 @@ def register_routes(app: Flask) -> None:
                 bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
                 for index in range(len(criteria))
             ]
-            normalized_responses[str(level_number)] = responses
+            if level_number > 1:
+                normalized_responses[str(level_number)] = responses
             level_complete = all(responses)
             if previous_level_complete and level_complete:
                 calculated_level = level_number
@@ -451,7 +452,7 @@ def register_routes(app: Flask) -> None:
             return jsonify({"status": "error", "message": "responses must be an object"}), 400
 
         normalized_responses: dict[str, list[bool]] = {}
-        calculated_level = 0
+        calculated_level = 1
         previous_level_complete = True
         for level_number, criteria in enumerate(PQI7_HIERARCHY.values(), start=1):
             raw_level_responses = raw_responses.get(str(level_number), [])
@@ -460,7 +461,8 @@ def register_routes(app: Flask) -> None:
                 bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
                 for index in range(len(criteria))
             ]
-            normalized_responses[str(level_number)] = responses
+            if level_number > 1:
+                normalized_responses[str(level_number)] = responses
             level_complete = all(responses)
             if previous_level_complete and level_complete:
                 calculated_level = level_number
@@ -513,7 +515,7 @@ def register_routes(app: Flask) -> None:
             return jsonify({"status": "error", "message": "responses must be an object"}), 400
 
         normalized_responses: dict[str, list[bool]] = {}
-        calculated_level = 0
+        calculated_level = 1
         previous_level_complete = True
         for level_number, criteria in enumerate(PQI8_HIERARCHY.values(), start=1):
             raw_level_responses = raw_responses.get(str(level_number), [])
@@ -522,7 +524,8 @@ def register_routes(app: Flask) -> None:
                 bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
                 for index in range(len(criteria))
             ]
-            normalized_responses[str(level_number)] = responses
+            if level_number > 1:
+                normalized_responses[str(level_number)] = responses
             level_complete = all(responses)
             if previous_level_complete and level_complete:
                 calculated_level = level_number

@@ -721,6 +721,15 @@ video {
 	background: #f0f9f2
 }
 
+.level.baseline {
+	border-color: #8b9298;
+	background: #d1d5d9
+}
+
+.level.baseline .level-head {
+	background: #aeb5bb
+}
+
 .level.partial {
 	border-color: #e6ca8d
 }

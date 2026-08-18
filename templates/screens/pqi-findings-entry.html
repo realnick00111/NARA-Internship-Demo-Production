@@ -353,7 +353,7 @@
 					<div class="pqi68-label">PQI {{ card.number }}</div>
 					<div class="pqi68-info">
 						<strong>{% if card.number == 6 %}Language &amp; Interaction{% elif card.number == 7 %}Infant Toddler Observation{% else %}Responsive Care{% endif %}</strong>
-						<small>{% if card.status == 'empty' %}No hierarchy criteria have been recorded yet.{% elif card.status == 'draft' %}Saved draft; the hierarchy is not complete.{% else %}The hierarchy has been marked complete.{% endif %}</small>
+						<small>{% if card.status == 'empty' %}No hierarchy criteria have been recorded yet.{% elif card.status == 'draft' %}Saved draft; the hierarchy is yet marked as complete.{% else %}The hierarchy has been marked complete.{% endif %}</small>
 					</div>
 					<span class="chip {% if card.status == 'complete' %}success{% elif card.status == 'draft' %}warning{% else %}neutral{% endif %}">{{ card.status_label }}</span>
 					<div class="pqi68-score"><span>Score</span><strong>{{ card.score }}</strong></div>

@@ -33,8 +33,8 @@
 		<div class="level {{ level.status }}" data-pqi8-level="{{ level.number }}">
 			<div class="level-head">
 				<span class="level-num">{{ level.number }}</span>
-				<div><strong>Level {{ level.number }} - {{ level.name }}</strong><small data-pqi8-summary>{% if level.status == 'complete' %}All {{ level.criteria_count }} criteria met{% elif level.status == 'partial' %}{{ level.met_count }} of {{ level.criteria_count }} criteria met{% elif level.status == 'empty' %}0 of {{ level.criteria_count }} criteria met{% else %}Level {{ level.number - 1 }} must be complete first{% endif %}</small></div>
-				<span class="chip {% if level.status == 'complete' %}success{% elif level.status == 'partial' %}warning{% else %}neutral{% endif %}" data-pqi8-status>{{ level.status | title }}</span>
+				<div><strong>Level {{ level.number }} - {{ level.name }}</strong><small data-pqi8-summary>{% if level.status == 'baseline' %}Level one is the baseline, these are examples of behavior aligned with level 1{% elif level.status == 'complete' %}All {{ level.criteria_count }} criteria met{% elif level.status == 'partial' %}{{ level.met_count }} of {{ level.criteria_count }} criteria met{% elif level.status == 'empty' %}0 of {{ level.criteria_count }} criteria met{% else %}Level {{ level.number - 1 }} must be complete first{% endif %}</small></div>
+				<span class="chip neutral" data-pqi8-status>{{ 'Baseline' if level.status == 'baseline' else level.status | title }}</span>
 			</div>
 			<div class="criteria"{% if level.status == 'locked' %} hidden{% endif %}>
 				{% for criterion in level.criteria %}
@@ -112,7 +112,7 @@
 	let lastSaved = JSON.stringify(snapshot());
 	const update = () => {
 		let previousLevelComplete = true;
-		let highestLevel = 0;
+		let highestLevel = 1;
 		let partialLevel = null;
 		levelNodes.forEach((node) => {
 			const levelNumber = node.dataset.pqi8Level;
@@ -121,17 +121,17 @@
 			if (!previousLevelComplete) responses.fill(false);
 			const metCount = responses.filter(Boolean).length;
 			const isComplete = metCount === responses.length;
-			const status = !previousLevelComplete ? 'locked' : isComplete ? 'complete' : metCount ? 'partial' : 'empty';
+			const status = levelNumber === '1' ? 'baseline' : !previousLevelComplete ? 'locked' : isComplete ? 'complete' : metCount ? 'partial' : 'empty';
 			if (status === 'complete') highestLevel = Number(levelNumber);
 			if (status === 'partial') partialLevel = levelNumber;
 			node.className = `level ${status}`;
-			node.querySelector('[data-pqi8-summary]').textContent = status === 'complete' ? `All ${responses.length} criteria met` : status === 'partial' ? `${metCount} of ${responses.length} criteria met` : status === 'empty' ? `0 of ${responses.length} criteria met` : `Level ${Number(levelNumber) - 1} must be complete first`;
+			node.querySelector('[data-pqi8-summary]').textContent = status === 'baseline' ? 'Level one is the baseline, these are examples of behavior aligned with level 1' : status === 'complete' ? `All ${responses.length} criteria met` : status === 'partial' ? `${metCount} of ${responses.length} criteria met` : status === 'empty' ? `0 of ${responses.length} criteria met` : `Level ${Number(levelNumber) - 1} must be complete first`;
 			const statusNode = node.querySelector('[data-pqi8-status]');
 			statusNode.className = `chip ${status === 'complete' ? 'success' : status === 'partial' ? 'warning' : 'neutral'}`;
-			statusNode.textContent = status[0].toUpperCase() + status.slice(1);
+			statusNode.textContent = status === 'baseline' ? 'Baseline' : status[0].toUpperCase() + status.slice(1);
 			const criteriaNode = node.querySelector('.criteria');
 			if (criteriaNode) criteriaNode.hidden = status === 'locked';
-			checkboxes.forEach((checkbox, index) => { checkbox.checked = responses[index]; checkbox.disabled = status === 'locked'; });
+			checkboxes.forEach((checkbox, index) => { checkbox.checked = responses[index]; checkbox.disabled = status === 'locked' || status === 'baseline'; });
 			const partialBox = node.querySelector('[data-pqi8-partial-box]');
 			if (status === 'partial') {
 				const activeBox = ensurePartialBox(levelNumber);
@@ -148,7 +148,7 @@
 			input.disabled = !isActive;
 			input.closest('[data-pqi8-partial-box]').hidden = !isActive;
 		});
-		const displayScore = formatScore(highestLevel, getScoreModifier(highestLevel, responseState));
+		const displayScore = formatScore(Math.max(highestLevel, 1), getScoreModifier(Math.max(highestLevel, 1), responseState));
 		highestComplete.textContent = `Highest complete: Level ${displayScore}`;
 		calculatedLevel.textContent = displayScore;
 		calculatedDescription.textContent = `Level ${displayScore} is the highest level with all criteria met.`;
@@ -161,7 +161,7 @@
 	observationNotes.addEventListener('input', update);
 	const persist = async (button) => {
 		const highestLevel = Number(levelNodes.reduce((current, node) => responseState[node.dataset.pqi8Level]?.every(Boolean) && Number(node.dataset.pqi8Level) > current ? Number(node.dataset.pqi8Level) : current, 0));
-		const payload = { ...snapshot(), complete: button === completeButton, score: highestLevel, score_modifier: getScoreModifier(highestLevel, responseState) };
+		const payload = { ...snapshot(), complete: button === completeButton, score: Math.max(highestLevel, 1), score_modifier: getScoreModifier(Math.max(highestLevel, 1), responseState) };
 		if (assessmentId !== null) payload.assessment_id = assessmentId;
 		button.disabled = true;
 		try {

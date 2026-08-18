@@ -273,18 +273,20 @@ def build_pqi6_context() -> dict:
     raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
 
     levels = []
-    highest_complete_level = 0
+    highest_complete_level = 1
     previous_level_complete = True
     for level_number, (level_name, criteria) in enumerate(PQI6_HIERARCHY.items(), start=1):
-        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, []))
+        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, [])) if level_number > 1 else []
         raw_level_responses = raw_level_responses if isinstance(raw_level_responses, list) else []
-        responses = [
+        responses = [True for _ in criteria] if level_number == 1 else [
             bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
             for index in range(len(criteria))
         ]
         met_count = sum(responses)
         is_complete = met_count == len(criteria)
-        if not previous_level_complete:
+        if level_number == 1:
+            status = "baseline"
+        elif not previous_level_complete:
             status = "locked"
         elif is_complete:
             status = "complete"
@@ -338,18 +340,20 @@ def build_pqi7_context() -> dict:
     raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
 
     levels = []
-    highest_complete_level = 0
+    highest_complete_level = 1
     previous_level_complete = True
     for level_number, (level_name, criteria) in enumerate(PQI7_HIERARCHY.items(), start=1):
-        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, []))
+        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, [])) if level_number > 1 else []
         raw_level_responses = raw_level_responses if isinstance(raw_level_responses, list) else []
-        responses = [
+        responses = [True for _ in criteria] if level_number == 1 else [
             bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
             for index in range(len(criteria))
         ]
         met_count = sum(responses)
         is_complete = met_count == len(criteria)
-        if not previous_level_complete:
+        if level_number == 1:
+            status = "baseline"
+        elif not previous_level_complete:
             status = "locked"
         elif is_complete:
             status = "complete"
@@ -393,18 +397,20 @@ def build_pqi8_context() -> dict:
     raw_responses = raw_responses if isinstance(raw_responses, dict) else {}
 
     levels = []
-    highest_complete_level = 0
+    highest_complete_level = 1
     previous_level_complete = True
     for level_number, (level_name, criteria) in enumerate(PQI8_HIERARCHY.items(), start=1):
-        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, []))
+        raw_level_responses = raw_responses.get(str(level_number), raw_responses.get(level_name, [])) if level_number > 1 else []
         raw_level_responses = raw_level_responses if isinstance(raw_level_responses, list) else []
-        responses = [
+        responses = [True for _ in criteria] if level_number == 1 else [
             bool(raw_level_responses[index]) if index < len(raw_level_responses) and previous_level_complete else False
             for index in range(len(criteria))
         ]
         met_count = sum(responses)
         is_complete = met_count == len(criteria)
-        if not previous_level_complete:
+        if level_number == 1:
+            status = "baseline"
+        elif not previous_level_complete:
             status = "locked"
         elif is_complete:
             status = "complete"
