@@ -192,7 +192,8 @@
 		if (completionCard) completionCard.hidden = !pqi5Complete;
 		if (summaryCard) summaryCard.hidden = pqi5Complete;
 		if (typeof window.syncPqiNavCompletionState === 'function') {
-			window.syncPqiNavCompletionState('pqi-5', pqi5Complete, pqi5Complete ? `${totalDisplay.textContent} points` : null);
+			const completedCount = questionIds.filter((questionId) => getSnapshot()[questionId] === 'yes' || getSnapshot()[questionId] === 'no').length;
+			window.syncPqiNavCompletionState('pqi-5', pqi5Complete, pqi5Complete ? `${totalDisplay.textContent} points` : completedCount ? `Draft: ${completedCount} of ${questionIds.length}` : 'Not started');
 		}
 	};
 
@@ -212,13 +213,13 @@
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
 
 		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
-		syncCompletionState();
 		baseDisplay.textContent = basePoints === null ? '-' : String(basePoints);
 		bonusDisplay.textContent = bonusPoint === null ? '-' : String(bonusPoint);
 		totalDisplay.textContent = totalPoints === null ? '-' : String(totalPoints);
 		formulaNote.textContent = allAnswered
 			? `Base points + bonus point = total points (max ${questionPoints.reduce((sum, points) => sum + points, 0)}).`
 			: 'Answer all questions to calculate the total points.';
+		syncCompletionState();
 
 		saveButton.disabled = !allAnswered || (!hasChanges && pqi5Complete);
 

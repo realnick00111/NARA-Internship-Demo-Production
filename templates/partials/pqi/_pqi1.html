@@ -91,7 +91,8 @@
 			completeCard.hidden = !pqi1Complete;
 		}
 		if (typeof window.syncPqiNavCompletionState === 'function') {
-			window.syncPqiNavCompletionState('pqi-1', pqi1Complete, pqi1Complete ? `Score ${bandLabel((Number(certifiedInput.value) / Number(totalInput.value)) * 100)}` : null);
+			const percentage = Number(totalInput.value) > 0 ? (Number(certifiedInput.value) / Number(totalInput.value)) * 100 : null;
+			window.syncPqiNavCompletionState('pqi-1', pqi1Complete, pqi1Complete ? `Score ${bandLabel(percentage)}` : hasAnyInput ? `Draft${percentage === null ? '' : `: Score ${bandLabel(percentage)}`}` : 'Not started');
 		}
 	};
 

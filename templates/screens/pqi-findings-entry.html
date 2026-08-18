@@ -205,6 +205,16 @@
 	<div><span class="chip warning" id="pqi-progress-summary">{{ pqi_progress_numerator }} of {{ pqi_progress_denominator }} complete</span></div>
 </div>
 
+<script>
+window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => {
+	const navItem = document.querySelector(`#pqi-findings-entry [data-pqi-target="${targetId}"]`);
+	if (!navItem) return;
+	navItem.classList.toggle('complete', Boolean(isComplete));
+	const statusNode = navItem.querySelector('small');
+	if (statusNode && statusText !== null) statusNode.textContent = statusText;
+};
+</script>
+
 <div class="pqi-layout">
 	<aside class="pqi-nav">
 		<div class="pqi-progress">
@@ -424,18 +434,6 @@
 		lockedControls(number).forEach((control) => { control.disabled = true; control.setAttribute('aria-disabled', 'true'); });
 		document.querySelector(`#pqi-findings-entry [data-pqi-target="pqi-${number}"]`)?.classList.add('disabled');
 	});
-
-	window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => {
-		const navItem = document.querySelector(`#pqi-findings-entry [data-pqi-target="${targetId}"]`);
-		if (!navItem) {
-			return;
-		}
-		navItem.classList.toggle('complete', Boolean(isComplete));
-		const statusNode = navItem.querySelector('small');
-		if (statusNode && statusText) {
-			statusNode.textContent = statusText;
-		}
-	};
 
 	const isAnswered = (value) => value === 'yes' || value === 'no';
 	const countAnsweredRows = (selector, attribute) => Array.from(document.querySelectorAll(selector)).filter((row) => isAnswered(row.getAttribute(attribute))).length;

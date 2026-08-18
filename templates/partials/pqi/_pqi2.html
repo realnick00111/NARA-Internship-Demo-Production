@@ -111,7 +111,8 @@
 		if (completionCard) completionCard.hidden = !pqi2Complete;
 		if (summaryCard) summaryCard.hidden = pqi2Complete;
 		if (typeof window.syncPqiNavCompletionState === 'function') {
-			window.syncPqiNavCompletionState('pqi-2', pqi2Complete, pqi2Complete ? `Score ${bandDisplay.textContent}` : null);
+			const completedCount = questionIds.filter((questionId) => getSnapshot()[questionId] === 'yes' || getSnapshot()[questionId] === 'no').length;
+			window.syncPqiNavCompletionState('pqi-2', pqi2Complete, pqi2Complete ? `Score ${bandDisplay.textContent}` : completedCount ? `Draft: ${completedCount} of ${questionIds.length}` : 'Not started');
 		}
 	};
 
@@ -209,7 +210,6 @@
 		const percentage = allAnswered ? (yesCount / totalCount) * 100 : null;
 		const bandLabel = allAnswered ? getBandLabel(percentage) : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
-		syncCompletionState();
 
 		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
 		yesCountDisplay.textContent = String(yesCount);
@@ -219,6 +219,7 @@
 		formulaNote.textContent = allAnswered
 			? bandRows.map((row) => `${row.min}-${row.max} = ${row.band}`).join(' | ')
 			: 'Answer all questions to calculate the ordinal score.';
+		syncCompletionState();
 
 		saveButton.disabled = !allAnswered || (!hasChanges && pqi2Complete);
 

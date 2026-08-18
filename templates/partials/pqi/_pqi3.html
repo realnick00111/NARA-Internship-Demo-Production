@@ -90,7 +90,8 @@
 		if (completionCard) completionCard.hidden = !completeInitially;
 		if (summaryCard) summaryCard.hidden = completeInitially;
 		if (typeof window.syncPqiNavCompletionState === 'function') {
-			window.syncPqiNavCompletionState('pqi-3', completeInitially, completeInitially ? `Score ${scoreNode.textContent}` : null);
+			const completedCount = rows.filter((row) => fields.every((field) => ['yes', 'no'].includes(row.getAttribute(`data-${field}`)))).length;
+			window.syncPqiNavCompletionState('pqi-3', completeInitially, completeInitially ? `Score ${scoreNode.textContent}` : completedCount ? `Draft: ${completedCount} of 10 records` : 'Not started');
 		}
 	};
 	const rowRecordKey = (row) => `record ${row.dataset.pqi3Record}`;
@@ -124,9 +125,9 @@
 			result.textContent = positive ? 'Positive' : complete ? 'Not positive' : 'Incomplete';
 		});
 		const allComplete = completeCount === 10; const percentage = positiveCount * 10; const score = band(percentage); const changed = JSON.stringify(records) !== lastSaved;
-		syncCompletionState();
 		summaryText.textContent = `${completeCount} of 10 records complete`;
 		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
+		syncCompletionState();
 	};
 	rows.forEach((row) => {
 		syncRowState(row);

@@ -77,7 +77,8 @@
 		if (completionCard) completionCard.hidden = !pqi4Complete;
 		if (summaryCard) summaryCard.hidden = pqi4Complete;
 		if (typeof window.syncPqiNavCompletionState === 'function') {
-			window.syncPqiNavCompletionState('pqi-4', pqi4Complete, pqi4Complete ? `Score ${bandDisplay.textContent}` : null);
+			const completedCount = questionIds.filter((questionId) => getSnapshot()[questionId]).length;
+			window.syncPqiNavCompletionState('pqi-4', pqi4Complete, pqi4Complete ? `Score ${bandDisplay.textContent}` : completedCount ? `Draft: ${completedCount} of ${questionIds.length}` : 'Not started');
 		}
 	};
 	if (!rows.length || !yesCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) return;
@@ -117,12 +118,12 @@
 		const matchingBand = percentage === null ? null : bandRows.find((row) => Number(row.percentage.toFixed(2)) === Number(percentage.toFixed(2)));
 		const score = matchingBand ? matchingBand.band : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
-		syncCompletionState();
 		summaryText.textContent = `${completedCount} of ${questionIds.length} completed`;
 		yesCountDisplay.textContent = String(yesCount);
 		percentageDisplay.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`;
 		bandDisplay.textContent = score;
 		formulaNote.textContent = allAnswered ? bandRows.map((row) => `${roundHalfUpWhole(row.percentage)}% = ${row.band}`).join(' | ') : 'Answer all questions to calculate the ordinal score.';
+		syncCompletionState();
 		saveButton.disabled = !allAnswered || (!hasChanges && pqi4Complete);
 		if (statusMessage) saveState.textContent = statusMessage;
 		else if (!hasChanges) saveState.textContent = pqi4Complete ? 'PQI 4 marked as complete' : 'PQI 4 saved';
