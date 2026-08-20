@@ -508,7 +508,7 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('0 of 3 complete', rendered)
         self.assertIn('id="pqi68-complete-card"', rendered)
         self.assertIn('<strong>1</strong>', rendered)
-        self.assertIn('<strong>0</strong>', rendered)
+        self.assertIn('<strong>--</strong>', rendered)
         self.assertIn('<strong>1</strong>', rendered)
 
     def test_pqi68_completion_banner_shows_when_all_three_are_complete(self):

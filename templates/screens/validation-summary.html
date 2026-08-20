@@ -1,23 +1,225 @@
-<div class="page-header">
-	<div>
-		<div class="eyebrow">Record validation</div>
-		<h1>Validation Summary</h1>
-		<p>Review the checks that need to pass before the assessment can move to calculation or finalization.</p>
+<style>
+	.validation-summary-page .validation-header {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 12px;
+		margin-bottom: 12px;
+	}
+
+	.validation-summary-page .big-status {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 14px;
+		background: #fff;
+		border: 1px solid var(--line);
+		border-radius: 12px;
+	}
+
+	.validation-summary-page .big-status > span {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 42px;
+		height: 42px;
+		border-radius: 50%;
+		background: #edf0f4;
+		font-size: 20px;
+		font-weight: 800;
+	}
+
+	.validation-summary-page .big-status > div {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.validation-summary-page .big-status small {
+		color: var(--muted);
+	}
+
+	.validation-summary-page .big-status.danger > span { background: #fde8e7; color: var(--red); }
+	.validation-summary-page .big-status.warning > span { background: #fff1d6; color: var(--amber); }
+	.validation-summary-page .big-status.success > span { background: #e7f5ea; color: var(--green); }
+
+	.validation-summary-page .validation-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 12px;
+	}
+
+	.validation-summary-page .validation-tabs {
+		margin: 0;
+		overflow-x: auto;
+	}
+
+	.validation-summary-page .issue-list {
+		padding: 0 18px;
+	}
+
+	.validation-summary-page .issue-section h2 {
+		margin: 14px 0 4px;
+		font-size: 15px;
+	}
+
+	.validation-summary-page .validation-row {
+		display: grid;
+		grid-template-columns: 70px minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 12px;
+		padding: 10px 0;
+		border-top: 1px solid #edf0f3;
+	}
+
+	.validation-summary-page .validation-row > div {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.validation-summary-page .validation-row p {
+		margin: 3px 0;
+		font-size: 11px;
+		color: var(--muted);
+	}
+
+	.validation-summary-page .validation-row small {
+		font-size: 10px;
+		color: var(--teal);
+	}
+
+	.validation-summary-page .issue-tag {
+		font-size: 9px;
+		font-weight: 800;
+		text-transform: uppercase;
+	}
+
+	.validation-summary-page .validation-row.danger .issue-tag { color: var(--red); }
+	.validation-summary-page .validation-row.warning .issue-tag { color: var(--amber); }
+
+	.validation-summary-page .empty-issues {
+		padding: 22px 0;
+		color: var(--muted);
+		text-align: center;
+	}
+
+	@media (max-width: 760px) {
+		.validation-summary-page .validation-header { grid-template-columns: 1fr; }
+		.validation-summary-page .validation-toolbar { align-items: stretch; flex-direction: column; }
+		.validation-summary-page .validation-row { grid-template-columns: 1fr; gap: 6px; }
+		.validation-summary-page .validation-row .button { justify-self: start; }
+	}
+</style>
+
+<div class="validation-summary-page">
+	<div class="page-header">
+		<div>
+			<div class="eyebrow">{{ assessment_label }}</div>
+			<h1>Validation Summary</h1>
+			<p>Review the checks that need to pass before the assessment can move to calculation or finalization.</p>
+		</div>
+		<div class="action-row">
+			<a class="button secondary" href="{{ back_href }}">Back to progress</a>
+		</div>
 	</div>
-	<div class="action-row"><button class="button secondary">Run checks</button><button class="button primary">Resolve issues</button></div>
+
+	<div class="validation-header">
+		<div class="big-status danger"><span id="blocking-count">{{ blocking_errors|length }}</span><div><strong>Blocking errors</strong><small>Must be resolved before calculation</small></div></div>
+		<div class="big-status warning"><span id="warning-count">{{ warnings|length }}</span><div><strong>Warnings</strong><small>Review or acknowledge</small></div></div>
+		<div class="big-status success"><span id="checks-passed-count">{{ checks_passed }}</span><div><strong>Checks passed</strong><small>No action needed</small></div></div>
+	</div>
+
+	<div class="validation-toolbar">
+		<div class="tabs validation-tabs" role="tablist">
+			<button class="active" type="button" data-validation-tab="all">All issues (<span id="all-count">{{ all_issues|length }}</span>)</button>
+			<button type="button" data-validation-tab="blocking">Blocking (<span id="blocking-tab-count">{{ blocking_errors|length }}</span>)</button>
+			<button type="button" data-validation-tab="warnings">Warnings (<span id="warnings-tab-count">{{ warnings|length }}</span>)</button>
+		</div>
+		<button class="button secondary" id="run-validation" type="button">Run validation again</button>
+	</div>
+
+	<section class="panel issue-list" id="validation-issues" aria-live="polite">
+		<div class="issue-section">
+			<h2 id="issue-heading">Blocking errors</h2>
+			<div id="issue-rows">
+				{% for issue in all_issues %}
+				<div class="validation-row danger">
+					<span class="issue-tag">Error</span>
+					<div><strong>{{ issue.title }}</strong><p>{{ issue.detail }}</p><small>{{ issue.location }}</small></div>
+					<a class="button secondary tinybtn" href="{{ issue.href }}">{{ issue.button_text }}</a>
+				</div>
+				{% else %}<div class="empty-issues">No blocking errors or warnings.</div>{% endfor %}
+			</div>
+		</div>
+	</section>
 </div>
 
-<div class="grid three">
-	<div class="panel"><div class="panel-head"><div><h3>Pass</h3><p>Completed validations.</p></div></div><div class="metric green"><div class="metric-value">14</div></div></div>
-	<div class="panel"><div class="panel-head"><div><h3>Warning</h3><p>Needs review.</p></div></div><div class="metric amber"><div class="metric-value">3</div></div></div>
-	<div class="panel"><div class="panel-head"><div><h3>Fail</h3><p>Blocking errors.</p></div></div><div class="metric red"><div class="metric-value">2</div></div></div>
-</div>
+<script>
+(() => {
+	const page = document.querySelector('.validation-summary-page');
+	const rows = document.getElementById('issue-rows');
+	const runButton = document.getElementById('run-validation');
+	if (!page || !rows || !runButton) return;
 
-<div class="panel" style="margin-top:14px">
-	<div class="panel-head"><div><h2>Issue list</h2><p>Blocking items remain in the structural and calculation sections.</p></div></div>
-	<div class="stack">
-		<div class="summary-box"><strong>Missing supporting note</strong><div class="helper">Add a note for the timed observation sample.</div></div>
-		<div class="summary-box"><strong>Unresolved hierarchy item</strong><div class="helper">Level 8 remains locked until its prerequisite is complete.</div></div>
-		<div class="summary-box"><strong>Calculation mismatch</strong><div class="helper">Review the rounded score before finalization.</div></div>
-	</div>
-</div>
+	let validationState = {{ {'blocking_errors': blocking_errors, 'warnings': warnings, 'all_issues': all_issues, 'checks_passed': checks_passed}|tojson }};
+	let activeTab = 'all';
+
+	const count = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = value; };
+	const issueList = (tab) => tab === 'blocking' ? validationState.blocking_errors : tab === 'warnings' ? validationState.warnings : validationState.all_issues;
+	const renderRows = () => {
+		const issues = issueList(activeTab);
+		document.getElementById('issue-heading').textContent = activeTab === 'warnings' ? 'Warnings' : activeTab === 'blocking' ? 'Blocking errors' : 'Blocking errors and warnings';
+		rows.innerHTML = '';
+		if (!issues.length) {
+			rows.innerHTML = '<div class="empty-issues">No issues in this view.</div>';
+			return;
+		}
+		issues.forEach((issue) => {
+			const row = document.createElement('div');
+			row.className = `validation-row ${issue.kind === 'warning' ? 'warning' : 'danger'}`;
+			row.innerHTML = `<span class="issue-tag">${issue.kind === 'warning' ? 'Warning' : 'Error'}</span><div><strong></strong><p></p><small></small></div><a class="button secondary tinybtn"></a>`;
+			row.querySelector('strong').textContent = issue.title;
+			row.querySelector('p').textContent = issue.detail;
+			row.querySelector('small').textContent = issue.location;
+			const link = row.querySelector('a');
+			link.href = issue.href;
+			link.textContent = issue.button_text;
+			rows.appendChild(row);
+		});
+	};
+	const renderState = () => {
+		count('blocking-count', validationState.blocking_errors.length);
+		count('warning-count', validationState.warnings.length);
+		count('checks-passed-count', validationState.checks_passed);
+		count('all-count', validationState.all_issues.length);
+		count('blocking-tab-count', validationState.blocking_errors.length);
+		count('warnings-tab-count', validationState.warnings.length);
+		renderRows();
+	};
+
+	page.querySelectorAll('[data-validation-tab]').forEach((tab) => tab.addEventListener('click', () => {
+		activeTab = tab.dataset.validationTab;
+		page.querySelectorAll('[data-validation-tab]').forEach((candidate) => candidate.classList.toggle('active', candidate === tab));
+		renderRows();
+	}));
+
+	runButton.addEventListener('click', async () => {
+		runButton.disabled = true;
+		runButton.textContent = 'Running validation...';
+		try {
+			const response = await fetch('{{ url_for("validation_summary_api") }}', { headers: { Accept: 'application/json' } });
+			if (!response.ok) throw new Error('Validation refresh failed');
+			validationState = await response.json();
+			renderState();
+		} catch (error) {
+			runButton.textContent = 'Refresh failed';
+		} finally {
+			runButton.disabled = false;
+			if (runButton.textContent === 'Running validation...') runButton.textContent = 'Run validation again';
+		}
+	});
+})();
+</script>

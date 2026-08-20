@@ -1275,6 +1275,32 @@ td span {
 	font-size: 12px
 }
 
+.pqi-complete-card {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	margin-bottom: 14px;
+	border: 1px solid #a9d7b0;
+	border-radius: 10px;
+	background: #edf9ef;
+	color: #1f6f3d;
+	font-weight: 700
+}
+
+.pqi-complete-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	background: #2e8b57;
+	color: #fff;
+	font-size: 14px;
+	line-height: 1
+}
+
 .pqi910-page {
 	min-width: 0
 }

@@ -29,6 +29,7 @@ from services.screen_contexts import (
     build_pqi8_context,
     build_pqi910_context,
     build_pqi_access_context,
+    build_validation_context,
     build_new_assessment_context,
     get_current_assessment_row,
     get_assessment_label,
@@ -77,6 +78,8 @@ def render_screen_section(screen_id: str) -> str:
         )
     elif screen_id == "assessment-progress":
         content = render_template_string(content, **build_assessment_progress_context())
+    elif screen_id == "validation-summary":
+        content = render_template_string(content, **build_validation_context())
     elif screen_id == "pqi1":
         content = render_template_string(content, **build_pqi1_context(), **build_pqi_access_context(), pqi1_band_rows=build_pqi1_band_rows())
     elif screen_id == "pqi3-sample":

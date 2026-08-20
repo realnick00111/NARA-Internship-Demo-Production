@@ -1,4 +1,4 @@
-<div class="card pqi2-card" id="pqi5-card" data-pqi-number="5">
+<div class="card pqi2-card" id="pqi5-card">
 	<div class="card-head">
 		<div>
 			<span class="section-kicker">PQI 5</span>
@@ -12,10 +12,7 @@
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 5 marked as complete</span>
 	</div>
-	{% if not pqi_allowed['5'] %}<div class="alert danger pqi-disabled-alert" role="alert">
-		<div class="alert-icon">!</div>
-		<div><strong>PQI 5 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div>
-	</div>{% elif not pqi5_complete %}<div class="alert info pqi2-summary-card" id="pqi5-summary-card" role="status" aria-live="polite">
+	{% if not pqi5_complete %}<div class="alert info pqi2-summary-card" id="pqi5-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Fields completed</strong>
@@ -192,8 +189,7 @@
 		if (completionCard) completionCard.hidden = !pqi5Complete;
 		if (summaryCard) summaryCard.hidden = pqi5Complete;
 		if (typeof window.syncPqiNavCompletionState === 'function') {
-			const completedCount = questionIds.filter((questionId) => getSnapshot()[questionId] === 'yes' || getSnapshot()[questionId] === 'no').length;
-			window.syncPqiNavCompletionState('pqi-5', pqi5Complete, pqi5Complete ? `${totalDisplay.textContent} points` : completedCount ? `Draft: ${completedCount} of ${questionIds.length}` : 'Not started');
+			window.syncPqiNavCompletionState('pqi-5', pqi5Complete, pqi5Complete ? `${totalDisplay.textContent} points` : null);
 		}
 	};
 
@@ -213,13 +209,13 @@
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
 
 		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
+		syncCompletionState();
 		baseDisplay.textContent = basePoints === null ? '-' : String(basePoints);
 		bonusDisplay.textContent = bonusPoint === null ? '-' : String(bonusPoint);
 		totalDisplay.textContent = totalPoints === null ? '-' : String(totalPoints);
 		formulaNote.textContent = allAnswered
 			? `Base points + bonus point = total points (max ${questionPoints.reduce((sum, points) => sum + points, 0)}).`
 			: 'Answer all questions to calculate the total points.';
-		syncCompletionState();
 
 		saveButton.disabled = !allAnswered || (!hasChanges && pqi5Complete);
 

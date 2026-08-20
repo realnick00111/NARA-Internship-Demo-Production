@@ -9,6 +9,7 @@ from constants import (
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
     FACILITY_TYPE_PQI_MAPPING,
+    NON_PQI_FIELD_REQUIREDNESS,
     PQI2_ENVIRONMENT_QUESTIONS,
     PQI4_BAND_MAPPING,
     PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS,
@@ -150,7 +151,7 @@ def _build_pqi68_card(pqi_number: int, entry: object, hierarchy: dict) -> dict:
         "number": pqi_number,
         "status": status,
         "status_label": status.title(),
-        "score": score,
+        "score": score if score else "--",
     }
 
 
@@ -1009,6 +1010,132 @@ def build_assessment_progress_context() -> dict:
         "recommendation_title": "Complete Structural Quality inputs",
         "recommendation_body": "Enter the ratio source and verify the Contact Hour formula before moving to PQI findings.",
         "assessment_banner": f"{reference_label} · {inspection_type} · {visit_date_label}",
+    }
+
+
+def build_validation_context() -> dict:
+    assessment_row = get_current_assessment_row()
+    assessment_label = get_assessment_label(assessment_row)
+    blocking_errors: list[dict] = []
+
+    if assessment_row is not None:
+        facility_defaults = DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES
+        field_values = {
+            "assessment_name": assessment_row["assessment_name"],
+            "program": assessment_row["program"],
+            "inspection_type": assessment_row["inspection_type"],
+            "assessment_date": assessment_row["assessment_date"],
+            "facility_name": assessment_row["facility_name"] or facility_defaults["facility_name"],
+            "facility_identifier": assessment_row["facility_identifier"] or facility_defaults["facility_identifier"],
+            "license_number": assessment_row["facility_license_number"] or facility_defaults["license_number"],
+            "provider_account_id": assessment_row["provider_id"] or facility_defaults["provider_account_id"],
+            "program_type": assessment_row["program_type"] or facility_defaults["program_type"],
+            "facility_type": assessment_row["facility_type"] or facility_defaults["facility_type"],
+            "physical_address": assessment_row["physical_address"] or facility_defaults["physical_address"],
+            "city_state_postal": assessment_row["city_state_postal_code"] or facility_defaults["city_state_postal"],
+            "region_office": assessment_row["region"] or facility_defaults["region_office"],
+            "provider_operator_name": assessment_row["provider_name"] or facility_defaults["provider_operator_name"],
+            "external_system": assessment_row["external_system"] or facility_defaults["external_system"],
+            "external_case_number": assessment_row["external_case_number"] or facility_defaults["external_case_number"],
+            "external_inspection_number": assessment_row["external_inspection_id"] or facility_defaults["external_inspection_number"],
+            "visit_date": assessment_row["visit_date"] or facility_defaults["visit_date"],
+            "assigned_primary_inspector": assessment_row["assessor"] or facility_defaults["assigned_primary_inspector"],
+            "inspector_identifier": "",
+            "assessment_notes": "",
+        }
+        contact_hours = _load_json_object(assessment_row["contact_hours"], {})
+        field_values.update(contact_hours)
+
+        field_specs = {
+            "assessment_name": ("Assessment name", "Setup", "new-assessment"),
+            "program": ("Program", "Setup", "new-assessment"),
+            "inspection_type": ("Inspection type", "Setup", "new-assessment"),
+            "assessment_date": ("Assessment date", "Setup", "new-assessment"),
+            "facility_name": ("Facility name", "Facility Identification", "facility-identification"),
+            "facility_identifier": ("Facility identifier", "Facility Identification", "facility-identification"),
+            "program_type": ("Program type", "Facility Identification", "facility-identification"),
+            "facility_type": ("Facility type", "Facility Identification", "facility-identification"),
+            "physical_address": ("Physical address", "Facility Identification", "facility-identification"),
+            "city_state_postal": ("City, state, postal code", "Facility Identification", "facility-identification"),
+            "external_system": ("External system", "External Record References", "facility-identification"),
+            "external_case_number": ("External case number", "External Record References", "facility-identification"),
+            "visit_date": ("Visit date", "External Record References", "facility-identification"),
+            "assigned_primary_inspector": ("Inspector name", "External Record References", "facility-identification"),
+            "to1": ("Facility opens / first staff arrives", "Structural Quality", "ch-structural-entry"),
+            "to2": ("Facility closes / last staff leaves", "Structural Quality", "ch-structural-entry"),
+            "ta": ("Total teaching / caregiving staff", "Structural Quality", "ch-structural-entry"),
+            "nc": ("Children on maximum enrollment day", "Structural Quality", "ch-structural-entry"),
+            "th1": ("Last child arrives", "Structural Quality", "ch-structural-entry"),
+            "th2": ("First child leaves", "Structural Quality", "ch-structural-entry"),
+            "density_model": ("Density model", "Structural Quality", "ch-structural-entry"),
+            "required_ratio": ("Legally required adult-child ratio", "Structural Quality", "ch-structural-entry"),
+            "ratio_source": ("Adult-child ratio source", "Structural Quality", "ch-structural-entry"),
+            "rwch_reference": ("Adult-child ratio reference", "Structural Quality", "ch-structural-entry"),
+        }
+        total_field_checks = 0
+        for requiredness_key, requiredness in (
+            ("new-assessment", NON_PQI_FIELD_REQUIREDNESS["new-assessment"]),
+            ("facility-identification", NON_PQI_FIELD_REQUIREDNESS["facility-identification"]),
+            ("ch-structural-entry", NON_PQI_FIELD_REQUIREDNESS["ch-structural-entry"]),
+        ):
+            for field_name, is_required in requiredness.items():
+                if not is_required:
+                    continue
+                total_field_checks += 1
+                if str(field_values.get(field_name, "") or "").strip():
+                    continue
+                title, section, target_screen = field_specs[field_name]
+                blocking_errors.append({
+                    "kind": "field",
+                    "title": f"{title} is missing",
+                    "detail": "This required field must be completed before calculation.",
+                    "location": f"{section} › {('Reference and model selection' if target_screen == 'ch-structural-entry' else section)}",
+                    "button_text": "Go to field",
+                    "href": url_for("screen", screen_id=target_screen),
+                })
+
+        pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
+        pqi_allowed = build_pqi_access_context(assessment_row)["pqi_allowed"]
+        pqi_context = build_pqi1_context()
+        pqi_completion = {
+            "1": pqi_context["pqi1_complete"],
+            "2": pqi_context["pqi2_complete"],
+            "3": pqi_context["pqi3_complete"],
+            "4": pqi_context["pqi4_complete"],
+            "5": pqi_context["pqi5_complete"],
+            "6": any(card["number"] == 6 and card["status"] == "complete" for card in pqi_context["pqi68_cards"]),
+            "7": any(card["number"] == 7 and card["status"] == "complete" for card in pqi_context["pqi68_cards"]),
+            "8": any(card["number"] == 8 and card["status"] == "complete" for card in pqi_context["pqi68_cards"]),
+            "9": any(card["number"] == 9 and card["status"] == "complete" for card in pqi_context["pqi910_cards"]),
+            "10": any(card["number"] == 10 and card["status"] == "complete" for card in pqi_context["pqi910_cards"]),
+        }
+        pqi_targets = {"3": "pqi3-sample", "6": "pqi6-8-hierarchy", "7": "pqi7", "8": "pqi8", "9": "pqi9-10-timed", "10": "pqi9-10-timed"}
+        pqi_names = {"1": "ECE III Educators", "2": "Stimulating Environment", "3": "Curriculum & Assessment", "4": "Staff & Family Opportunities", "5": "Child Progress Reporting", "6": "Language & Interaction", "7": "Learning Environment", "8": "Responsive Care", "9": "Attention", "10": "Warmth"}
+        for pqi_number in range(1, 11):
+            key = str(pqi_number)
+            if pqi_allowed[key] and not pqi_completion[key]:
+                blocking_errors.append({
+                    "kind": "pqi",
+                    "title": f"PQI {pqi_number} is incomplete",
+                    "detail": f"Complete {pqi_names[key]} before calculation.",
+                    "location": f"PQI Findings › PQI {pqi_number}",
+                    "button_text": "Open PQI",
+                    "href": url_for("screen", screen_id=pqi_targets.get(key, "pqi-findings-entry")) + (f"#pqi-{key}" if key in {"1", "2", "4", "5"} else ""),
+                })
+
+        total_checks = total_field_checks + sum(pqi_allowed.values())
+    else:
+        total_checks = 0
+    warnings: list[dict] = []
+    return {
+        "assessment_label": assessment_label,
+        "assessment_id": assessment_row["id"] if assessment_row is not None else None,
+        "blocking_errors": blocking_errors,
+        "warnings": warnings,
+        "checks_passed": max(0, total_checks - len(blocking_errors) - len(warnings)),
+        "all_issues": (blocking_errors + warnings)[:3],
+        "validation_href": url_for("screen", screen_id="validation-summary"),
+        "back_href": url_for("screen", screen_id="assessment-progress"),
     }
 
 

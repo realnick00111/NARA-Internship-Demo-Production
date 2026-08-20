@@ -10,7 +10,7 @@ from repositories.assessments import (
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
-from services.screen_contexts import build_pqi_access_context
+from services.screen_contexts import build_pqi_access_context, build_validation_context
 from services.formatters import (
     calculate_pqi1_score,
     calculate_pqi2_score,
@@ -58,6 +58,10 @@ def register_routes(app: Flask) -> None:
             return jsonify({"status": "success", "message": "Log saved successfully!"})
 
         return jsonify({"status": "error", "message": "No data provided"}), 400
+
+    @app.route("/api/validation-summary")
+    def validation_summary_api():
+        return jsonify(build_validation_context())
 
     @app.route("/api/save-assignment-draft", methods=["POST"])
     def save_assignment_draft_api():
