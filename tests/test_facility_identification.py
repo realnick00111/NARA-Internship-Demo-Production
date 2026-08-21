@@ -159,7 +159,8 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn("CMP-2026-00418211111", rendered)
         self.assertIn('href="/screens/ch-structural-entry"', rendered)
         self.assertIn('href="/screens/validation-summary"', rendered)
-        self.assertIn('href="/screens/pqi3-sample"', rendered)
+        self.assertEqual(rendered.count('class="issue-row danger"'), 3)
+        self.assertNotIn("Validation summary has not been reviewed", rendered)
         self.assertIn('href="/screens/audit-history"', rendered)
 
     def test_pqi_entry_has_continue_to_validation_button(self):

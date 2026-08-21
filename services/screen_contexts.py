@@ -1015,129 +1015,149 @@ def build_result_summary_context() -> dict:
 
 
 def build_assessment_progress_context() -> dict:
+    data_unavailable = "Data unavailable"
     assessment_row = get_current_assessment_row()
 
     if assessment_row is None:
         assessment_row = {
             "id": None,
-            "assessment_name": "not implemented",
-            "facility_type": "not implemented",
+            "assessment_name": data_unavailable,
+            "facility_type": data_unavailable,
             "assessment_date": None,
             "visit_date": None,
-            "program": "not implemented",
-            "inspection_type": "not implemented",
-            "assessor": "not implemented",
-            "status": "not implemented",
+            "program": data_unavailable,
+            "inspection_type": data_unavailable,
+            "assessor": data_unavailable,
+            "status": data_unavailable,
             "external_case_number": None,
             "external_inspection_id": None,
+            "calculated_result": "{}",
             "pqi_findings": "{}",
         }
 
-    status_text = str(assessment_row["status"] or "not implemented").strip() or "not implemented"
-    progress_percent = WORKFLOW_PROGRESS_BY_STATUS.get(normalize_text(status_text), 68)
-    complete_count = max(0, min(62, round(62 * progress_percent / 100)))
+    status_text = str(assessment_row["status"] or data_unavailable).strip() or data_unavailable
     assessment_id = assessment_row["id"]
-    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else "No assessment selected"
+    assessment_code = f"ASMT-{assessment_id:05d}" if assessment_id is not None else data_unavailable
     assessment_label = get_assessment_label(assessment_row)
 
     reference_label = str(
-        assessment_row["external_case_number"] or assessment_row["external_inspection_id"] or "not implemented"
-    ).strip() or "not implemented"
-    assessment_name = str(assessment_row["assessment_name"] or "not implemented").strip() or "not implemented"
+        assessment_row["external_case_number"] or assessment_row["external_inspection_id"] or data_unavailable
+    ).strip() or data_unavailable
+    assessment_name = str(assessment_row["assessment_name"] or data_unavailable).strip() or data_unavailable
     facility_type = _normalize_facility_type(assessment_row["facility_type"])
-    program = str(assessment_row["program"] or "not implemented").strip() or "not implemented"
-    inspection_type = str(assessment_row["inspection_type"] or "not implemented").strip() or "not implemented"
+    program = str(assessment_row["program"] or data_unavailable).strip() or data_unavailable
+    inspection_type = str(assessment_row["inspection_type"] or data_unavailable).strip() or data_unavailable
     visit_date_label = format_date_label(assessment_row["visit_date"])
+    if visit_date_label == "not implemented":
+        visit_date_label = data_unavailable
+
+    validation_context = build_validation_context()
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
+    pqi_context = build_pqi1_context()
+    pqi_allowed = build_pqi_access_context(assessment_row)["pqi_allowed"]
+    pqi_completion = {
+        "1": pqi_context["pqi1_complete"],
+        "2": pqi_context["pqi2_complete"],
+        "3": pqi_context["pqi3_complete"],
+        "4": pqi_context["pqi4_complete"],
+        "5": pqi_context["pqi5_complete"],
+        **{
+            str(number): any(card["number"] == number and card["status"] == "complete" for card in pqi_context["pqi68_cards"])
+            for number in (6, 7, 8)
+        },
+        **{
+            str(number): any(card["number"] == number and card["status"] == "complete" for card in pqi_context["pqi910_cards"])
+            for number in (9, 10)
+        },
+    }
+    validation_errors = validation_context["blocking_errors"]
+    required_count = validation_context.get("total_checks", 0)
+    complete_count = max(0, required_count - len(validation_errors))
+    progress_percent = round_percentage_half_up((complete_count / required_count) * 100) if required_count else 0
+
+    def has_errors_for(screen_id: str) -> bool:
+        screen_href = url_for("screen", screen_id=screen_id)
+        return any(str(issue.get("href", "")).startswith(screen_href) for issue in validation_errors)
+
+    setup_complete = not has_errors_for("new-assessment")
+    identification_complete = not has_errors_for("facility-identification")
+    structural_complete = not has_errors_for("ch-structural-entry")
+    pqi_complete = all(not pqi_allowed[number] or pqi_completion[number] for number in pqi_completion)
+    validation_complete = not validation_errors
+    calculation_result = _load_json_object(assessment_row["calculated_result"], {})
+    calculation_complete = bool(calculation_result)
+    last_calculation = format_timestamp_label(calculation_result.get("DATE_CALCULATED")) if calculation_complete else "Not calculated"
 
     snapshot_items = [
         {"label": "Regulation set", "value": f"{REGULATION_SET_NAME} {REGULATION_SET_VERSION}"},
         {"label": "Calculation model", "value": f"{CALCULATION_MODEL} v{CALCULATION_MODEL_VERSION}"},
-        {"label": "Program", "value": program},
-        {"label": "Visit date", "value": visit_date_label},
+        {"label": "Calculation model publication date", "value": format_date_label(CALCULATION_MODEL_PUBLICATION_DATE)},
+        {"label": "Last calculation", "value": last_calculation},
     ]
 
     progress_steps = [
         {
             "label": "1. Setup",
-            "detail": "Complete",
-            "state": "done",
+            "detail": "Complete" if setup_complete else "Incomplete",
+            "state": "done" if setup_complete else "pending",
             "href": url_for("screen", screen_id="new-assessment"),
         },
         {
             "label": "2. Identification",
-            "detail": "Complete",
-            "state": "done",
+            "detail": "Complete" if identification_complete else "Incomplete",
+            "state": "done" if identification_complete else "pending",
             "href": url_for("screen", screen_id="facility-identification"),
         },
         {
             "label": "3. Structural quality",
-            "detail": "2 warnings",
-            "state": "active",
+            "detail": "Complete" if structural_complete else "Incomplete",
+            "state": "done" if structural_complete else "pending",
             "href": url_for("screen", screen_id="ch-structural-entry"),
         },
         {
             "label": "4. PQI findings",
-            "detail": "28 of 44 complete",
-            "state": "pending",
+            "detail": "Complete" if pqi_complete else "Incomplete",
+            "state": "done" if pqi_complete else "pending",
             "href": url_for("screen", screen_id="pqi-findings-entry"),
         },
         {
             "label": "5. Validation",
-            "detail": "Not started",
-            "state": "pending",
+            "detail": "Complete" if validation_complete else "Incomplete",
+            "state": "done" if validation_complete else "pending",
             "href": url_for("screen", screen_id="validation-summary"),
         },
         {
             "label": "6. Calculation",
-            "detail": "Not started",
-            "state": "pending",
+            "detail": "Complete" if calculation_complete else "Not started",
+            "state": "done" if calculation_complete else "pending",
             "href": url_for("screen", screen_id="calculation-review"),
         },
         {
             "label": "7. Result & finalization",
-            "detail": "Not started",
-            "state": "pending",
+            "detail": "Data unavailable" if not calculation_complete else "Complete" if status_text.lower() == "final" else "Not started",
+            "state": "unavailable" if not calculation_complete else "done" if status_text.lower() == "final" else "pending",
             "href": url_for("screen", screen_id="result-summary"),
         },
     ]
 
+    next_step = next((step for step in progress_steps if step["state"] == "pending"), progress_steps[-1])
+    if next_step["state"] != "done":
+        next_step["state"] = "active"
+    next_step_number, next_step_title = next_step["label"].split(". ", 1)
+
     issue_rows = [
-        {
-            "severity": "danger",
-            "label": "Blocking",
-            "title": f"{assessment_name} still needs structural review",
-            "detail": f"{program} · {facility_type}",
-            "button_text": "Go to field",
-            "href": url_for("screen", screen_id="ch-structural-entry"),
-        },
-        {
-            "severity": "danger",
-            "label": "Blocking",
-            "title": "PQI 3 has only 8 of 10 sample records",
-            "detail": f"{reference_label} · {inspection_type}",
-            "button_text": "Go to sample",
-            "href": url_for("screen", screen_id="pqi3-sample"),
-        },
-        {
-            "severity": "warning",
-            "label": "Warning",
-            "title": "Validation summary has not been reviewed",
-            "detail": "Resolve outstanding items before calculation",
-            "button_text": "Review",
-            "href": url_for("screen", screen_id="validation-summary"),
-        },
+        {**issue, "severity": "danger", "label": "Blocking"}
+        for issue in validation_errors[:3]
     ]
 
-    validation_context = build_validation_context()
     blocking_component_keys = set()
-    for issue in validation_context["blocking_errors"]:
+    for issue in validation_errors:
         if issue.get("kind") == "pqi":
             pqi_number = int(issue["title"].split()[1])
             blocking_component_keys.add("PQI1_5" if pqi_number <= 5 else "PQI6_8" if pqi_number <= 8 else "PQI9_10")
         else:
             blocking_component_keys.add("CONTACT_HOURS")
 
-    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
     pqi_points = {
         "PQI1_5": _sum_pqi_scores(pqi_findings, ("pqi1", "pqi2", "pqi3", "pqi4", "pqi5")),
         "PQI6_8": _sum_pqi_scores(pqi_findings, ("pqi6", "pqi7", "pqi8")),
@@ -1198,17 +1218,18 @@ def build_assessment_progress_context() -> dict:
         "assessment_name": assessment_name,
         "assessment_status": status_text,
         "assessment_status_chip_class": get_status_chip_class(status_text),
-        "assessment_status_label": status_text.title(),
+        "assessment_status_label": data_unavailable if status_text == data_unavailable else status_text.title(),
         "reference_label": reference_label,
         "facility_type": facility_type,
         "inspection_type": inspection_type,
         "visit_date_label": visit_date_label,
         "progress_percent": progress_percent,
         "complete_count": complete_count,
-        "required_count": 62,
+        "required_count": required_count,
         "current_step_title": "CH Structural Entry",
         "current_step_summary": "Open the evidence entry form and resolve the open findings.",
-        "next_step_href": url_for("screen", screen_id="ch-structural-entry"),
+        "next_step_href": next_step["href"],
+        "next_step_number": next_step_number,
         "history_href": url_for("screen", screen_id="audit-history"),
         "validation_href": url_for("screen", screen_id="validation-summary"),
         "progress_steps": progress_steps,
@@ -1219,8 +1240,8 @@ def build_assessment_progress_context() -> dict:
         "unacknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if not warning.get("acknowledged")),
         "calculation_ready": assessment_id is not None and not validation_context["blocking_errors"],
         "snapshot_items": snapshot_items,
-        "recommendation_title": "Complete Structural Quality inputs",
-        "recommendation_body": "Enter the ratio source and verify the Contact Hour formula before moving to PQI findings.",
+        "recommendation_title": f"Complete {next_step_title}",
+        "recommendation_body": next_step["detail"],
         "assessment_banner": f"{reference_label} · {inspection_type} · {visit_date_label}",
     }
 
@@ -1343,6 +1364,7 @@ def build_validation_context() -> dict:
         "assessment_label": assessment_label,
         "assessment_id": assessment_row["id"] if assessment_row is not None else None,
         "blocking_errors": blocking_errors,
+        "total_checks": total_checks,
         "warnings": warnings,
         "checks_passed": max(0, total_checks - len(blocking_errors) - len(warnings)),
         "all_issues": (blocking_errors + warnings)[:3],

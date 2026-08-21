@@ -152,18 +152,6 @@ def build_assessment_fields(
         or None,
     }
 
-    required_fields = [
-        "assessment_name",
-        "facility_type",
-        "assessment_date",
-        "visit_date",
-        "program_type",
-        "inspection_type",
-    ]
-    missing_required = [field for field in required_fields if not fields[field]]
-    if missing_required:
-        raise ValueError(f"Missing required fields: {', '.join(missing_required)}")
-
     return fields
 
 

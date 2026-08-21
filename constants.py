@@ -81,7 +81,6 @@ CALCULATION_MODEL_VERSION = "1.2"
 CALCULATION_MODEL_PUBLICATION_DATE = "2026-05-01"
 STRUCTURAL_REFERENCE_TABLE = "RWCH Conversion Table v0.9"
 THRESHOLD_SET = "PQIAI Program-Type Thresholds v1.0"
-DEFAULT_INSPECTOR_NAME = "Jordan Davis"
 
 INCLUDED_COMPONENTS = {
     "CONTACT_HOURS": True,
@@ -118,38 +117,73 @@ PROGRAM_QUALITY_OUTCOMES = {
 # Rounds down to the nearest Threshold.
 
 ASSESSMENTS_PER_PAGE = 8
+DISABLE_DEFAULT_ASSESSMENT_FORM_VALUES = True  # Set to True to disable default values for new assessments and facility identification forms.
 
-DEFAULT_ASSESSMENT_FORM_VALUES = {
-    "program": "Child Care Center",
-    "facility_type": "Mixed Age",
-    "inspection_type": "Annual Monitoring Visit",
-    "assessment_date": "2026-07-17",
-    "visit_date": "2026-07-14",
-    "external_case_number": "CMP-2026-004182",
-    "external_inspection_id": "INS-2026-0714-22",
-    "local_record_name": "Sunrise Learning Center - Annual 2026",
-}
+if not DISABLE_DEFAULT_ASSESSMENT_FORM_VALUES:
+    DEFAULT_INSPECTOR_NAME = "Jordan Davis"
+    DEFAULT_ASSESSMENT_FORM_VALUES = {
+        "program": "Child Care Center",
+        "facility_type": "Mixed Age",
+        "inspection_type": "Annual Monitoring Visit",
+        "assessment_date": "2026-07-17",
+        "visit_date": "2026-07-14",
+        "external_case_number": "CMP-2026-004182",
+        "external_inspection_id": "INS-2026-0714-22",
+        "local_record_name": "Sunrise Learning Center - Annual 2026",
+    }
 
-DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
-    "facility_name": "Sunrise Learning Center",
-    "facility_identifier": "FAC-008742",
-    "license_number": "LIC-CC-21884",
-    "provider_account_id": "PRV-004198",
-    "program_type": "Child Care Center",
-    "facility_type": "Mixed Age",
-    "physical_address": "1250 Cedar Avenue",
-    "city_state_postal": "Olympia, WA 98501",
-    "region_office": "Region 3 - South Sound",
-    "provider_operator_name": "Sunrise Learning LLC",
-    "external_system": "Compass",
-    "external_case_number": "CMP-2026-004182",
-    "external_inspection_number": "INS-2026-0714-22",
-    "visit_date": "2026-07-14",
-    "assigned_primary_inspector": DEFAULT_INSPECTOR_NAME,
-    "inspector_name": DEFAULT_INSPECTOR_NAME,
-    "inspector_identifier": "EMP-10482",
-    "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
-}
+    DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
+        "facility_name": "Sunrise Learning Center",
+        "facility_identifier": "FAC-008742",
+        "license_number": "LIC-CC-21884",
+        "provider_account_id": "PRV-004198",
+        "program_type": "Child Care Center",
+        "facility_type": "Mixed Age",
+        "physical_address": "1250 Cedar Avenue",
+        "city_state_postal": "Olympia, WA 98501",
+        "region_office": "Region 3 - South Sound",
+        "provider_operator_name": "Sunrise Learning LLC",
+        "external_system": "Compass",
+        "external_case_number": "CMP-2026-004182",
+        "external_inspection_number": "INS-2026-0714-22",
+        "visit_date": "2026-07-14",
+        "assigned_primary_inspector": DEFAULT_INSPECTOR_NAME,
+        "inspector_name": DEFAULT_INSPECTOR_NAME,
+        "inspector_identifier": "EMP-10482",
+        "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
+    }
+else: 
+    DEFAULT_INSPECTOR_NAME = ""
+    DEFAULT_ASSESSMENT_FORM_VALUES = {
+        "program": "",
+        "facility_type": "Mixed Age",
+        "inspection_type": "",
+        "assessment_date": "",
+        "visit_date": "",
+        "external_case_number": "",
+        "external_inspection_id": "",
+        "local_record_name": "",
+    }
+    DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
+        "facility_name": "",
+        "facility_identifier": "",
+        "license_number": "",
+        "provider_account_id": "",
+        "program_type": "",
+        "facility_type": "",
+        "physical_address": "",
+        "city_state_postal": "",
+        "region_office": "",
+        "provider_operator_name": "",
+        "external_system": "",
+        "external_case_number": "",
+        "external_inspection_number": "",
+        "visit_date": "",
+        "assigned_primary_inspector": DEFAULT_INSPECTOR_NAME,
+        "inspector_name": DEFAULT_INSPECTOR_NAME,
+        "inspector_identifier": "",
+        "assessment_notes": "",
+    }
 
 NON_PQI_FIELD_REQUIREDNESS = {
     "new-assessment": {

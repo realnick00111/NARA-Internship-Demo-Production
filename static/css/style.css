@@ -397,7 +397,9 @@ video {
 }
 
 .button.block {
-	width: 100%
+	display: block;
+	width: 100%;
+	text-align: center
 }
 
 .panel,
@@ -2118,7 +2120,7 @@ td span {
 	width: 64px;
 	height: 64px;
 	border-radius: 50%;
-	background: conic-gradient(var(--teal) 0 68%, #e7ebf0 68% 100%);
+	background: conic-gradient(var(--teal) 0 var(--progress-percent), #e7ebf0 var(--progress-percent) 100%);
 	display: grid;
 	place-items: center;
 	position: relative
@@ -2199,6 +2201,17 @@ td span {
 	background: var(--green);
 	border-color: var(--green);
 	color: #fff
+}
+
+.progress-item.unavailable {
+	color: #9aa3ad;
+	opacity: .7;
+	cursor: not-allowed
+}
+
+.progress-item.unavailable > span {
+	border-color: #d2d7dd;
+	color: #aeb6bf
 }
 
 .progress-main {

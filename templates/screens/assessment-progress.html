@@ -21,7 +21,7 @@
 <div class="progress-layout">
 	<aside class="progress-nav panel">
 		<div class="progress-summary">
-			<div class="ring"><span>{{ progress_percent }}%</span></div>
+			<div class="ring" style="--progress-percent: {{ progress_percent }}%;"><span>{{ progress_percent }}%</span></div>
 			<div>
 				<strong>Assessment completion</strong>
 				<span>{{ complete_count }} of {{ required_count }} required items complete</span>
@@ -76,15 +76,12 @@
 		<div class="card">
 			<h2>Next recommended action</h2>
 			<div class="next-action">
-				<div class="next-num">3</div>
+				<div class="next-num">{{ next_step_number }}</div>
 				<div>
 					<strong>{{ recommendation_title }}</strong>
 					<span>{{ recommendation_body }}</span>
 				</div>
-				<a class="button primary" href="{{ next_step_href }}">Continue Structural Quality</a>
-			</div>
-			<div class="card-actions" style="margin-top:12px">
-				<a class="button secondary" href="{{ history_href }}">View history</a>
+				<a class="button primary" href="{{ next_step_href }}">{{ recommendation_title }}</a>
 			</div>
 		</div>
 	</section>
