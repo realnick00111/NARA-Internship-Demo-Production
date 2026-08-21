@@ -1,27 +1,47 @@
-<div class="page-header">
+<div class="page-header calculation-page-header">
 	<div>
-		<div class="eyebrow">Score review</div>
+		<div class="eyebrow">{{ assessment_label }}</div>
 		<h1>Calculation Review</h1>
-		<p>Confirm the derived values, formula inputs, and rounding behavior before the final score is published.</p>
 	</div>
-	<div class="action-row"><button class="button secondary">Rebuild score</button><button class="button primary">Lock calculation</button></div>
 </div>
 
-<div class="calc-review-grid split">
-	<section class="panel">
-		<div class="panel-head"><div><h2>Formula</h2><p>The current implementation uses a weighted average with rounding rules applied at the end.</p></div></div>
-		<div class="paper-note" style="font-family:Georgia,serif;font-size:22px;padding:16px;background:#f7f3f9;border-radius:12px;text-align:center">Final score = (weighted inputs ÷ observed items)</div>
-		<div class="grid two" style="margin-top:14px">
-			<div class="summary-box"><strong>Weighted inputs</strong><div class="helper">74 points from observed evidence.</div></div>
-			<div class="summary-box"><strong>Observed items</strong><div class="helper">12 usable observations.</div></div>
+<div class="calculation-review-grid">
+	<section class="card calculation-assets">
+		<div class="card-head">
+			<div><h2>Frozen calculation assets</h2><p>These versions will be recorded with the new calculation.</p></div>
+			<span class="chip success">Ready</span>
+		</div>
+		<div class="frozen-list">
+			<div><span>Regulation / indicator set</span><strong>{{ regulation_set_name }} {{ regulation_set_version }}</strong><small>Effective {{ regulation_effective_date }}</small></div>
+			<div><span>Calculation model</span><strong>{{ calculation_model }} v{{ calculation_model_version }}</strong><small>Published {{ calculation_model_publication_date }}</small></div>
+			<div><span>Threshold set</span><strong>{{ threshold_set }}</strong><small>{{ facility_type }} bands</small></div>
+			<div><span>Structural reference table</span><strong>{{ structural_reference_table }}</strong><small>Provisional pilot reference</small></div>
+		</div>
+		<div class="section-rule"></div>
+		<h3>Included and excluded components</h3>
+		<div class="table-wrap calculation-table-wrap">
+			<table>
+				<thead><tr><th>Component</th><th>Status</th><th>Reason</th><th>Contribution</th></tr></thead>
+				<tbody>
+					{% for component in calculation_component_rows %}
+					<tr><td>{{ component.name }}</td><td><span class="chip {{ 'danger' if component.status == 'Blocking' else 'success' if component.status == 'Included' else 'neutral' }}">{{ component.status }}</span></td><td>{{ component.reason }}</td><td>{{ component.contribution }}</td></tr>
+					{% endfor %}
+				</tbody>
+			</table>
 		</div>
 	</section>
-	<aside class="panel">
-		<div class="panel-head"><div><h3>Derived values</h3><p>Numbers that roll into the published score.</p></div></div>
-		<div class="stack">
-			<div class="metric purple"><div class="metric-label">Raw average</div><div class="metric-value">6.17</div></div>
-			<div class="metric teal"><div class="metric-label">Rounded score</div><div class="metric-value">6.2</div></div>
-			<div class="metric amber"><div class="metric-label">Rounding note</div><div class="metric-foot">Rounded to one decimal place.</div></div>
+
+	<aside class="calculation-side-stack">
+		<div class="card readiness-card">
+			<h3>Calculation readiness</h3>
+			<div class="readiness-score {{ 'warning' if not assessment_selected else 'danger' if blocking_errors else 'success' }}"><span>{{ '&#10003;' if calculation_ready else '!' }}</span><div><strong>{{ 'Ready to calculate' if calculation_ready else 'No assessment selected' if not assessment_selected else 'Not ready to calculate' }}</strong><small>{{ blocking_errors|length }} blocking errors &middot; {{ acknowledged_warning_count }} acknowledged warnings &middot; {{ unacknowledged_warning_count }} unacknowledged warnings</small></div></div>
+			<ul class="checklist"><li>Required identification complete</li><li>Calculation inputs complete</li><li>Versioned assets available</li><li>Missing-data rules applied</li></ul>
+		</div>
+		<div class="card calculate-card">
+			<h3>Create a reproducible result</h3>
+			<p>Calculation inputs, exclusions, formulas, thresholds, model versions, and the calculating user will be stored together.</p>
+			<button class="button primary block" type="button" {% if not calculation_ready %}disabled aria-disabled="true"{% endif %}>Calculate result</button>
+			<button class="button secondary block" type="button">Download input snapshot</button>
 		</div>
 	</aside>
 </div>

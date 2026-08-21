@@ -86,13 +86,16 @@
 	const draftSaveButton = document.getElementById('pqi1-draft-save-button');
 	const saveButton = document.getElementById('pqi1-save-button');
 	const completeCard = document.getElementById('pqi1-complete-card');
+	const hasAssessment = assessmentId !== null;
 	const syncCompletionState = () => {
 		if (completeCard) {
-			completeCard.hidden = !pqi1Complete;
+			completeCard.hidden = !hasAssessment || !pqi1Complete;
 		}
 		if (typeof window.syncPqiNavCompletionState === 'function') {
 			const percentage = Number(totalInput.value) > 0 ? (Number(certifiedInput.value) / Number(totalInput.value)) * 100 : null;
-			window.syncPqiNavCompletionState('pqi-1', pqi1Complete, pqi1Complete ? `Score ${bandLabel(percentage)}` : hasAnyInput ? `Draft${percentage === null ? '' : `: Score ${bandLabel(percentage)}`}` : 'Not started');
+			const hasAnyInput = certifiedInput.value !== '' || totalInput.value !== '';
+			const isComplete = hasAssessment && pqi1Complete;
+			window.syncPqiNavCompletionState('pqi-1', isComplete, isComplete ? `Score ${bandLabel(percentage)}` : hasAnyInput ? `Draft${percentage === null ? '' : `: Score ${bandLabel(percentage)}`}` : 'Not started');
 		}
 	};
 
@@ -170,9 +173,12 @@
 
 		const hasChanges = lastSavedSnapshot === null || snapshot.certified !== lastSavedSnapshot.certified || snapshot.total !== lastSavedSnapshot.total;
 		syncCompletionState();
-		saveButton.disabled = !valid || (lastSavedSnapshot !== null && !hasChanges && pqi1Complete);
+		saveButton.disabled = !hasAssessment || !valid || (lastSavedSnapshot !== null && !hasChanges && pqi1Complete);
+		draftSaveButton.disabled = !hasAssessment;
 		if (statusMessage) {
 			saveState.textContent = statusMessage;
+		} else if (!hasAssessment) {
+			saveState.textContent = 'Select an assessment before saving PQI 1';
 		} else if (lastSavedSnapshot !== null && !hasChanges) {
 			saveState.textContent = pqi1Complete ? 'PQI 1 marked as complete' : 'PQI 1 Saved';
 		} else if (valid) {
@@ -183,6 +189,11 @@
 	};
 
 	const persist = async (targetButton = saveButton) => {
+		if (!hasAssessment) {
+			statusMessage = 'No assessment selected, unable to save';
+			saveState.textContent = statusMessage;
+			return;
+		}
 		if (targetButton === saveButton && saveButton.disabled) {
 			return;
 		}
@@ -197,6 +208,7 @@
 			payload.assessment_id = assessmentId;
 		}
 
+		let completedSuccessfully = false;
 		targetButton.disabled = true;
 		if (targetButton === draftSaveButton) {
 			statusMessage = 'Draft saved';
@@ -226,18 +238,20 @@
 
 			lastSavedSnapshot = getCurrentSnapshot();
 			pqi1Complete = targetButton === saveButton;
+			completedSuccessfully = targetButton === saveButton;
 			syncCompletionState();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 1 marked as complete';
 			saveState.textContent = statusMessage;
+			window.refreshPqiProgress?.();
 		} catch (error) {
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : (error instanceof Error ? error.message : 'Unable to complete PQI 1');
 			saveState.textContent = statusMessage;
 		} finally {
-			targetButton.disabled = targetButton === saveButton;
-			if (targetButton === draftSaveButton) {
+			targetButton.disabled = targetButton === saveButton && completedSuccessfully;
+			if (targetButton === draftSaveButton && completedSuccessfully) {
 				statusMessage = 'Draft saved';
 				saveState.textContent = statusMessage;
-			} else {
+			} else if (targetButton === saveButton && completedSuccessfully) {
 				saveState.textContent = 'PQI 1 marked as complete';
 			}
 		}

@@ -213,6 +213,22 @@ window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => 
 	const statusNode = navItem.querySelector('small');
 	if (statusNode && statusText !== null) statusNode.textContent = statusText;
 };
+window.refreshPqiProgress = async () => {
+	try {
+		const response = await fetch("{{ url_for('pqi_progress_api') }}");
+		if (!response.ok) return;
+		const progress = await response.json();
+		if (progress.assessment_id === null) return;
+		const summary = document.getElementById('pqi-progress-summary');
+		const percentage = document.getElementById('pqi-progress-percentage');
+		const bar = document.getElementById('pqi-progress-bar');
+		if (summary) summary.textContent = `${progress.numerator} of ${progress.denominator} complete`;
+		if (percentage) percentage.textContent = `${progress.percentage}%`;
+		if (bar) bar.style.width = `${progress.percentage}%`;
+	} catch (error) {
+		// Keep the last server-rendered progress when refresh is unavailable.
+	}
+};
 </script>
 
 <div class="pqi-layout">
@@ -229,6 +245,7 @@ window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => 
 		<a class="pqi-item{% if pqi5_complete %} complete{% endif %}" href="#pqi-5" data-pqi-target="pqi-5"><span>5</span><div><b>Child Progress Reporting</b><small>{{ pqi5_score_label }}</small></div></a>
 		<a class="pqi-item{% if pqi68_complete %} complete{% endif %}" href="#pqi-6-8" data-pqi-target="pqi-6-8"><span>6-8</span><div><b>Observational Levels</b><small>{{ pqi68_complete_count }} of 3 complete</small></div></a>
 		<a class="pqi-item{% if pqi910_complete %} complete{% endif %}" href="#pqi-9-10" data-pqi-target="pqi-9-10"><span>9-10</span><div><b>Timed Observations</b><small>{{ pqi910_complete_count }} of 2 complete</small></div></a>
+		<button class="button secondary" type="button" data-href="{{ url_for('screen', screen_id='assessment-progress') }}">Back to progress</button>
 	</aside>
 
 	<section class="pqi-main">
@@ -428,7 +445,9 @@ window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => 
 	const progressSummary = document.getElementById('pqi-progress-summary');
 	const progressPercentage = document.getElementById('pqi-progress-percentage');
 	const progressBar = document.getElementById('pqi-progress-bar');
+	const progressReturnButton = document.querySelector('#pqi-findings-entry [data-href]');
 	const lockedControls = (number) => Array.from(document.querySelectorAll(`#pqi-findings-entry [data-pqi-number="${number}"] input, #pqi-findings-entry [data-pqi-number="${number}"] textarea, #pqi-findings-entry [data-pqi-number="${number}"] button`));
+	progressReturnButton?.addEventListener('click', () => { window.location.href = progressReturnButton.dataset.href; });
 	Object.entries(pqiAllowed).forEach(([number, isAllowed]) => {
 		if (isAllowed) return;
 		lockedControls(number).forEach((control) => { control.disabled = true; control.setAttribute('aria-disabled', 'true'); });
@@ -437,25 +456,6 @@ window.syncPqiNavCompletionState = (targetId, isComplete, statusText = null) => 
 
 	const isAnswered = (value) => value === 'yes' || value === 'no';
 	const countAnsweredRows = (selector, attribute) => Array.from(document.querySelectorAll(selector)).filter((row) => isAnswered(row.getAttribute(attribute))).length;
-	const getLiveProgressUnits = () => ({
-		...pqiProgressUnits,
-		'1': [Array.from(document.querySelectorAll('#pqi1-card input[type="number"]')).filter((input) => input.value.trim() !== '').length, pqiProgressUnits['1'][1]],
-		'2': [countAnsweredRows('[data-pqi2-question-id]', 'data-pqi2-response'), pqiProgressUnits['2'][1]],
-		'4': [countAnsweredRows('[data-pqi4-question-id]', 'data-pqi4-response'), pqiProgressUnits['4'][1]],
-		'5': [countAnsweredRows('[data-pqi5-question-id]', 'data-pqi5-response'), pqiProgressUnits['5'][1]],
-	});
-	const syncPqiProgress = () => {
-		const units = getLiveProgressUnits();
-		const numerator = Object.entries(units).reduce((total, [number, [completed]]) => total + (pqiAllowed[number] ? completed : 0), 0);
-		const denominator = Object.entries(units).reduce((total, [number, [, capacity]]) => total + (pqiAllowed[number] ? capacity : 0), 0);
-		const percentage = denominator ? Math.floor((numerator / denominator) * 100 + 0.5) : 0;
-		if (progressSummary) progressSummary.textContent = `${numerator} of ${denominator} complete`;
-		if (progressPercentage) progressPercentage.textContent = `${percentage}%`;
-		if (progressBar) progressBar.style.width = `${percentage}%`;
-	};
-	findingsEntry?.addEventListener('input', syncPqiProgress);
-	findingsEntry?.addEventListener('click', syncPqiProgress);
-	syncPqiProgress();
 
 	if (!navItems.length || !panels.length) {
 		return;

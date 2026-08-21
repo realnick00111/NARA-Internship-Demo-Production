@@ -72,6 +72,51 @@ NAV_BY_SCREEN = {
 STANDALONE_SCREENS = {"login-tenant", "export-preview"}
 
 CURRENT_ASSESSMENT_SESSION_KEY = "current_assessment_id"
+
+REGULATION_SET_NAME = "Evergreen Center Standards"
+REGULATION_SET_VERSION = "2026.1"
+REGULATION_EFFECTIVE_DATE = "2026-01-01"
+CALCULATION_MODEL = "CCEEHM"
+CALCULATION_MODEL_VERSION = "1.2"
+CALCULATION_MODEL_PUBLICATION_DATE = "2026-05-01"
+STRUCTURAL_REFERENCE_TABLE = "RWCH Conversion Table v0.9"
+THRESHOLD_SET = "PQIAI Program-Type Thresholds v1.0"
+
+INCLUDED_COMPONENTS = {
+    "CONTACT_HOURS": True,
+    "PQI1_5": True,
+    "PQI6_8": True,
+    "PQI9_10": True,
+    "ATTACHMENTS_AND_NARRATIVE_NOTES": False # This is visually included as an option but not implemented.
+}
+
+# Descriptive plus values do not add numeric fractions. Static thresholds are:
+CH_CONTACT_HOURS_THRESHOLDS = {
+    "Mixed Age": {
+        "High": 36,
+        "High-Mid": 30,
+        "Mid-Low": 20,
+        "Low": 10,
+    },
+    "Preschool": {
+        "High": 32,
+        "High-Mid": 26,
+        "Mid-Low": 16,
+        "Low": 9,
+    },
+    "Infant-Toddler": {
+        "High": 28,
+        "High-Mid": 22,
+        "Mid-Low": 12,
+        "Low": 8,
+    },
+}
+# Mixed Age High 36-40, High-Mid 30-35, Mid-Low 20-29, Low 10-19;
+# Preschool High 32-36, High-Mid 26-31, Mid-Low 16-25, Low 9-15;
+# Infant-Toddler High 28-32, High-Mid 22-27, Mid-Low 12-21, Low 8-11.
+# These explicit lower bounds reflect the applicable indicator counts in the prototype.
+# Rounds down to the nearest Threshold.
+
 ASSESSMENTS_PER_PAGE = 8
 
 DEFAULT_ASSESSMENT_FORM_VALUES = {

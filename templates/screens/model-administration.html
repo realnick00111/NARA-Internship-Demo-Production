@@ -2,16 +2,16 @@
 	<div>
 		<div class="eyebrow">Model governance</div>
 		<h1>Model Administration</h1>
-		<p>Manage the published scoring model, review approvals, and inspect pending changes before release.</p>
+		<p>Manage the published calculation model, review approvals, and inspect pending changes before release.</p>
 	</div>
 	<div class="action-row"><button class="button secondary">Create revision</button><button class="button primary">Approve release</button></div>
 </div>
 
 <div class="grid two">
 	<section class="panel">
-		<div class="panel-head"><div><h2>Current model</h2><p>Published version and its approvals.</p></div></div>
+		<div class="panel-head"><div><h2>Current calculation model</h2><p>Published version and its approvals.</p></div></div>
 		<div class="stack">
-			<div class="summary-box"><strong>Version 1.2</strong><div class="helper">Effective Jul 1, 2026.</div></div>
+			<div class="summary-box"><strong>{{ calculation_model }} v{{ calculation_model_version }}</strong><div class="helper">Published {{ calculation_model_publication_date }}.</div></div>
 			<div class="summary-box"><strong>Approved by</strong><div class="helper">Policy lead, data steward, and program director.</div></div>
 			<div class="summary-box"><strong>Open review</strong><div class="helper">One reference table update pending.</div></div>
 		</div>

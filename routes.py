@@ -10,7 +10,7 @@ from repositories.assessments import (
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
-from services.screen_contexts import build_pqi_access_context, build_validation_context
+from services.screen_contexts import build_pqi1_context, build_pqi_access_context, build_validation_context
 from services.formatters import (
     calculate_pqi1_score,
     calculate_pqi2_score,
@@ -62,6 +62,18 @@ def register_routes(app: Flask) -> None:
     @app.route("/api/validation-summary")
     def validation_summary_api():
         return jsonify(build_validation_context())
+
+    @app.route("/api/assessments/pqi-progress")
+    def pqi_progress_api():
+        context = build_pqi1_context()
+        return jsonify(
+            {
+                "assessment_id": context["editing_assessment_id"],
+                "numerator": context["pqi_progress_numerator"],
+                "denominator": context["pqi_progress_denominator"],
+                "percentage": context["pqi_progress_percentage"],
+            }
+        )
 
     @app.route("/api/save-assignment-draft", methods=["POST"])
     def save_assignment_draft_api():

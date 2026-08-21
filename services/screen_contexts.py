@@ -5,10 +5,14 @@ from markupsafe import Markup, escape
 
 from constants import (
     ASSESSMENTS_PER_PAGE,
+    CALCULATION_MODEL,
+    CALCULATION_MODEL_PUBLICATION_DATE,
+    CALCULATION_MODEL_VERSION,
     FACILITY_TYPE_OPTIONS,
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
     FACILITY_TYPE_PQI_MAPPING,
+    INCLUDED_COMPONENTS,
     NON_PQI_FIELD_REQUIREDNESS,
     PQI2_ENVIRONMENT_QUESTIONS,
     PQI4_BAND_MAPPING,
@@ -25,6 +29,11 @@ from constants import (
     PQI10_LIKERT_SCORE_RANGE,
     PQI10_OBSERVATION_COUNT,
     PQI10_OBSERVATION_DURATION_SECONDS,
+    REGULATION_EFFECTIVE_DATE,
+    REGULATION_SET_NAME,
+    REGULATION_SET_VERSION,
+    STRUCTURAL_REFERENCE_TABLE,
+    THRESHOLD_SET,
     WORKFLOW_PROGRESS_BY_STATUS,
 )
 from repositories.assessments import (
@@ -796,7 +805,21 @@ def build_dashboard_context() -> dict:
     return {
         "draft_assessment_count": draft_assessment_count,
         "modified_today_count": modified_today_count,
+        **build_calculation_configuration_context(),
         "recent_assessments": recent_assessments,
+    }
+
+
+def build_calculation_configuration_context() -> dict:
+    return {
+        "regulation_set_name": REGULATION_SET_NAME,
+        "regulation_set_version": REGULATION_SET_VERSION,
+        "regulation_effective_date": format_date_label(REGULATION_EFFECTIVE_DATE),
+        "calculation_model": CALCULATION_MODEL,
+        "calculation_model_version": CALCULATION_MODEL_VERSION,
+        "calculation_model_publication_date": format_date_label(CALCULATION_MODEL_PUBLICATION_DATE),
+        "structural_reference_table": STRUCTURAL_REFERENCE_TABLE,
+        "threshold_set": THRESHOLD_SET,
     }
 
 
@@ -831,6 +854,7 @@ def build_new_assessment_context() -> dict:
         "assessment_label": assessment_label,
         "editing_assessment_id": current_assessment["id"] if current_assessment is not None else None,
         "facility_type_options": FACILITY_TYPE_OPTIONS,
+        **build_calculation_configuration_context(),
     }
 
 
@@ -902,14 +926,14 @@ def build_assessment_progress_context() -> dict:
         assessment_row["external_case_number"] or assessment_row["external_inspection_id"] or "not implemented"
     ).strip() or "not implemented"
     assessment_name = str(assessment_row["assessment_name"] or "not implemented").strip() or "not implemented"
-    facility_type = str(assessment_row["facility_type"] or "not implemented").strip() or "not implemented"
+    facility_type = _normalize_facility_type(assessment_row["facility_type"])
     program = str(assessment_row["program"] or "not implemented").strip() or "not implemented"
     inspection_type = str(assessment_row["inspection_type"] or "not implemented").strip() or "not implemented"
     visit_date_label = format_date_label(assessment_row["visit_date"])
 
     snapshot_items = [
-        {"label": "Regulation set", "value": "Evergreen Center Standards 2026.1"},
-        {"label": "Scoring model", "value": "CCEEHM v1.2"},
+        {"label": "Regulation set", "value": f"{REGULATION_SET_NAME} {REGULATION_SET_VERSION}"},
+        {"label": "Calculation model", "value": f"{CALCULATION_MODEL} v{CALCULATION_MODEL_VERSION}"},
         {"label": "Program", "value": program},
         {"label": "Visit date", "value": visit_date_label},
     ]
@@ -986,14 +1010,71 @@ def build_assessment_progress_context() -> dict:
         },
     ]
 
+    validation_context = build_validation_context()
+    blocking_component_keys = set()
+    for issue in validation_context["blocking_errors"]:
+        if issue.get("kind") == "pqi":
+            pqi_number = int(issue["title"].split()[1])
+            blocking_component_keys.add("PQI1_5" if pqi_number <= 5 else "PQI6_8" if pqi_number <= 8 else "PQI9_10")
+        else:
+            blocking_component_keys.add("CONTACT_HOURS")
+
+    calculation_component_rows = [
+        {
+            "name": "Contact Hour Structural Quality",
+            "included": INCLUDED_COMPONENTS["CONTACT_HOURS"],
+            "status": "Blocking" if INCLUDED_COMPONENTS["CONTACT_HOURS"] and "CONTACT_HOURS" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["CONTACT_HOURS"] else "Excluded",
+            "reason": "All required inputs complete",
+            "blocking_reason": "Required inputs are incomplete",
+            "contribution": "Structural comparison",
+        },
+        {
+            "name": "PQI 1-5",
+            "included": INCLUDED_COMPONENTS["PQI1_5"],
+            "status": "Blocking" if INCLUDED_COMPONENTS["PQI1_5"] and "PQI1_5" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["PQI1_5"] else "Excluded",
+            "reason": "Applicable and complete",
+            "blocking_reason": "One or more applicable indicators are incomplete",
+            "contribution": "17 points",
+        },
+        {
+            "name": "PQI 6-8",
+            "included": INCLUDED_COMPONENTS["PQI6_8"],
+            "status": "Blocking" if INCLUDED_COMPONENTS["PQI6_8"] and "PQI6_8" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["PQI6_8"] else "Excluded",
+            "reason": "All hierarchical indicators applicable",
+            "blocking_reason": "One or more hierarchical indicators are incomplete",
+            "contribution": "7 points",
+        },
+        {
+            "name": "PQI 9-10",
+            "included": INCLUDED_COMPONENTS["PQI9_10"],
+            "status": "Blocking" if INCLUDED_COMPONENTS["PQI9_10"] and "PQI9_10" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["PQI9_10"] else "Excluded",
+            "reason": "All timed observations complete",
+            "blocking_reason": "One or more timed observations are incomplete",
+            "contribution": "10 points",
+        },
+        {
+            "name": "Attachments and narrative notes",
+            "included": INCLUDED_COMPONENTS["ATTACHMENTS_AND_NARRATIVE_NOTES"],
+            "status": "Included" if INCLUDED_COMPONENTS["ATTACHMENTS_AND_NARRATIVE_NOTES"] else "Excluded",
+            "reason": "Evidence only; not calculation inputs",
+            "blocking_reason": "Evidence requirements are incomplete",
+            "contribution": "No score contribution",
+        },
+    ]
+    for component in calculation_component_rows:
+        if component["status"] == "Blocking":
+            component["reason"] = component["blocking_reason"]
+
     return {
         "assessment_code": assessment_code,
         "assessment_label": assessment_label,
+        **build_calculation_configuration_context(),
         "assessment_name": assessment_name,
         "assessment_status": status_text,
         "assessment_status_chip_class": get_status_chip_class(status_text),
         "assessment_status_label": status_text.title(),
         "reference_label": reference_label,
+        "facility_type": facility_type,
         "inspection_type": inspection_type,
         "visit_date_label": visit_date_label,
         "progress_percent": progress_percent,
@@ -1006,6 +1087,11 @@ def build_assessment_progress_context() -> dict:
         "validation_href": url_for("screen", screen_id="validation-summary"),
         "progress_steps": progress_steps,
         "issue_rows": issue_rows,
+        "calculation_component_rows": calculation_component_rows,
+        "blocking_errors": validation_context["blocking_errors"],
+        "acknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if warning.get("acknowledged")),
+        "unacknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if not warning.get("acknowledged")),
+        "calculation_ready": not validation_context["blocking_errors"],
         "snapshot_items": snapshot_items,
         "recommendation_title": "Complete Structural Quality inputs",
         "recommendation_body": "Enter the ratio source and verify the Contact Hour formula before moving to PQI findings.",
@@ -1134,6 +1220,7 @@ def build_validation_context() -> dict:
         "warnings": warnings,
         "checks_passed": max(0, total_checks - len(blocking_errors) - len(warnings)),
         "all_issues": (blocking_errors + warnings)[:3],
+        "all_issue_count": len(blocking_errors) + len(warnings),
         "validation_href": url_for("screen", screen_id="validation-summary"),
         "back_href": url_for("screen", screen_id="assessment-progress"),
     }

@@ -134,7 +134,7 @@
 
 	<div class="validation-toolbar">
 		<div class="tabs validation-tabs" role="tablist">
-			<button class="active" type="button" data-validation-tab="all">All issues (<span id="all-count">{{ all_issues|length }}</span>)</button>
+			<button class="active" type="button" data-validation-tab="all">All issues (<span id="all-count">{{ all_issue_count }}</span>)</button>
 			<button type="button" data-validation-tab="blocking">Blocking (<span id="blocking-tab-count">{{ blocking_errors|length }}</span>)</button>
 			<button type="button" data-validation-tab="warnings">Warnings (<span id="warnings-tab-count">{{ warnings|length }}</span>)</button>
 		</div>
@@ -194,7 +194,7 @@
 		count('blocking-count', validationState.blocking_errors.length);
 		count('warning-count', validationState.warnings.length);
 		count('checks-passed-count', validationState.checks_passed);
-		count('all-count', validationState.all_issues.length);
+		count('all-count', validationState.all_issue_count);
 		count('blocking-tab-count', validationState.blocking_errors.length);
 		count('warnings-tab-count', validationState.warnings.length);
 		renderRows();

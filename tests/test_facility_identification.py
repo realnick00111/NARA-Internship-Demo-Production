@@ -2,6 +2,7 @@ import json
 import unittest
 
 from app import app, get_db_connection, save_assignment_draft, set_current_assessment
+from constants import INCLUDED_COMPONENTS, REGULATION_SET_NAME, REGULATION_SET_VERSION
 from services.formatters import round_percentage_half_up
 
 
@@ -158,6 +159,57 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('href="/screens/validation-summary"', rendered)
         self.assertIn('href="/screens/pqi3-sample"', rendered)
         self.assertIn('href="/screens/audit-history"', rendered)
+
+    def test_calculation_review_matches_prototype_structure(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE facilities SET type = ? WHERE id = (SELECT facility_id FROM assessments WHERE id = ?)",
+            ("Preschool", assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/screens/calculation-review")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Calculation Review", rendered)
+        self.assertIn("Frozen calculation assets", rendered)
+        self.assertIn("Calculation readiness", rendered)
+        self.assertIn("Create a reproducible result", rendered)
+        self.assertIn(f"{REGULATION_SET_NAME} {REGULATION_SET_VERSION}", rendered)
+        self.assertIn(f"Assessment ASMT-{assessment_id:05d}", rendered)
+        self.assertIn("<small>Preschool bands</small>", rendered)
+
+    def test_calculation_review_component_statuses_follow_included_components(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        original_components = dict(INCLUDED_COMPONENTS)
+        INCLUDED_COMPONENTS.update(
+            {
+                "CONTACT_HOURS": False,
+                "ATTACHMENTS_AND_NARRATIVE_NOTES": True,
+            }
+        )
+        try:
+            rendered = self.client.get("/screens/calculation-review").data.decode("utf-8")
+        finally:
+            INCLUDED_COMPONENTS.clear()
+            INCLUDED_COMPONENTS.update(original_components)
+
+        self.assertIn(
+            'Contact Hour Structural Quality</td><td><span class="chip neutral">Excluded</span>',
+            rendered,
+        )
+        self.assertIn(
+            'Attachments and narrative notes</td><td><span class="chip success">Included</span>',
+            rendered,
+        )
 
     def test_assessment_label_uses_current_selection_or_placeholder(self):
         response = self.client.get("/screens/facility-identification")
@@ -371,7 +423,18 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('id="pqi1-draft-save-button"', rendered)
         self.assertIn('Save Draft', rendered)
         self.assertIn('id="pqi1-save-button"', rendered)
+        self.assertIn("const hasAnyInput = certifiedInput.value !== '' || totalInput.value !== '';", rendered)
         self.assertIn('disabled', rendered)
+
+    def test_pqi_progress_requires_saved_state(self):
+        response = self.client.get("/api/assessments/pqi-progress")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.get_json()["assessment_id"])
+
+        findings_response = self.client.get("/screens/pqi-findings-entry")
+        findings_rendered = findings_response.data.decode("utf-8")
+        self.assertNotIn("findingsEntry?.addEventListener('input', syncPqiProgress)", findings_rendered)
 
     def test_pqi_findings_entry_embeds_pqi1_controls(self):
         assessment_id = self.insert_assessment()
@@ -589,6 +652,26 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(saved_findings["pqi1"]["score"], 2)
         self.assertEqual(saved_findings["pqi1"]["certified_teaching_staff"], 6)
         self.assertEqual(saved_findings["pqi1"]["total_teaching_staff"], 12)
+
+    def test_complete_pqi1_marks_entry_complete(self):
+        assessment_id = self.insert_assessment()
+
+        response = self.client.post(
+            "/api/assessments/pqi1",
+            json={
+                "assessment_id": assessment_id,
+                "certified_teaching_staff": 6,
+                "total_teaching_staff": 12,
+                "complete": True,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT pqi_findings FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        self.assertTrue(json.loads(saved_row[0])["pqi1"]["complete"])
 
     def test_save_pqi2_persists_nested_json(self):
         assessment_id = self.insert_assessment()

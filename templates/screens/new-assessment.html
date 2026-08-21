@@ -13,7 +13,7 @@
 <form id="assignment-draft-form" onsubmit="return false">
 	<div class="split">
 		<section class="panel form-card">
-			<div class="panel-head"><div><h2>Assessment setup</h2><p>Selections determine the applicable regulation set, scoring model, and required fields.</p></div></div>
+			<div class="panel-head"><div><h2>Assessment setup</h2><p>Selections determine the applicable regulation set, calculation model, and required fields.</p></div></div>
 			<div class="grid two form-grid">
 				<label class="field"><div class="labelrow"><label for="program">Program</label>{% if required_fields.program %}<span class="req">Required</span>{% endif %}</div><input class="input" id="program" name="program" type="text" value="{{ assessment_form.program }}"></label>
 				<label class="field"><div class="labelrow"><label for="facility-type">Facility type</label>{% if required_fields.facility_type %}<span class="req">Required</span>{% endif %}</div><select class="select" id="facility-type" name="facility_type">{% for option in facility_type_options %}<option value="{{ option }}"{% if assessment_form.facility_type == option %} selected{% endif %}>{{ option }}</option>{% endfor %}</select></label>
@@ -27,15 +27,15 @@
 			<div class="section-rule"></div>
 			<h3>Applicable configuration</h3>
 			<div class="config-preview">
-				<div><span>Regulation set</span><strong>Evergreen Center Standards 2026</strong><small>Version 2026.1 · Effective Jan 1, 2026</small></div>
-				<div><span>Scoring model</span><strong>CCEEHM v1.2</strong><small>Published Jul 1, 2026</small></div>
+				<div><span>Regulation set</span><strong>{{ regulation_set_name }} {{ regulation_set_version }}</strong><small>Effective {{ regulation_effective_date }}</small></div>
+				<div><span>Calculation model</span><strong>{{ calculation_model }} v{{ calculation_model_version }}</strong><small>Published {{ calculation_model_publication_date }}</small></div>
 				<button class="button secondary" type="button">Review applicability</button>
 			</div>
 		</section>
 		<aside class="stack side-stack">
 			<div class="alert warning vertical">
 				<div class="alert-icon">!</div>
-				<div><strong>Evidence limitation</strong><span>The scoring summary does not include the original validation study or complete RWCH conversion table. Results remain provisional until the agency approves the supporting evidence.</span></div>
+				<div><strong>Evidence limitation</strong><span>The calculation summary does not include the original validation study or complete RWCH conversion table. Results remain provisional until the agency approves the supporting evidence.</span></div>
 			</div>
 			<div class="panel">
 				<div class="panel-head"><div><h3>Record will include</h3><p>Everything needed for the downstream workflow.</p></div></div>
