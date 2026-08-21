@@ -238,7 +238,7 @@
 		const snapshot = getSnapshot();
 		const payload = {
 			responses: snapshot,
-			complete: targetButton === saveButton,
+			complete: targetButton === saveButton || pqi5Complete,
 		};
 
 		if (assessmentId !== null) {
@@ -263,8 +263,9 @@
 			}
 
 			lastSavedSnapshot = snapshot;
-			pqi5Complete = targetButton === saveButton;
+			pqi5Complete = targetButton === saveButton || pqi5Complete;
 			syncCompletionState();
+			window.refreshPqiProgress?.();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 5 marked as complete';
 		} catch (error) {
 			statusMessage = 'No assessment selected, unable to save';
@@ -289,7 +290,9 @@
 		});
 	});
 
-	draftSaveButton.addEventListener('click', () => {
+		window.pqiDraftSavers = window.pqiDraftSavers || [];
+		window.pqiDraftSavers.push(() => persist(draftSaveButton));
+		draftSaveButton.addEventListener('click', () => {
 		persist(draftSaveButton);
 	});
 	saveButton.addEventListener('click', () => {

@@ -186,9 +186,10 @@
 		const fullEnrollmentDurationMinutes = enrollmentStart !== null && enrollmentEnd !== null && enrollmentEnd > enrollmentStart ? enrollmentEnd - enrollmentStart : null;
 		const operatingHours = operatingDurationMinutes === null ? null : operatingDurationMinutes / 60;
 		const fullEnrollmentHours = fullEnrollmentDurationMinutes === null ? null : fullEnrollmentDurationMinutes / 60;
-		const calculatedCh = operatingHours === null || fullEnrollmentHours === null || taValue === null || ncValue === null || taValue <= 0
+		const calculatedChRaw = operatingHours === null || fullEnrollmentHours === null || taValue === null || ncValue === null || taValue <= 0
 			? null
 			: (ncValue * (operatingHours + fullEnrollmentHours)) / (2 * taValue);
+		const calculatedCh = calculatedChRaw === null ? null : Number(calculatedChRaw.toFixed(2));
 
 		return {
 			operatingHours,
@@ -248,13 +249,7 @@
 		return payload;
 	};
 
-	buttons.forEach((button) => {
-		button.addEventListener('click', () => {
-			window.location.href = button.dataset.href;
-		});
-	});
-
-	saveButton.addEventListener('click', async () => {
+	const saveContactHours = async () => {
 		const payload = updateView();
 		saveState.textContent = 'Saving draft...';
 
@@ -273,10 +268,22 @@
 			}
 
 			saveState.textContent = 'Draft saved';
+			return true;
 		} catch (error) {
 			saveState.textContent = 'No assessment selected, unable to save';
+			return false;
 		}
+	};
+
+	buttons.forEach((button) => {
+		button.addEventListener('click', async () => {
+			if (await saveContactHours()) {
+				window.location.href = button.dataset.href;
+			}
+		});
 	});
+
+	saveButton.addEventListener('click', saveContactHours);
 
 	Object.values(fieldElements).forEach((field) => {
 		if (!field) {

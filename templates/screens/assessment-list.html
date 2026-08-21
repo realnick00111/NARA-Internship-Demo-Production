@@ -4,7 +4,7 @@
 		<h1>Assessment List</h1>
 		<p>Search, filter, and resume the assessments that are currently active in the workspace.</p>
 	</div>
-	<div class="action-row"><a class="button primary" href="{{ url_for('start_new_assessment') }}">Create assessment</a><button class="button secondary">Export list</button></div>
+	<div class="action-row"><a class="button primary" href="{{ url_for('start_new_assessment') }}">Create assessment</a><button class="button secondary" id="import-assessment-json" type="button">Import JSON</button><input id="import-assessment-json-file" type="file" accept=".json,application/json" hidden><button class="button secondary">Export list</button></div>
 </div>
 
 <div class="toolbar">
@@ -85,8 +85,35 @@
 
 	<script>
 	(() => {
+		const importButton = document.getElementById('import-assessment-json');
+		const importFile = document.getElementById('import-assessment-json-file');
 		const table = document.querySelector('.assessment-list-table');
 		if (!table) return;
+
+		if (importButton && importFile) {
+			importButton.addEventListener('click', () => importFile.click());
+			importFile.addEventListener('change', async () => {
+				const selectedFile = importFile.files?.[0];
+				if (!selectedFile) return;
+
+				const formData = new FormData();
+				formData.append('snapshot', selectedFile);
+				importButton.disabled = true;
+				try {
+					const response = await fetch('{{ url_for('import_input_snapshot') }}', { method: 'POST', body: formData });
+					const payload = await response.json();
+					if (!response.ok || payload.status !== 'success') {
+						throw new Error(payload.message || 'Unable to import the assessment snapshot.');
+					}
+					window.location.reload();
+				} catch (error) {
+					window.alert(error.message || 'Unable to import the assessment snapshot.');
+				} finally {
+					importButton.disabled = false;
+					importFile.value = '';
+				}
+			});
+		}
 
 		const selectAll = table.querySelector('.assessment-select-all');
 		const rowSelects = Array.from(table.querySelectorAll('.assessment-row-select'));

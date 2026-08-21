@@ -239,7 +239,7 @@
 		const payload = {
 			responses: snapshot,
 			optional_note: optionalNote ? optionalNote.value : '',
-			complete: targetButton === saveButton,
+			complete: targetButton === saveButton || pqi2Complete,
 		};
 
 		if (assessmentId !== null) {
@@ -264,8 +264,9 @@
 			}
 
 			lastSavedSnapshot = snapshot;
-			pqi2Complete = targetButton === saveButton;
+			pqi2Complete = targetButton === saveButton || pqi2Complete;
 			syncCompletionState();
+			window.refreshPqiProgress?.();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 2 marked as complete';
 		} catch (error) {
 			statusMessage = 'No assessment selected, unable to save';
@@ -294,6 +295,8 @@
 		});
 	});
 
+	window.pqiDraftSavers = window.pqiDraftSavers || [];
+	window.pqiDraftSavers.push(() => persist(draftSaveButton));
 	draftSaveButton.addEventListener('click', () => {
 		persist(draftSaveButton);
 	});

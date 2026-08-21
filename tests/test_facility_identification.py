@@ -1,5 +1,7 @@
+import io
 import json
 import unittest
+from unittest.mock import patch
 
 from app import app, get_db_connection, save_assignment_draft, set_current_assessment
 from constants import INCLUDED_COMPONENTS, REGULATION_SET_NAME, REGULATION_SET_VERSION
@@ -160,6 +162,17 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('href="/screens/pqi3-sample"', rendered)
         self.assertIn('href="/screens/audit-history"', rendered)
 
+    def test_pqi_entry_has_continue_to_validation_button(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/pqi-findings-entry").data.decode("utf-8")
+
+        self.assertIn(">Continue to Validation</a>", rendered)
+        self.assertIn('href="/screens/validation-summary">Continue to Validation</a>', rendered)
+
     def test_calculation_review_matches_prototype_structure(self):
         assessment_id = self.insert_assessment()
         self.conn.execute(
@@ -182,6 +195,72 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn(f"{REGULATION_SET_NAME} {REGULATION_SET_VERSION}", rendered)
         self.assertIn(f"Assessment ASMT-{assessment_id:05d}", rendered)
         self.assertIn("<small>Preschool bands</small>", rendered)
+        self.assertNotIn("No assessment selected", rendered)
+        self.assertIn("Not ready to calculate", rendered)
+
+    def test_calculation_review_without_selection_is_not_ready(self):
+        rendered = self.client.get("/screens/calculation-review").data.decode("utf-8")
+
+        self.assertIn("readiness-score warning", rendered)
+        self.assertIn("No assessment selected", rendered)
+        self.assertNotIn("Ready to calculate", rendered)
+        self.assertIn('disabled aria-disabled="true"', rendered)
+
+    def test_download_input_snapshot_excludes_calculation_result(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET contact_hours = ?, pqi_findings = ?, calculated_result = ? WHERE id = ?",
+            (json.dumps({"calculated_ch": "8"}), json.dumps({"pqi1": {"score": 2}}), json.dumps({"score": 9}), assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.get("/assessments/input-snapshot")
+        snapshot = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment; filename=assessment-input-snapshot-", response.headers["Content-Disposition"])
+        self.assertNotIn("calculated_result", snapshot["assessment"])
+        self.assertEqual(snapshot["assessment"]["contact_hours"], {"calculated_ch": "8"})
+        self.assertEqual(snapshot["facility"]["identifier"], "FAC-008742")
+
+    def test_imported_snapshot_round_trips_input_and_ignores_calculation_result(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE facilities SET name = ? WHERE id = (SELECT facility_id FROM assessments WHERE id = ?)",
+            ("Sunrise Learning Center Facility", assessment_id),
+        )
+        self.conn.execute(
+            "UPDATE assessments SET contact_hours = ?, pqi_findings = ?, calculated_result = ? WHERE id = ?",
+            (json.dumps({"calculated_ch": "8"}), json.dumps({"pqi1": {"score": 2}}), json.dumps({"score": 9}), assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        exported_snapshot = self.client.get("/assessments/input-snapshot").get_json()
+        exported_snapshot["assessment"]["calculated_result"] = {"score": 999}
+        response = self.client.post(
+            "/api/assessments/import-input-snapshot",
+            data={"snapshot": (io.BytesIO(json.dumps(exported_snapshot).encode("utf-8")), "snapshot.json")},
+            content_type="multipart/form-data",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        imported_id = response.get_json()["assessment_id"]
+        imported_row = self.conn.execute(
+            "SELECT a.*, f.* FROM assessments a JOIN facilities f ON f.id = a.facility_id WHERE a.id = ?",
+            (imported_id,),
+        ).fetchone()
+        self.assertEqual(imported_row["assessment_name"], "Sunrise Learning Center - Annual 2026 test")
+        self.assertEqual(imported_row["name"], "Sunrise Learning Center Facility")
+        self.assertEqual(imported_row["facility_identifier"], "FAC-008742")
+        self.assertEqual(imported_row["contact_hours"], json.dumps({"calculated_ch": "8"}))
+        self.assertEqual(imported_row["pqi_findings"], json.dumps({"pqi1": {"score": 2}}))
+        self.assertEqual(json.loads(imported_row["calculated_result"]), {})
 
     def test_calculation_review_component_statuses_follow_included_components(self):
         assessment_id = self.insert_assessment()
@@ -210,6 +289,53 @@ class FacilityIdentificationTests(unittest.TestCase):
             'Attachments and narrative notes</td><td><span class="chip success">Included</span>',
             rendered,
         )
+
+    def test_calculation_review_sums_pqi_scores_and_hides_blocking_groups(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (
+                json.dumps({
+                    "pqi1": {"score": 1},
+                    "pqi2": {"score": 2},
+                    "pqi3": {"score": 3},
+                    "pqi4": {"score": 4},
+                    "pqi5": {"score": 4},
+                    "pqi6": {"score": 2},
+                    "pqi7": {"score": 3},
+                    "pqi8": {"score": 4},
+                    "pqi9": {"score": 1},
+                    "pqi10": {"score": 2},
+                }),
+                assessment_id,
+            ),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        ready_validation = {"blocking_errors": [], "warnings": []}
+        with patch("services.screen_contexts.build_validation_context", return_value=ready_validation):
+            rendered = self.client.get("/screens/calculation-review").data.decode("utf-8")
+
+        self.assertIn("PQI 1-5</td><td><span class=\"chip success\">Included</span></td><td>Applicable and complete</td><td>14 points", rendered)
+        self.assertIn("PQI 6-8</td><td><span class=\"chip success\">Included</span></td><td>All hierarchical indicators applicable</td><td>9 points", rendered)
+        self.assertIn("PQI 9-10</td><td><span class=\"chip success\">Included</span></td><td>All timed observations complete</td><td>3 points", rendered)
+
+        blocked_validation = {
+            "blocking_errors": [
+                {"kind": "pqi", "title": "PQI 3 is incomplete"},
+                {"kind": "pqi", "title": "PQI 9 is incomplete"},
+            ],
+            "warnings": [],
+        }
+        with patch("services.screen_contexts.build_validation_context", return_value=blocked_validation):
+            rendered = self.client.get("/screens/calculation-review").data.decode("utf-8")
+
+        self.assertIn("PQI 1-5</td><td><span class=\"chip danger\">Blocking</span></td><td>One or more applicable indicators are incomplete</td><td>--", rendered)
+        self.assertIn("PQI 6-8</td><td><span class=\"chip success\">Included</span></td><td>All hierarchical indicators applicable</td><td>9 points", rendered)
+        self.assertIn("PQI 9-10</td><td><span class=\"chip danger\">Blocking</span></td><td>One or more timed observations are incomplete</td><td>--", rendered)
 
     def test_assessment_label_uses_current_selection_or_placeholder(self):
         response = self.client.get("/screens/facility-identification")

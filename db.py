@@ -62,6 +62,7 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
         "external_inspection_id",
         "contact_hours",
         "pqi_findings",
+        "calculated_result",
         "created_at",
         "modified_at",
     }
@@ -105,6 +106,7 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
             external_inspection_id TEXT,
             contact_hours TEXT NOT NULL DEFAULT '{}',
             pqi_findings TEXT NOT NULL DEFAULT '{}',
+            calculated_result TEXT NOT NULL DEFAULT '{}',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             modified_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -118,6 +120,7 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
             {
                 "contact_hours": "TEXT NOT NULL DEFAULT '{}'",
                 "pqi_findings": "TEXT NOT NULL DEFAULT '{}'",
+                "calculated_result": "TEXT NOT NULL DEFAULT '{}'",
             },
         )
 

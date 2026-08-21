@@ -1,16 +1,20 @@
-from flask import Flask, abort, jsonify, redirect, request, url_for
+import json
+
+from flask import Flask, Response, abort, jsonify, redirect, request, url_for
 
 from constants import PQI10_LIKERT_SCORE_RANGE, PQI10_OBSERVATION_COUNT, PQI2_ENVIRONMENT_QUESTIONS, PQI3_RECORD_COUNT, PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS, PQI5_CHILD_PROGRESS_QUESTIONS, PQI6_HIERARCHY, PQI7_HIERARCHY, PQI8_HIERARCHY
 from db import log_storage_event
 from rendering import render_page
 from repositories.assessments import (
     delete_assessments_by_ids,
+    build_assessment_input_snapshot,
     get_assessment_row_by_id,
+    import_assessment_input_snapshot,
     update_assessment_json_fields,
     upsert_assessment_fields,
 )
 from services.assessment_workflows import build_assessment_fields, create_assessment_entry, save_assignment_draft
-from services.screen_contexts import build_pqi1_context, build_pqi_access_context, build_validation_context
+from services.screen_contexts import build_calculation_result, build_pqi1_context, build_pqi_access_context, build_validation_context
 from services.formatters import (
     calculate_pqi1_score,
     calculate_pqi2_score,
@@ -48,6 +52,23 @@ def register_routes(app: Flask) -> None:
         set_current_assessment(assessment_id)
         return redirect(url_for("screen", screen_id="assessment-progress"))
 
+    @app.route("/assessments/input-snapshot")
+    def download_assessment_input_snapshot():
+        assessment_id = get_current_assessment()
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to download snapshot"}), 400
+
+        snapshot = build_assessment_input_snapshot(int(assessment_id))
+        if snapshot is None:
+            abort(404)
+
+        response = Response(
+            json.dumps(snapshot, indent=2, ensure_ascii=True) + "\n",
+            mimetype="application/json",
+        )
+        response.headers["Content-Disposition"] = f"attachment; filename=assessment-input-snapshot-{int(assessment_id):05d}.json"
+        return response
+
     @app.route("/api/save-log", methods=["POST"])
     def save_log():
         data = request.get_json(silent=True) or {}
@@ -63,15 +84,37 @@ def register_routes(app: Flask) -> None:
     def validation_summary_api():
         return jsonify(build_validation_context())
 
+    @app.route("/assessments/calculate", methods=["POST"])
+    def calculate_assessment_result():
+        validation_context = build_validation_context()
+        if validation_context["assessment_id"] is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to calculate"}), 400
+        if validation_context["blocking_errors"]:
+            return jsonify({"status": "error", "message": "Complete all required assessment data before calculating"}), 400
+
+        result = build_calculation_result()
+        update_assessment_json_fields(validation_context["assessment_id"], calculated_result=result)
+        return redirect(url_for("screen", screen_id="result-summary"))
+
     @app.route("/api/assessments/pqi-progress")
     def pqi_progress_api():
         context = build_pqi1_context()
+        nav_items = {
+            "pqi-1": {"complete": context["pqi1_complete"], "status": context["pqi1_score_label"]},
+            "pqi-2": {"complete": context["pqi2_complete"], "status": context["pqi2_score_label"]},
+            "pqi-3": {"complete": context["pqi3_complete"], "status": f"{context['pqi3_completed_count']} of 10 records"},
+            "pqi-4": {"complete": context["pqi4_complete"], "status": context["pqi4_score_label"]},
+            "pqi-5": {"complete": context["pqi5_complete"], "status": context["pqi5_score_label"]},
+            "pqi-6-8": {"complete": context["pqi68_complete"], "status": f"{context['pqi68_complete_count']} of 3 complete"},
+            "pqi-9-10": {"complete": context["pqi910_complete"], "status": f"{context['pqi910_complete_count']} of 2 complete"},
+        }
         return jsonify(
             {
                 "assessment_id": context["editing_assessment_id"],
                 "numerator": context["pqi_progress_numerator"],
                 "denominator": context["pqi_progress_denominator"],
                 "percentage": context["pqi_progress_percentage"],
+                "nav_items": nav_items,
             }
         )
 
@@ -831,3 +874,25 @@ def register_routes(app: Flask) -> None:
                 "next_screen": url_for("screen", screen_id="facility-identification"),
             }
         )
+
+    @app.route("/api/assessments/import-input-snapshot", methods=["POST"])
+    def import_input_snapshot():
+        uploaded_file = request.files.get("snapshot")
+        if uploaded_file is None or not uploaded_file.filename:
+            return jsonify({"status": "error", "message": "Choose a JSON snapshot file to import"}), 400
+
+        try:
+            snapshot = json.loads(uploaded_file.read().decode("utf-8-sig"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return jsonify({"status": "error", "message": "The selected file is not valid JSON"}), 400
+
+        if not isinstance(snapshot, dict):
+            return jsonify({"status": "error", "message": "The snapshot must contain a JSON object"}), 400
+
+        try:
+            assessment_id = import_assessment_input_snapshot(snapshot)
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(assessment_id)
+        return jsonify({"status": "success", "assessment_id": assessment_id, "next_screen": url_for("screen", screen_id="assessment-list")})

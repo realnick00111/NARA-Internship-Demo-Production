@@ -36,6 +36,11 @@
 			<span class="chip info" id="pqi6-highest-complete">Highest complete: Level {{ pqi6_score_display }}</span>
 		</div>
 
+		<div class="pqi-complete-card" id="pqi6-complete-card" role="status" aria-live="polite"{% if not pqi6_complete %} hidden{% endif %}>
+			<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+			<span>PQI 6 marked as complete</span>
+		</div>
+
 		{% for level in pqi6_levels %}
 		<div class="level {{ level.status }}" data-pqi6-level="{{ level.number }}">
 			<div class="level-head">
@@ -184,7 +189,9 @@
 		calculatedLevel.textContent = displayScore;
 		calculatedDescription.textContent = `Level ${displayScore} is the highest level with all criteria met.`;
 		const changed = JSON.stringify(snapshot()) !== lastSaved;
-		completeButton.disabled = !pqiAllowed['6'] || completeInitially;
+		completeButton.disabled = !pqiAllowed['6'] || (completeInitially && !changed);
+		const completionCard = document.getElementById('pqi6-complete-card');
+		if (completionCard) completionCard.hidden = !completeInitially || changed;
 		saveState.textContent = changed ? 'Unsaved changes' : completeInitially ? 'PQI 6 marked as complete' : 'Draft saved';
 	};
 
@@ -214,6 +221,7 @@
 			lastSaved = JSON.stringify(snapshot());
 			completeInitially = button === completeButton;
 			saveState.textContent = completeInitially ? 'PQI 6 marked as complete' : 'Draft saved';
+			window.refreshPqiProgress?.();
 		} catch (error) {
 			saveState.textContent = error.message || 'Unable to save PQI 6';
 		} finally {

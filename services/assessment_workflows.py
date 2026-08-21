@@ -1,5 +1,6 @@
 import sqlite3
 
+from constants import DEFAULT_INSPECTOR_NAME
 from repositories.assessments import get_assessment_row_by_id, upsert_assessment_fields
 from session_state import get_current_assessment, set_current_assessment
 
@@ -133,7 +134,7 @@ def build_assessment_fields(
             assessment_data,
             "assessor",
             "assigned_primary_inspector",
-            default=str(existing_values.get("assessor", "not implemented")).strip() or "not implemented",
+            default=str(existing_values.get("assessor", DEFAULT_INSPECTOR_NAME)).strip() or DEFAULT_INSPECTOR_NAME,
         ),
         "status": status,
         "external_case_number": get_payload_value(

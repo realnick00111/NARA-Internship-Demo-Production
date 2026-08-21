@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from flask import request, url_for
 from markupsafe import Markup, escape
@@ -8,7 +9,9 @@ from constants import (
     CALCULATION_MODEL,
     CALCULATION_MODEL_PUBLICATION_DATE,
     CALCULATION_MODEL_VERSION,
+    CALCULATION_MODEL_PUBLICATION_DATE,
     FACILITY_TYPE_OPTIONS,
+    DEFAULT_INSPECTOR_NAME,
     DEFAULT_ASSESSMENT_FORM_VALUES,
     DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES,
     FACILITY_TYPE_PQI_MAPPING,
@@ -35,6 +38,7 @@ from constants import (
     STRUCTURAL_REFERENCE_TABLE,
     THRESHOLD_SET,
     WORKFLOW_PROGRESS_BY_STATUS,
+    PROGRAM_QUALITY_OUTCOMES,
 )
 from repositories.assessments import (
     get_assessment_row_by_id,
@@ -883,7 +887,11 @@ def build_facility_identification_context() -> dict:
                 "external_case_number": str(current_assessment["external_case_number"] or facility_form["external_case_number"]).strip() or facility_form["external_case_number"],
                 "external_inspection_number": str(current_assessment["external_inspection_id"] or facility_form["external_inspection_number"]).strip() or facility_form["external_inspection_number"],
                 "visit_date": str(current_assessment["visit_date"] or facility_form["visit_date"]).strip() or facility_form["visit_date"],
-                "assigned_primary_inspector": str(current_assessment["assessor"] or facility_form["assigned_primary_inspector"]).strip() or facility_form["assigned_primary_inspector"],
+                "assigned_primary_inspector": (
+                    str(current_assessment["assessor"]).strip()
+                    if current_assessment["assessor"] and str(current_assessment["assessor"]).strip().lower() != "not implemented"
+                    else DEFAULT_INSPECTOR_NAME
+                ),
             }
         )
 
@@ -894,6 +902,115 @@ def build_facility_identification_context() -> dict:
         "assessment_label": assessment_label,
         "editing_assessment_id": current_assessment["id"] if current_assessment is not None else None,
         "facility_type_options": FACILITY_TYPE_OPTIONS,
+    }
+
+
+def _sum_pqi_scores(pqi_findings: dict, pqi_keys: tuple[str, ...]) -> int:
+    total = 0
+    for pqi_key in pqi_keys:
+        entry = pqi_findings.get(pqi_key, {})
+        if not isinstance(entry, dict):
+            continue
+        try:
+            total += int(entry.get("score"))
+        except (TypeError, ValueError):
+            continue
+    return total
+
+
+def build_calculation_result() -> dict:
+    assessment_row = get_current_assessment_row()
+    if assessment_row is None:
+        raise ValueError("No assessment selected, unable to calculate")
+
+    progress_context = build_pqi1_context()
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
+    allowed_pqis = build_pqi_access_context(assessment_row)["pqi_allowed"]
+    pqi_number = sum(
+        int(pqi_findings.get(f"pqi{number}", {}).get("score", 0) or 0)
+        for number in range(1, 11)
+        if allowed_pqis[str(number)] and isinstance(pqi_findings.get(f"pqi{number}"), dict)
+    )
+    contact_hours = _load_json_object(assessment_row["contact_hours"], {})
+    facility_type = _normalize_facility_type(assessment_row["facility_type"])
+    outcome = next(
+        (label for label, lower_bound in PROGRAM_QUALITY_OUTCOMES.get(facility_type, {}).items() if pqi_number >= lower_bound),
+        "Low",
+    )
+    return {
+        "REGULATION_SET_NAME": REGULATION_SET_NAME,
+        "REGULATION_SET_VERSION": REGULATION_SET_VERSION,
+        "REGULATION_EFFECTIVE_DATE": REGULATION_EFFECTIVE_DATE,
+        "CALCULATION_MODEL": CALCULATION_MODEL,
+        "CALCULATION_MODEL_VERSION": CALCULATION_MODEL_VERSION,
+        "CALCULATION_MODEL_PUBLICATION_DATE": CALCULATION_MODEL_PUBLICATION_DATE,
+        "STRUCTURAL_REFERENCE_TABLE": STRUCTURAL_REFERENCE_TABLE,
+        "THRESHOLD_SET": THRESHOLD_SET,
+        "CALCULATED_CH": contact_hours.get("calculated_ch", ""),
+        "RWCH_REFERENCE": contact_hours.get("rwch_reference", ""),
+        "PROGRAM_QUALITY_OUTCOME_NUMBER": pqi_number,
+        "PROGRAM_QUALITY_OUTCOME": outcome,
+        "DATA_COMPLETENESS_NUMBERATOR": progress_context["pqi_progress_numerator"],
+        "DATA_COMPLETENESS_DENOMIATOR": progress_context["pqi_progress_denominator"],
+        "DATA_COMPLETENESS_PERCENTAGE": progress_context["pqi_progress_percentage"],
+        "DATE_CALCULATED": datetime.now().isoformat(timespec="minutes"),
+    }
+
+
+def build_result_summary_context() -> dict:
+    assessment_row = get_current_assessment_row()
+    result = _load_json_object(assessment_row["calculated_result"], {}) if assessment_row is not None else {}
+    contact_hours = _load_json_object(assessment_row["contact_hours"], {}) if assessment_row is not None else {}
+    facility_type = _normalize_facility_type(assessment_row["facility_type"]) if assessment_row is not None else ""
+    thresholds = PROGRAM_QUALITY_OUTCOMES.get(facility_type, {})
+    outcome_number = result.get("PROGRAM_QUALITY_OUTCOME_NUMBER", "--")
+    outcome = result.get("PROGRAM_QUALITY_OUTCOME", "No result calculated")
+    lower_bound = thresholds.get(outcome)
+    higher_bound = next(
+        (value - 1 for value in thresholds.values() if lower_bound is not None and value > lower_bound),
+        "--",
+    )
+    outcome_bands = []
+    ordered_thresholds = sorted(thresholds.items(), key=lambda item: item[1])
+    for index, (label, band_lower_bound) in enumerate(ordered_thresholds):
+        next_lower_bound = ordered_thresholds[index + 1][1] if index + 1 < len(ordered_thresholds) else None
+        outcome_bands.append(
+            {
+                "label": label,
+                "range": f"{band_lower_bound}-{next_lower_bound - 1}" if next_lower_bound else f"{band_lower_bound}+",
+                "active": bool(result) and outcome == label,
+            }
+        )
+    calculated_ch = result.get("CALCULATED_CH", "--")
+    rwch_reference = result.get("RWCH_REFERENCE", contact_hours.get("rwch_reference", "--"))
+    try:
+        structural_is_acceptable = float(calculated_ch) < float(rwch_reference)
+    except (TypeError, ValueError):
+        structural_is_acceptable = False
+    try:
+        calculated_ch_position = min(100, max(0, 55 * float(calculated_ch) / float(rwch_reference)))
+    except (TypeError, ValueError, ZeroDivisionError):
+        calculated_ch_position = None
+
+    return {
+        "assessment_label": get_assessment_label(assessment_row),
+        "result": result,
+        "has_result": bool(result),
+        "facility_type": facility_type,
+        "outcome_number": outcome_number,
+        "outcome": outcome,
+        "outcome_range": f"{lower_bound}-{higher_bound}" if lower_bound is not None else "--",
+        "outcome_bands": outcome_bands,
+        "calculated_ch": calculated_ch,
+        "rwch_reference": rwch_reference,
+        "calculated_ch_position": calculated_ch_position,
+        "rwch_reference_position": 55,
+        "completeness_percentage": result.get("DATA_COMPLETENESS_PERCENTAGE", "--"),
+        "structural_status_chip_class": "success" if structural_is_acceptable else "danger",
+        "structural_status_label": "Acceptable" if structural_is_acceptable else "Needs review",
+        "structural_status_message_class": "" if structural_is_acceptable else "danger",
+        "structural_status_message": "Calculated CH is below the configured RWCH reference." if structural_is_acceptable else "Calculated CH exceeds the configured RWCH reference.",
+        "structural_status_detail": "This indicates an acceptable structural-quality result under the current model." if structural_is_acceptable else "This indicates a structural-quality concern under the current model.",
     }
 
 
@@ -913,6 +1030,7 @@ def build_assessment_progress_context() -> dict:
             "status": "not implemented",
             "external_case_number": None,
             "external_inspection_id": None,
+            "pqi_findings": "{}",
         }
 
     status_text = str(assessment_row["status"] or "not implemented").strip() or "not implemented"
@@ -1019,6 +1137,13 @@ def build_assessment_progress_context() -> dict:
         else:
             blocking_component_keys.add("CONTACT_HOURS")
 
+    pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
+    pqi_points = {
+        "PQI1_5": _sum_pqi_scores(pqi_findings, ("pqi1", "pqi2", "pqi3", "pqi4", "pqi5")),
+        "PQI6_8": _sum_pqi_scores(pqi_findings, ("pqi6", "pqi7", "pqi8")),
+        "PQI9_10": _sum_pqi_scores(pqi_findings, ("pqi9", "pqi10")),
+    }
+
     calculation_component_rows = [
         {
             "name": "Contact Hour Structural Quality",
@@ -1034,7 +1159,7 @@ def build_assessment_progress_context() -> dict:
             "status": "Blocking" if INCLUDED_COMPONENTS["PQI1_5"] and "PQI1_5" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["PQI1_5"] else "Excluded",
             "reason": "Applicable and complete",
             "blocking_reason": "One or more applicable indicators are incomplete",
-            "contribution": "17 points",
+            "contribution": "--" if "PQI1_5" in blocking_component_keys else f"{pqi_points['PQI1_5']} points",
         },
         {
             "name": "PQI 6-8",
@@ -1042,7 +1167,7 @@ def build_assessment_progress_context() -> dict:
             "status": "Blocking" if INCLUDED_COMPONENTS["PQI6_8"] and "PQI6_8" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["PQI6_8"] else "Excluded",
             "reason": "All hierarchical indicators applicable",
             "blocking_reason": "One or more hierarchical indicators are incomplete",
-            "contribution": "7 points",
+            "contribution": "--" if "PQI6_8" in blocking_component_keys else f"{pqi_points['PQI6_8']} points",
         },
         {
             "name": "PQI 9-10",
@@ -1050,7 +1175,7 @@ def build_assessment_progress_context() -> dict:
             "status": "Blocking" if INCLUDED_COMPONENTS["PQI9_10"] and "PQI9_10" in blocking_component_keys else "Included" if INCLUDED_COMPONENTS["PQI9_10"] else "Excluded",
             "reason": "All timed observations complete",
             "blocking_reason": "One or more timed observations are incomplete",
-            "contribution": "10 points",
+            "contribution": "--" if "PQI9_10" in blocking_component_keys else f"{pqi_points['PQI9_10']} points",
         },
         {
             "name": "Attachments and narrative notes",
@@ -1068,6 +1193,7 @@ def build_assessment_progress_context() -> dict:
     return {
         "assessment_code": assessment_code,
         "assessment_label": assessment_label,
+        "assessment_selected": assessment_id is not None,
         **build_calculation_configuration_context(),
         "assessment_name": assessment_name,
         "assessment_status": status_text,
@@ -1091,7 +1217,7 @@ def build_assessment_progress_context() -> dict:
         "blocking_errors": validation_context["blocking_errors"],
         "acknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if warning.get("acknowledged")),
         "unacknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if not warning.get("acknowledged")),
-        "calculation_ready": not validation_context["blocking_errors"],
+        "calculation_ready": assessment_id is not None and not validation_context["blocking_errors"],
         "snapshot_items": snapshot_items,
         "recommendation_title": "Complete Structural Quality inputs",
         "recommendation_body": "Enter the ratio source and verify the Contact Hour formula before moving to PQI findings.",

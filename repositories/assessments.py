@@ -1,6 +1,7 @@
 import json
 import sqlite3
 
+from constants import DEFAULT_INSPECTOR_NAME
 from db import get_db_connection, log_storage_event
 
 
@@ -11,6 +12,7 @@ ASSESSMENT_ROW_SELECT = """
         a.facility_id,
         a.facility_identifier AS assessment_facility_identifier,
         a.external_system,
+        f.identifier AS facility_record_identifier,
         COALESCE(NULLIF(trim(f.identifier), ''), NULLIF(trim(a.facility_identifier), '')) AS facility_identifier,
         a.assessment_date,
         a.visit_date,
@@ -21,6 +23,7 @@ ASSESSMENT_ROW_SELECT = """
         a.external_inspection_id,
         COALESCE(NULLIF(trim(a.contact_hours), ''), '{}') AS contact_hours,
         COALESCE(NULLIF(trim(a.pqi_findings), ''), '{}') AS pqi_findings,
+        COALESCE(NULLIF(trim(a.calculated_result), ''), '{}') AS calculated_result,
         a.created_at,
         a.modified_at,
         COALESCE(NULLIF(trim(f.name), ''), a.assessment_name) AS facility_name,
@@ -101,7 +104,7 @@ def _assessment_fields_from_payload(fields: dict) -> dict[str, str | None]:
         "assessment_date": _clean_text(fields.get("assessment_date")),
         "visit_date": _clean_text(fields.get("visit_date")),
         "inspection_type": _clean_text(fields.get("inspection_type")),
-        "assessor": _clean_text(fields.get("assessor"), "not implemented") or "not implemented",
+        "assessor": _clean_text(fields.get("assessor"), DEFAULT_INSPECTOR_NAME) or DEFAULT_INSPECTOR_NAME,
         "status": _clean_text(fields.get("status"), "draft") or "draft",
         "external_case_number": _clean_text(fields.get("external_case_number")) or None,
         "external_inspection_id": _clean_text(fields.get("external_inspection_id")) or None,
@@ -223,6 +226,128 @@ def get_assessment_row_by_id(assessment_id: int) -> sqlite3.Row | None:
         conn.close()
 
 
+def build_assessment_input_snapshot(assessment_id: int) -> dict | None:
+    row = get_assessment_row_by_id(assessment_id)
+    if row is None:
+        return None
+
+    return {
+        "format": "cceehm-assessment-input",
+        "version": 1,
+        "assessment": {
+            "assessment_name": _clean_text(row["assessment_name"]),
+            "facility_identifier": _clean_text(row["assessment_facility_identifier"]),
+            "external_system": _clean_text(row["external_system"]),
+            "assessment_date": _clean_text(row["assessment_date"]),
+            "visit_date": _clean_text(row["visit_date"]),
+            "inspection_type": _clean_text(row["inspection_type"]),
+            "assessor": _clean_text(row["assessor"], "not implemented") or "not implemented",
+            "status": _clean_text(row["status"], "draft") or "draft",
+            "external_case_number": row["external_case_number"],
+            "external_inspection_id": row["external_inspection_id"],
+            "contact_hours": _json_object(row["contact_hours"], {}),
+            "pqi_findings": _json_object(row["pqi_findings"], {}),
+        },
+        "facility": {
+            "identifier": _clean_text(row["facility_record_identifier"], row["assessment_facility_identifier"]),
+            "name": _clean_text(row["facility_name"]),
+            "license_number": _clean_text(row["facility_license_number"]),
+            "physical_address": _clean_text(row["physical_address"]),
+            "city_state_postal_code": _clean_text(row["city_state_postal_code"]),
+            "type": _clean_text(row["facility_type"]),
+            "provider_name": _clean_text(row["provider_name"]),
+            "provider_id": _clean_text(row["provider_id"]),
+            "region": _clean_text(row["region"]),
+            "program_type": _clean_text(row["program_type"]),
+        },
+    }
+
+
+def import_assessment_input_snapshot(snapshot: dict) -> int:
+    assessment_payload = snapshot.get("assessment")
+    facility_payload = snapshot.get("facility")
+    if not isinstance(assessment_payload, dict) or not isinstance(facility_payload, dict):
+        raise ValueError("Snapshot must contain assessment and facility objects")
+
+    fields = dict(facility_payload)
+    fields["facility_identifier"] = facility_payload.get("identifier", "")
+    fields["facility_name"] = facility_payload.get("name", "")
+    fields["facility_license_number"] = facility_payload.get("license_number", "")
+    fields["facility_type"] = facility_payload.get("type", "")
+    fields["provider_name"] = facility_payload.get("provider_name", "")
+    fields["provider_id"] = facility_payload.get("provider_id", "")
+    fields["region"] = facility_payload.get("region", "")
+    fields["program_type"] = facility_payload.get("program_type", "")
+    fields.update(assessment_payload)
+    status = _clean_text(assessment_payload.get("status"), "draft") or "draft"
+    fields = {
+        **fields,
+        "contact_hours": assessment_payload.get("contact_hours", {}),
+        "pqi_findings": assessment_payload.get("pqi_findings", {}),
+    }
+    facility_fields = _facility_fields_from_payload(fields)
+    assessment_fields = _assessment_fields_from_payload(fields)
+    assessment_fields["status"] = status
+    missing_required = [
+        field_name
+        for field_name, value in {
+            "assessment_name": assessment_fields["assessment_name"],
+            "facility_type": facility_fields["type"],
+            "assessment_date": assessment_fields["assessment_date"],
+            "visit_date": assessment_fields["visit_date"],
+            "program_type": facility_fields["program_type"],
+            "inspection_type": assessment_fields["inspection_type"],
+        }.items()
+        if not value
+    ]
+    if missing_required:
+        raise ValueError(f"Missing required fields: {', '.join(missing_required)}")
+
+    json_fields = _json_fields_from_payload(fields)
+
+    conn = get_db_connection()
+    try:
+        facility_id = _upsert_facility(conn, fields)
+        cursor = conn.execute(
+            """
+            INSERT INTO assessments (
+                assessment_name,
+                facility_id,
+                facility_identifier,
+                external_system,
+                assessment_date,
+                visit_date,
+                inspection_type,
+                assessor,
+                status,
+                external_case_number,
+                external_inspection_id,
+                contact_hours,
+                pqi_findings
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                assessment_fields["assessment_name"],
+                facility_id,
+                assessment_fields["facility_identifier"],
+                assessment_fields["external_system"],
+                assessment_fields["assessment_date"],
+                assessment_fields["visit_date"],
+                assessment_fields["inspection_type"],
+                assessment_fields["assessor"],
+                assessment_fields["status"],
+                assessment_fields["external_case_number"],
+                assessment_fields["external_inspection_id"],
+                json_fields["contact_hours"],
+                json_fields["pqi_findings"],
+            ),
+        )
+        conn.commit()
+        new_assessment_id = int(cursor.lastrowid)
+        log_storage_event(f"Imported assessment input snapshot as assessment {new_assessment_id}")
+        return new_assessment_id
+    finally:
+        conn.close()
 def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) -> int:
     conn = get_db_connection()
     try:
@@ -320,6 +445,7 @@ def update_assessment_json_fields(
     *,
     contact_hours: object | None = None,
     pqi_findings: object | None = None,
+    calculated_result: object | None = None,
 ) -> None:
     updates: list[str] = []
     values: list[object] = []
@@ -330,6 +456,9 @@ def update_assessment_json_fields(
 
     if pqi_findings is not None:
         updates.append("pqi_findings = ?")
+
+    if calculated_result is not None:
+        updates.append("calculated_result = ?")
 
     if not updates:
         return
@@ -346,6 +475,9 @@ def update_assessment_json_fields(
             merged_pqi_findings = dict(existing_pqi_findings)
             merged_pqi_findings.update(incoming_pqi_findings)
             values.append(_json_text(merged_pqi_findings, {}))
+
+        if calculated_result is not None:
+            values.append(_json_text(calculated_result, {}))
 
         conn.execute(
             f"""

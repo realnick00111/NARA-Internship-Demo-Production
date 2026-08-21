@@ -81,6 +81,7 @@ CALCULATION_MODEL_VERSION = "1.2"
 CALCULATION_MODEL_PUBLICATION_DATE = "2026-05-01"
 STRUCTURAL_REFERENCE_TABLE = "RWCH Conversion Table v0.9"
 THRESHOLD_SET = "PQIAI Program-Type Thresholds v1.0"
+DEFAULT_INSPECTOR_NAME = "Jordan Davis"
 
 INCLUDED_COMPONENTS = {
     "CONTACT_HOURS": True,
@@ -90,8 +91,7 @@ INCLUDED_COMPONENTS = {
     "ATTACHMENTS_AND_NARRATIVE_NOTES": False # This is visually included as an option but not implemented.
 }
 
-# Descriptive plus values do not add numeric fractions. Static thresholds are:
-CH_CONTACT_HOURS_THRESHOLDS = {
+PROGRAM_QUALITY_OUTCOMES = {
     "Mixed Age": {
         "High": 36,
         "High-Mid": 30,
@@ -145,8 +145,8 @@ DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
     "external_case_number": "CMP-2026-004182",
     "external_inspection_number": "INS-2026-0714-22",
     "visit_date": "2026-07-14",
-    "assigned_primary_inspector": "Jordan Davis",
-    "inspector_name": "Jordan Davis",
+    "assigned_primary_inspector": DEFAULT_INSPECTOR_NAME,
+    "inspector_name": DEFAULT_INSPECTOR_NAME,
     "inspector_identifier": "EMP-10482",
     "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
 }

@@ -49,7 +49,7 @@
 
 	<div class="sticky-actions">
 		<button class="button ghost" id="facility-back-button" type="button">Back</button>
-		<div><span class="save-indicator" id="facility-save-status">Autosaved 10 seconds ago</span><button class="button secondary" id="save-facility-draft" type="button">Save draft</button><a class="button primary" href="/screens/ch-structural-entry">Continue to findings</a></div>
+		<div><span class="save-indicator" id="facility-save-status">Autosaved 10 seconds ago</span><button class="button secondary" id="save-facility-draft" type="button">Save draft</button><button class="button primary" id="continue-to-findings" type="button">Continue to findings</button></div>
 	</div>
 </form>
 
@@ -57,10 +57,11 @@
 (() => {
 	const backButton = document.getElementById('facility-back-button');
 	const saveButton = document.getElementById('save-facility-draft');
+	const continueButton = document.getElementById('continue-to-findings');
 	const form = document.getElementById('facility-identification-form');
 	const status = document.getElementById('facility-save-status');
 
-	if (!backButton || !saveButton || !form || !status) {
+	if (!backButton || !saveButton || !continueButton || !form || !status) {
 		return;
 	}
 
@@ -87,7 +88,7 @@
 		window.location.href = resolveBackTarget();
 	});
 
-	saveButton.addEventListener('click', async () => {
+	const saveFacilityDraft = async () => {
 		const payload = Object.fromEntries(new FormData(form).entries());
 		payload.screen = 'facility-identification';
 		setStatus('Saving draft...');
@@ -107,8 +108,20 @@
 			}
 
 			setStatus('Draft saved');
+			return true;
 		} catch (error) {
 			setStatus(error instanceof Error && /assessment|not found|unable to save/i.test(error.message) ? 'No assessment selected, unable to save' : 'No assessment selected, unable to save');
+			return false;
+		}
+	};
+
+	saveButton.addEventListener('click', saveFacilityDraft);
+	continueButton.addEventListener('click', async () => {
+		continueButton.disabled = true;
+		if (await saveFacilityDraft()) {
+			window.location.href = '/screens/ch-structural-entry';
+		} else {
+			continueButton.disabled = false;
 		}
 	});
 })();

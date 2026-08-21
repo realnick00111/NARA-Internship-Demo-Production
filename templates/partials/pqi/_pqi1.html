@@ -201,7 +201,7 @@
 		const payload = {
 			certified_teaching_staff: Number(certifiedInput.value),
 			total_teaching_staff: Number(totalInput.value),
-			complete: targetButton === saveButton,
+			complete: targetButton === saveButton || pqi1Complete,
 		};
 
 		if (assessmentId !== null) {
@@ -237,7 +237,7 @@
 			}
 
 			lastSavedSnapshot = getCurrentSnapshot();
-			pqi1Complete = targetButton === saveButton;
+			pqi1Complete = targetButton === saveButton || pqi1Complete;
 			completedSuccessfully = targetButton === saveButton;
 			syncCompletionState();
 			statusMessage = targetButton === draftSaveButton ? 'Draft saved' : 'PQI 1 marked as complete';
@@ -257,6 +257,8 @@
 		}
 	};
 
+	window.pqiDraftSavers = window.pqiDraftSavers || [];
+	window.pqiDraftSavers.push(() => persist(draftSaveButton));
 	saveButton.addEventListener('click', () => persist(saveButton));
 	draftSaveButton.addEventListener('click', () => persist(draftSaveButton));
 	certifiedInput.addEventListener('input', () => {

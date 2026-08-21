@@ -130,12 +130,13 @@
 		if (button === saveButton && saveButton.disabled) return;
 		button.disabled = true;
 		try {
-			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assessment_id: assessmentId, responses: getSnapshot(), optional_note: optionalNote ? optionalNote.value : '', complete: button === saveButton }) });
+			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assessment_id: assessmentId, responses: getSnapshot(), optional_note: optionalNote ? optionalNote.value : '', complete: button === saveButton || pqi4Complete }) });
 			const result = await response.json().catch(() => ({}));
 			if (!response.ok) throw new Error(result.message || 'No assessment selected, unable to save');
 			lastSavedSnapshot = getSnapshot();
-			pqi4Complete = button === saveButton;
+			pqi4Complete = button === saveButton || pqi4Complete;
 			syncCompletionState();
+			window.refreshPqiProgress?.();
 			statusMessage = button === saveButton ? 'PQI 4 marked as complete' : 'Draft saved';
 		} catch (error) { statusMessage = 'No assessment selected, unable to save'; }
 		finally { button.disabled = false; updateView(); }
@@ -149,6 +150,8 @@
 		updateRow(row, normalizeChoice(row.dataset.pqi4Response));
 		row.querySelectorAll('[data-pqi4-choice]').forEach((button) => button.addEventListener('click', () => { statusMessage = ''; updateRow(row, button.dataset.pqi4Choice); updateView(); }));
 	});
+	window.pqiDraftSavers = window.pqiDraftSavers || [];
+	window.pqiDraftSavers.push(() => persist(draftSaveButton));
 	draftSaveButton.addEventListener('click', () => persist(draftSaveButton));
 	saveButton.addEventListener('click', () => persist(saveButton));
 	updateView();

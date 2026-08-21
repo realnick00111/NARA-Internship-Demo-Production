@@ -19,7 +19,7 @@ from services.screen_contexts import (
     build_assessment_list_context,
     build_assessment_progress_context,
     build_calculation_configuration_context,
-    build_calculation_configuration_context,
+    build_result_summary_context,
     build_contact_hours_context,
     build_dashboard_context,
     build_duplicate_warning_html,
@@ -82,6 +82,8 @@ def render_screen_section(screen_id: str) -> str:
         content = render_template_string(content, **build_assessment_progress_context())
     elif screen_id == "calculation-review":
         content = render_template_string(content, **build_assessment_progress_context())
+    elif screen_id == "result-summary":
+        content = render_template_string(content, **build_result_summary_context())
     elif screen_id == "model-administration":
         content = render_template_string(content, **build_calculation_configuration_context())
     elif screen_id == "validation-summary":

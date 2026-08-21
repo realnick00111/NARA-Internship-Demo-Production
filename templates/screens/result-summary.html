@@ -1,21 +1,73 @@
-<div class="hero" style="margin-bottom:14px">
+<div class="page-header result-summary-page">
 	<div>
-		<div class="kicker" style="color:#bce8df">Result summary</div>
-		<h2 style="margin-top:6px">Assessment Complete</h2>
-		<p>The calculation has been finalized and the output can now be reviewed, shared, or exported.</p>
+		<div class="eyebrow">{{ assessment_label }}</div>
+		<h1>Result Summary</h1>
 	</div>
-	<div class="hero-score"><strong>6.2</strong><span>Final score</span></div>
 </div>
 
-<div class="summary-grid" style="margin-bottom:14px">
-	<div class="metric purple"><div class="metric-label">Structural result</div><div class="metric-value">High</div></div>
-	<div class="metric green"><div class="metric-label">PQI result</div><div class="metric-value">Stable</div></div>
-	<div class="metric amber"><div class="metric-label">Open notes</div><div class="metric-value">2</div></div>
-	<div class="metric teal"><div class="metric-label">Export ready</div><div class="metric-value">Yes</div></div>
-</div>
+<div class="result-summary-page">
+	<section class="result-hero">
+		<div>
+			<span class="result-kicker">{{ 'CALCULATED RESULT' if has_result else 'NO RESULT' }}</span>
+			<h2>{{ outcome }} Program Quality</h2>
+			<p>{{ facility_type }} · Calculated {{ result.get('DATE_CALCULATED', '--') }}</p>
+		</div>
+		<div class="result-score"><span>PQI total</span><strong>{{ outcome_number }}</strong><small>{{ outcome }} band: {{ outcome_range }}</small></div>
+	</section>
 
-<div class="grid three">
-	<div class="panel"><div class="panel-head"><div><h3>Quality band</h3><p>Result positioned in the middle range.</p></div></div><div class="stack"><div class="summary-box"><strong>Low</strong><div class="helper">0 - 3.9</div></div><div class="summary-box" style="border:2px solid var(--purple)"><strong>Middle</strong><div class="helper">4.0 - 7.9</div></div><div class="summary-box"><strong>High</strong><div class="helper">8.0 - 10</div></div></div></div>
-	<div class="panel"><div class="panel-head"><div><h3>Completion</h3><p>All required pieces have been captured.</p></div></div><div class="metric green"><div class="metric-label">Completion rate</div><div class="metric-value">100%</div></div></div>
-	<div class="panel"><div class="panel-head"><div><h3>Next step</h3><p>Send to export or reviewer queue.</p></div></div><button class="button primary block">Open export preview</button></div>
+	<div class="result-grid">
+		<section class="card structural-result">
+			<div class="card-head">
+				<div><span class="section-kicker">Structural Quality</span><h2>Contact Hour outcome</h2></div>
+				<span class="chip {{ structural_status_chip_class }}">{{ structural_status_label }}</span>
+			</div>
+			<div class="comparison-visual">
+				<div><span>Calculated CH</span><strong>{{ calculated_ch }}</strong></div>
+				<div class="compare-line"><i{% if calculated_ch_position is not none %} style="left:{{ calculated_ch_position }}%"{% endif %}></i><b style="left:{{ rwch_reference_position }}%">Reference {{ rwch_reference }}</b></div>
+				<div class="axis"><span>Lower structural stress</span><span>Higher structural stress</span></div>
+			</div>
+			<div class="result-message {{ structural_status_message_class }}"><strong>{{ structural_status_message }}</strong><span>{{ structural_status_detail }}</span></div>
+		</section>
+
+		<section class="card pqi-result">
+			<div class="card-head">
+				<div><span class="section-kicker">Process Quality</span><h2>Program Quality Outcome</h2></div>
+				<span class="chip info">{{ outcome }}</span>
+			</div>
+			<div class="quality-bands">
+				{% for band in outcome_bands %}<div class="band {{ band.label|lower|replace('-', '') }}{% if band.active %} active{% endif %}">{{ band.label }}<br><small>{{ band.range }}</small>{% if band.active %}<i>{{ outcome_number }}</i>{% endif %}</div>{% endfor %}
+			</div>
+			<div class="result-message"><strong>{{ outcome_number }} points</strong><span>{{ outcome }} outcome for the selected program type.</span></div>
+		</section>
+
+		<section class="card completeness">
+			<h3>Data completeness</h3>
+			<div class="completion-big"><strong>{{ completeness_percentage }}%</strong><div class="bar"><i style="width:{{ completeness_percentage }}%"></i></div></div>
+			<p>{{ result.get('DATA_COMPLETENESS_NUMBERATOR', '--') }} of {{ result.get('DATA_COMPLETENESS_DENOMIATOR', '--') }} expected data elements were entered.</p>
+		</section>
+
+		<section class="card limitations">
+			<h3>Limitations and interpretation</h3>
+			<ul>
+				<li>This result is decision support, not a required enforcement action.</li>
+				<li>The RWCH reference table is approved for pilot use pending statistical review.</li>
+				<li>Agency policy determines monitoring frequency and follow-up actions.</li>
+			</ul>
+		</section>
+
+		<section class="card metadata">
+			<h3>Calculation record</h3>
+			<div class="snapshot-grid">
+				<div><span>Model</span><strong>{{ result.get('CALCULATION_MODEL', '--') }} v{{ result.get('CALCULATION_MODEL_VERSION', '--') }}</strong></div>
+				<div><span>Indicator set</span><strong>{{ result.get('REGULATION_SET_VERSION', '--') }}</strong></div>
+				<div><span>Threshold set</span><strong>{{ result.get('THRESHOLD_SET', '--') }}</strong></div>
+				<div><span>Calculated</span><strong>{{ result.get('DATE_CALCULATED', '--') }}</strong></div>
+			</div>
+		</section>
+	</div>
+
+	<div class="sticky-actions result-actions">
+		<a class="button secondary" href="{{ url_for('screen', screen_id='calculation-review') }}">Back to calculation review</a>
+		<div><a class="button secondary" href="{{ url_for('screen', screen_id='detailed-explanation') }}">Detailed explanation</a><a class="button secondary" href="{{ url_for('screen', screen_id='export-preview') }}">Export preview</a><button class="button primary">Finalize assessment</button></div>
+	</div>
 </div>

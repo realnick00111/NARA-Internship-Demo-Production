@@ -224,6 +224,7 @@
 			saveState.textContent = payload.complete ? 'PQI 9 marked as complete' : 'Draft saved';
 			syncCompletionState();
 			updateCompletionButtonState();
+			window.refreshPqiProgress?.();
 		} catch (error) {
 			saveState.textContent = error.message || 'Unable to save PQI 9';
 			if (isCompleteAction) {
@@ -352,7 +353,7 @@
 		try {
 			const response = await fetch(saveUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assessment_id: assessmentId, responses: getSnapshot(), notes: Object.fromEntries(observationRows.map((row, index) => [String(index + 1), row.querySelector('.pqi10-notes')?.value || ''])), complete: completeAction }) });
 			const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.message || 'Unable to save PQI 10');
-			completeFlag = completeAction; saveState.textContent = completeAction ? 'PQI 10 marked as complete' : 'Draft saved'; update();
+			completeFlag = completeAction; saveState.textContent = completeAction ? 'PQI 10 marked as complete' : 'Draft saved'; update(); window.refreshPqiProgress?.();
 		} catch (error) { saveState.textContent = error.message || 'Unable to save PQI 10'; } finally { if (!completeAction) button.disabled = false; }
 	};
 	if (draftButton) draftButton.addEventListener('click', () => persist(draftButton));

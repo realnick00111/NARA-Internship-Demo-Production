@@ -17,6 +17,14 @@
 		color: var(--purple);
 	}
 
+	#pqi-findings-entry .pqi-nav > .button {
+		display: block;
+		width: 100%;
+		margin-top: 10px;
+		text-align: center;
+		white-space: nowrap;
+	}
+
 	#pqi-findings-entry .pqi1-calculation-box {
 		align-items: flex-start;
 		overflow-wrap: anywhere;
@@ -225,6 +233,9 @@ window.refreshPqiProgress = async () => {
 		if (summary) summary.textContent = `${progress.numerator} of ${progress.denominator} complete`;
 		if (percentage) percentage.textContent = `${progress.percentage}%`;
 		if (bar) bar.style.width = `${progress.percentage}%`;
+		Object.entries(progress.nav_items || {}).forEach(([targetId, item]) => {
+			window.syncPqiNavCompletionState(targetId, item.complete, item.status);
+		});
 	} catch (error) {
 		// Keep the last server-rendered progress when refresh is unavailable.
 	}
@@ -246,6 +257,7 @@ window.refreshPqiProgress = async () => {
 		<a class="pqi-item{% if pqi68_complete %} complete{% endif %}" href="#pqi-6-8" data-pqi-target="pqi-6-8"><span>6-8</span><div><b>Observational Levels</b><small>{{ pqi68_complete_count }} of 3 complete</small></div></a>
 		<a class="pqi-item{% if pqi910_complete %} complete{% endif %}" href="#pqi-9-10" data-pqi-target="pqi-9-10"><span>9-10</span><div><b>Timed Observations</b><small>{{ pqi910_complete_count }} of 2 complete</small></div></a>
 		<button class="button secondary" type="button" data-href="{{ url_for('screen', screen_id='assessment-progress') }}">Back to progress</button>
+		<a class="button primary" id="continue-to-validation" href="{{ url_for('screen', screen_id='validation-summary') }}">Continue to Validation</a>
 	</aside>
 
 	<section class="pqi-main">
@@ -446,8 +458,22 @@ window.refreshPqiProgress = async () => {
 	const progressPercentage = document.getElementById('pqi-progress-percentage');
 	const progressBar = document.getElementById('pqi-progress-bar');
 	const progressReturnButton = document.querySelector('#pqi-findings-entry [data-href]');
+	const continueToValidationButton = document.getElementById('continue-to-validation');
 	const lockedControls = (number) => Array.from(document.querySelectorAll(`#pqi-findings-entry [data-pqi-number="${number}"] input, #pqi-findings-entry [data-pqi-number="${number}"] textarea, #pqi-findings-entry [data-pqi-number="${number}"] button`));
 	progressReturnButton?.addEventListener('click', () => { window.location.href = progressReturnButton.dataset.href; });
+	continueToValidationButton?.addEventListener('click', async (event) => {
+		event.preventDefault();
+		continueToValidationButton.disabled = true;
+		const draftSavers = window.pqiDraftSavers || [];
+		for (const saveDraft of draftSavers) {
+			try {
+				await saveDraft();
+			} catch (error) {
+				// Navigation should remain available if an optional draft save fails.
+			}
+		}
+		window.location.href = continueToValidationButton.href;
+	});
 	Object.entries(pqiAllowed).forEach(([number, isAllowed]) => {
 		if (isAllowed) return;
 		lockedControls(number).forEach((control) => { control.disabled = true; control.setAttribute('aria-disabled', 'true'); });

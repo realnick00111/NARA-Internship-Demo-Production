@@ -36,6 +36,11 @@
 			<span class="chip info" id="pqi8-highest-complete">Highest complete: Level {{ pqi8_score_display }}</span>
 		</div>
 
+		<div class="pqi-complete-card" id="pqi8-complete-card" role="status" aria-live="polite"{% if not pqi8_complete %} hidden{% endif %}>
+			<span class="pqi-complete-icon" aria-hidden="true">✓</span>
+			<span>PQI 8 marked as complete</span>
+		</div>
+
 		{% for level in pqi8_levels %}
 		<div class="level {{ level.status }}" data-pqi8-level="{{ level.number }}">
 			<div class="level-head">
@@ -162,7 +167,9 @@
 		calculatedLevel.textContent = displayScore;
 		calculatedDescription.textContent = `Level ${displayScore} is the highest level with all criteria met.`;
 		const changed = JSON.stringify(snapshot()) !== lastSaved;
-		completeButton.disabled = !pqiAllowed['8'] || completeInitially;
+		completeButton.disabled = !pqiAllowed['8'] || (completeInitially && !changed);
+		const completionCard = document.getElementById('pqi8-complete-card');
+		if (completionCard) completionCard.hidden = !completeInitially || changed;
 		saveState.textContent = changed ? 'Unsaved changes' : completeInitially ? 'PQI 8 marked as complete' : 'Draft saved';
 	};
 	levelNodes.forEach((node) => node.querySelectorAll('[data-pqi8-criterion]').forEach((checkbox) => checkbox.addEventListener('change', () => { responseState[node.dataset.pqi8Level][Number(checkbox.dataset.pqi8Criterion)] = checkbox.checked; update(); })));
@@ -180,6 +187,7 @@
 			lastSaved = JSON.stringify(snapshot());
 			completeInitially = button === completeButton;
 			saveState.textContent = completeInitially ? 'PQI 8 marked as complete' : 'Draft saved';
+			window.refreshPqiProgress?.();
 		} catch (error) {
 			saveState.textContent = error.message || 'Unable to save PQI 8';
 		} finally {

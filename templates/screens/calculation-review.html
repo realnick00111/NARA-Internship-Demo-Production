@@ -34,14 +34,14 @@
 	<aside class="calculation-side-stack">
 		<div class="card readiness-card">
 			<h3>Calculation readiness</h3>
-			<div class="readiness-score {{ 'warning' if not assessment_selected else 'danger' if blocking_errors else 'success' }}"><span>{{ '&#10003;' if calculation_ready else '!' }}</span><div><strong>{{ 'Ready to calculate' if calculation_ready else 'No assessment selected' if not assessment_selected else 'Not ready to calculate' }}</strong><small>{{ blocking_errors|length }} blocking errors &middot; {{ acknowledged_warning_count }} acknowledged warnings &middot; {{ unacknowledged_warning_count }} unacknowledged warnings</small></div></div>
+			<div class="readiness-score {{ 'warning' if not assessment_selected else 'danger' if blocking_errors else 'success' }}"><span>{{ '&#10003;'|safe if calculation_ready else '!' }}</span><div><strong>{{ 'Ready to calculate' if calculation_ready else 'No assessment selected' if not assessment_selected else 'Not ready to calculate' }}</strong><small>{{ blocking_errors|length }} blocking errors &middot; {{ acknowledged_warning_count }} acknowledged warnings &middot; {{ unacknowledged_warning_count }} unacknowledged warnings</small></div></div>
 			<ul class="checklist"><li>Required identification complete</li><li>Calculation inputs complete</li><li>Versioned assets available</li><li>Missing-data rules applied</li></ul>
 		</div>
 		<div class="card calculate-card">
 			<h3>Create a reproducible result</h3>
 			<p>Calculation inputs, exclusions, formulas, thresholds, model versions, and the calculating user will be stored together.</p>
-			<button class="button primary block" type="button" {% if not calculation_ready %}disabled aria-disabled="true"{% endif %}>Calculate result</button>
-			<button class="button secondary block" type="button">Download input snapshot</button>
+			<form method="post" action="{{ url_for('calculate_assessment_result') }}"><button class="button primary block" type="submit" {% if not calculation_ready %}disabled aria-disabled="true"{% endif %}>Calculate result</button></form>
+			<a class="button secondary block" href="{{ url_for('download_assessment_input_snapshot') }}">Download input snapshot</a>
 		</div>
 	</aside>
 </div>
