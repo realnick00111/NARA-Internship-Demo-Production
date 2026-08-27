@@ -274,6 +274,26 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('class="chip danger">Needs updates</span>', list_rendered)
         self.assertIn('class="chip danger">Needs updates</span>', dashboard_rendered)
 
+    def test_assessment_result_matches_on_list_and_dashboard(self):
+        self.insert_assessment(assessment_name="Draft assessment")
+        provisional_id = self.insert_assessment(assessment_name="Provisional assessment")
+        warning_id = self.insert_assessment(assessment_name="Warning assessment")
+        self.conn.execute(
+            "UPDATE assessments SET status = ?, calculated_result = ? WHERE id = ?",
+            ("provisional", json.dumps({"PROGRAM_QUALITY_OUTCOME": "High-Mid"}), provisional_id),
+        )
+        self.conn.execute("UPDATE assessments SET status = ? WHERE id = ?", ("needs review", warning_id))
+        self.conn.commit()
+
+        list_rendered = self.client.get("/screens/assessment-list").data.decode("utf-8")
+        dashboard_rendered = self.client.get("/screens/agency-dashboard").data.decode("utf-8")
+
+        for rendered in (list_rendered, dashboard_rendered):
+            self.assertIn("Not calculated", rendered)
+            self.assertIn("High-Mid Quality", rendered)
+            self.assertIn("Structural warning", rendered)
+        self.assertEqual(list_rendered.count("Not calculated"), dashboard_rendered.count("Not calculated"))
+
     def test_pqi_entry_has_continue_to_validation_button(self):
         assessment_id = self.insert_assessment()
 

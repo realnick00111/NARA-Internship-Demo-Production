@@ -2,21 +2,25 @@
 	<div>
 		<div class="eyebrow">Agency overview</div>
 		<h1>Agency Dashboard</h1>
-		<p>High-level status for active work, model health, and action items that need attention before the next review cycle.</p>
 	</div>
 	<div class="action-row"><a class="button primary" href="{{ url_for('start_new_assessment') }}">New assessment</a><button class="button secondary">Open queue</button></div>
 </div>
 
+<div class="alert info">
+	<div class="alert-icon">i</div>
+	<div><strong>Research evidence review pending</strong><span>The current model is approved for pilot use. The original validation study and RWCH reference table still require statistical review.</span></div>
+</div>
+
 <div class="grid four" style="margin-bottom:14px">
 	<div class="metric purple"><div class="metric-label">Draft assessments</div><div class="metric-value">{{ draft_assessment_count }}</div><div class="metric-foot">{{ modified_today_count }} modified today</div></div>
-	<div class="metric green"><div class="metric-label">Finalized this month</div><div class="metric-value">42</div><div class="metric-foot">Up 8 from June</div></div>
-	<div class="metric amber"><div class="metric-label">Needs attention</div><div class="metric-value">7</div><div class="metric-foot">3 blocking errors</div></div>
+	<div class="metric green"><div class="metric-label">Finalized this month</div><div class="metric-value">{{ finalized_this_month }}</div><div class="metric-foot">Final assessments this month</div></div>
+	<div class="metric amber"><div class="metric-label">Needs attention</div><div class="metric-value">{{ needs_attention }}</div><div class="metric-foot">{{ blocking_error_count }} blocking errors</div></div>
 	<div class="metric teal"><div class="metric-label">Active calculation model</div><div class="metric-value">{{ calculation_model }} v{{ calculation_model_version }}</div><div class="metric-foot">Published {{ calculation_model_publication_date }}</div></div>
 </div>
 
 <div class="grid two">
 	<section class="panel table-wrap">
-		<div class="panel-head"><div><h2>Recent work</h2><p>Most recently modified assessments.</p></div><a class="button ghost" href="{{ url_for('screen', screen_id='assessment-list') }}">View all</a></div>
+		<div class="panel-head"><div><h2>Recent work</h2><p>Most recently modified assessments.</p></div><a class="button ghost" href="{{ url_for('screen', screen_id='assessment-list') }}">View all assessments</a></div>
 		<table class="assessment-list-table">
 			<thead><tr><th>Assessment</th><th>Facility / type</th><th>Status</th><th>Last updated</th><th>Result</th><th></th></tr></thead>
 			<tbody>
@@ -31,7 +35,7 @@
 						<span>{{ assessment.facility_type }}</span>
 					</td>
 					<td><span class="chip {{ assessment.status_chip_class }}">{{ assessment.status }}</span></td>
-					<td>{{ assessment.modified_at_label }}</td>
+					<td class="last-updated" data-timestamp="{{ assessment.modified_at }}">{{ assessment.modified_at_label }}</td>
 					<td>{{ assessment.current_result }}</td>
 					<td><a class="button secondary" href="{{ url_for('open_assessment_create_assessment', assessment_id=assessment.id) }}">{{ assessment.action_label }}</a></td>
 				</tr>
@@ -44,7 +48,7 @@
 		</table>
 	</section>
 	<section class="panel">
-		<div class="panel-head"><div><h2>Configuration health</h2><p>Items requiring agency action.</p></div></div>
+		<div class="panel-head"><div><h2>Configuration health</h2><p>Items requiring agency action. NOT IMPLEMENTED</p></div></div>
 		<div class="stack">
 			<div class="summary-box"><strong>2 blocking model issues</strong><div class="helper">RWCH references are missing for two facility bands.</div></div>
 			<div class="summary-box"><strong>5 regulations expiring soon</strong><div class="helper">Effective dates end within 30 days.</div></div>
@@ -60,3 +64,32 @@
 		</div>
 	</section>
 </div>
+
+<script>
+	(() => {
+		const formatLocalTimestamp = (value) => {
+			const normalizedValue = value.includes("T") ? value : value.replace(" ", "T");
+			const timestamp = /(?:Z|[+-]\d{2}:?\d{2})$/.test(normalizedValue)
+				? normalizedValue
+				: `${normalizedValue}Z`;
+			const date = new Date(timestamp);
+			if (Number.isNaN(date.getTime())) return null;
+
+			const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+			const today = new Date();
+			const dateKey = (value) => `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
+			if (dateKey(date) === dateKey(today)) return `Today, ${time}`;
+
+			const yesterday = new Date(today);
+			yesterday.setDate(today.getDate() - 1);
+			if (dateKey(date) === dateKey(yesterday)) return `Yesterday, ${time}`;
+
+			return `${date.toLocaleDateString([], { month: "short", day: "numeric" })}, ${time}`;
+		};
+
+		document.querySelectorAll(".last-updated[data-timestamp]").forEach((element) => {
+			const localLabel = formatLocalTimestamp(element.dataset.timestamp);
+			if (localLabel) element.textContent = localLabel;
+		});
+	})();
+</script>

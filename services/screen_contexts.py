@@ -43,6 +43,8 @@ from constants import (
 from repositories.assessments import (
     get_assessment_row_by_id,
     get_dashboard_counts_and_recent,
+    get_dashboard_draft_rows,
+    get_dashboard_summary_counts,
     get_duplicate_candidate_rows,
     get_most_recent_assessment_row,
     query_assessment_list,
@@ -61,6 +63,7 @@ from services.formatters import (
     calculate_pqi8_score_modifier,
     format_pqi8_score,
     format_timestamp_label,
+    get_assessment_result_label,
     get_status_chip_class,
     get_status_label,
     names_are_similar,
@@ -496,8 +499,9 @@ def build_contact_hours_context() -> dict:
     }
 
 
-def build_pqi1_context() -> dict:
-    assessment_row = get_current_assessment_row()
+def build_pqi1_context(assessment_row: dict | None = None) -> dict:
+    if assessment_row is None:
+        assessment_row = get_current_assessment_row()
 
     pqi1_form = {
         "certified_teaching_staff": "",
@@ -760,7 +764,10 @@ def build_assessment_list_context() -> dict:
                 "status": get_status_label(status_text),
                 "status_chip_class": get_status_chip_class(status_text),
                 "model": f"{CALCULATION_MODEL} v{CALCULATION_MODEL_VERSION}",
-                "current_result": "not available",
+                "current_result": get_assessment_result_label(
+                    status_text,
+                    _load_json_object(row["calculated_result"], {}),
+                ),
             }
         )
 
@@ -790,6 +797,11 @@ def build_assessment_list_context() -> dict:
 
 def build_dashboard_context() -> dict:
     draft_assessment_count, modified_today_count, recent_rows = get_dashboard_counts_and_recent()
+    finalized_this_month, needs_attention = get_dashboard_summary_counts()
+    blocking_error_count = sum(
+        len(build_validation_context(assessment_row=row)["blocking_errors"])
+        for row in get_dashboard_draft_rows()
+    )
 
     recent_assessments: list[dict] = []
     for row in recent_rows:
@@ -799,11 +811,15 @@ def build_dashboard_context() -> dict:
                 "id": row["id"],
                 "assessment_name": row["assessment_name"],
                 "facility_type": row["facility_type"],
+                "modified_at": row["modified_at"],
                 "reference_label": str(row["external_case_number"] or row["external_inspection_id"] or "not available").strip() or "not available",
                 "status": get_status_label(status_text),
                 "status_chip_class": get_status_chip_class(status_text),
                 "modified_at_label": format_timestamp_label(row["modified_at"]),
-                "current_result": "not available",
+                "current_result": get_assessment_result_label(
+                    status_text,
+                    _load_json_object(row["calculated_result"], {}),
+                ),
                 "action_label": "Continue" if status_text == "draft" else "Open",
             }
         )
@@ -811,6 +827,9 @@ def build_dashboard_context() -> dict:
     return {
         "draft_assessment_count": draft_assessment_count,
         "modified_today_count": modified_today_count,
+        "finalized_this_month": finalized_this_month,
+        "needs_attention": needs_attention,
+        "blocking_error_count": blocking_error_count,
         **build_calculation_configuration_context(),
         "recent_assessments": recent_assessments,
     }
@@ -1264,8 +1283,9 @@ def build_assessment_progress_context() -> dict:
     }
 
 
-def build_validation_context() -> dict:
-    assessment_row = get_current_assessment_row()
+def build_validation_context(assessment_row: dict | None = None) -> dict:
+    if assessment_row is None:
+        assessment_row = get_current_assessment_row()
     assessment_label = get_assessment_label(assessment_row)
     blocking_errors: list[dict] = []
 
@@ -1347,7 +1367,7 @@ def build_validation_context() -> dict:
 
         pqi_findings = _load_json_object(assessment_row["pqi_findings"], {})
         pqi_allowed = build_pqi_access_context(assessment_row)["pqi_allowed"]
-        pqi_context = build_pqi1_context()
+        pqi_context = build_pqi1_context(assessment_row)
         pqi_completion = {
             "1": pqi_context["pqi1_complete"],
             "2": pqi_context["pqi2_complete"],

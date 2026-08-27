@@ -627,6 +627,7 @@ def query_assessment_list(normalized_query: str, page: int, per_page: int) -> di
                 a.external_case_number,
                 a.external_inspection_id,
                 COALESCE(NULLIF(trim(a.status), ''), 'not available') AS status,
+                COALESCE(NULLIF(trim(a.calculated_result), ''), '{{}}') AS calculated_result,
                 a.created_at
             FROM assessments a
             LEFT JOIN facilities f ON f.id = a.facility_id
@@ -680,6 +681,7 @@ def get_dashboard_counts_and_recent() -> tuple[int, int, list[sqlite3.Row]]:
                 a.external_case_number,
                 a.external_inspection_id,
                 COALESCE(NULLIF(trim(a.status), ''), 'not available') AS status,
+                COALESCE(NULLIF(trim(a.calculated_result), ''), '{{}}') AS calculated_result,
                 COALESCE(NULLIF(trim(a.modified_at), ''), a.created_at) AS modified_at
             FROM assessments a
             LEFT JOIN facilities f ON f.id = a.facility_id
@@ -691,6 +693,48 @@ def get_dashboard_counts_and_recent() -> tuple[int, int, list[sqlite3.Row]]:
         conn.close()
 
     return draft_assessment_count, modified_today_count, recent_rows
+
+
+def get_dashboard_summary_counts() -> tuple[int, int]:
+    conn = get_db_connection()
+    try:
+        finalized_this_month = int(
+            conn.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM assessments
+                WHERE lower(trim(COALESCE(status, ''))) = 'final'
+                  AND date(COALESCE(NULLIF(trim(modified_at), ''), created_at)) >= date('now', 'start of month')
+                  AND date(COALESCE(NULLIF(trim(modified_at), ''), created_at)) < date('now', 'start of month', '+1 month')
+                """
+            ).fetchone()["total"]
+        )
+        needs_attention = int(
+            conn.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM assessments
+                WHERE lower(trim(COALESCE(status, ''))) IN ('needs attention', 'needs update', 'needs updates', 'needs review')
+                """
+            ).fetchone()["total"]
+        )
+    finally:
+        conn.close()
+
+    return finalized_this_month, needs_attention
+
+
+def get_dashboard_draft_rows() -> list[sqlite3.Row]:
+    conn = get_db_connection()
+    try:
+        return conn.execute(
+            ASSESSMENT_ROW_SELECT
+            + """
+            WHERE lower(trim(COALESCE(a.status, ''))) = 'draft'
+            """
+        ).fetchall()
+    finally:
+        conn.close()
 
 
 def get_duplicate_candidate_rows(current_assessment_id: int) -> list[sqlite3.Row]:

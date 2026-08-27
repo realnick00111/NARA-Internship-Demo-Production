@@ -84,6 +84,17 @@ def get_status_label(status_value: str | None) -> str:
     return str(status_value or "not available").strip().title()
 
 
+def get_assessment_result_label(status_value: str | None, calculated_result: dict | None) -> str:
+    normalized_status = normalize_text(status_value)
+    if normalized_status == "draft":
+        return "Not calculated"
+    if normalized_status in {"needs attention", "needs update", "needs updates", "needs review"}:
+        return "Structural warning"
+
+    outcome = str((calculated_result or {}).get("PROGRAM_QUALITY_OUTCOME", "")).strip()
+    return f"{outcome} Quality" if outcome else "Not calculated"
+
+
 def _calculate_band_score_from_percentage(percentage: float) -> int | None:
     for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1]):
         if lower_bound <= percentage <= upper_bound:
