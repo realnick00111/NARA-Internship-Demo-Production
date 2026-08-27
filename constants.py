@@ -1,6 +1,8 @@
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+CONFIG_PATH = ROOT / "config.json"
 TEMPLATES_DIR = ROOT / "templates"
 DATA_STORAGE_DIR = ROOT / "data"
 PARTIALS_DIR = TEMPLATES_DIR / "partials"
@@ -73,117 +75,47 @@ STANDALONE_SCREENS = {"login-tenant", "export-preview"}
 
 CURRENT_ASSESSMENT_SESSION_KEY = "current_assessment_id"
 
-REGULATION_SET_NAME = "Evergreen Center Standards"
-REGULATION_SET_VERSION = "2026.1"
-REGULATION_EFFECTIVE_DATE = "2026-01-01"
-CALCULATION_MODEL = "CCEEHM"
-CALCULATION_MODEL_VERSION = "1.2"
-CALCULATION_MODEL_PUBLICATION_DATE = "2026-05-01"
-STRUCTURAL_REFERENCE_TABLE = "RWCH Conversion Table v0.9"
-THRESHOLD_SET = "PQIAI Program-Type Thresholds v1.0"
+with CONFIG_PATH.open(encoding="utf-8-sig") as config_file:
+    CONFIG = json.load(config_file)
 
-INCLUDED_COMPONENTS = {
-    "CONTACT_HOURS": True,
-    "PQI1_5": True,
-    "PQI6_8": True,
-    "PQI9_10": True,
-    "ATTACHMENTS_AND_NARRATIVE_NOTES": False # This is visually included as an option but not implemented.
+globals().update(CONFIG["values"])
+SCREEN_ORDER = [
+    "login-tenant",
+    "agency-dashboard",
+    "assessment-list",
+    "new-assessment",
+    "new-assignment",
+    "facility-identification",
+    "assessment-progress",
+    "ch-structural-entry",
+    "pqi-findings-entry",
+    "pqi1",
+    "pqi3-sample",
+    "pqi3",
+    "pqi6-8-hierarchy",
+    "pqi7",
+    "pqi8",
+    "pqi9-10-timed",
+    "validation-summary",
+    "calculation-review",
+    "result-summary",
+    "detailed-explanation",
+    "draft-management",
+    "regulation-library",
+    "model-administration",
+    "import-review",
+    "audit-history",
+    "export-preview",
+]
+STANDALONE_SCREENS = set(STANDALONE_SCREENS)
+PQI4_BAND_MAPPING = {float(key): value for key, value in PQI4_BAND_MAPPING.items()}
+PQI6_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI6_SCORE_MODIFIER_REQUIREMENTS.items()}
+PQI7_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI7_SCORE_MODIFIER_REQUIREMENTS.items()}
+PQI8_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI8_SCORE_MODIFIER_REQUIREMENTS.items()}
+PQI_BAND_MAPPING = {
+    tuple(int(value) for value in key.removeprefix("tuple:").split(",")): band
+    for key, band in PQI_BAND_MAPPING.items()
 }
-
-PROGRAM_QUALITY_OUTCOMES = {
-    "Mixed Age": {
-        "High": 36,
-        "High-Mid": 30,
-        "Mid-Low": 20,
-        "Low": 10,
-    },
-    "Preschool": {
-        "High": 32,
-        "High-Mid": 26,
-        "Mid-Low": 16,
-        "Low": 9,
-    },
-    "Infant-Toddler": {
-        "High": 28,
-        "High-Mid": 22,
-        "Mid-Low": 12,
-        "Low": 8,
-    },
-}
-# Mixed Age High 36-40, High-Mid 30-35, Mid-Low 20-29, Low 10-19;
-# Preschool High 32-36, High-Mid 26-31, Mid-Low 16-25, Low 9-15;
-# Infant-Toddler High 28-32, High-Mid 22-27, Mid-Low 12-21, Low 8-11.
-# These explicit lower bounds reflect the applicable indicator counts in the prototype.
-# Rounds down to the nearest Threshold.
-
-ASSESSMENTS_PER_PAGE = 8
-DISABLE_DEFAULT_ASSESSMENT_FORM_VALUES = True  # Set to True to disable default values for new assessments and facility identification forms.
-
-if not DISABLE_DEFAULT_ASSESSMENT_FORM_VALUES:
-    DEFAULT_INSPECTOR_NAME = "Jordan Davis"
-    DEFAULT_ASSESSMENT_FORM_VALUES = {
-        "program": "Child Care Center",
-        "facility_type": "Mixed Age",
-        "inspection_type": "Annual Monitoring Visit",
-        "assessment_date": "2026-07-17",
-        "visit_date": "2026-07-14",
-        "external_case_number": "CMP-2026-004182",
-        "external_inspection_id": "INS-2026-0714-22",
-        "local_record_name": "Sunrise Learning Center - Annual 2026",
-    }
-
-    DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
-        "facility_name": "Sunrise Learning Center",
-        "facility_identifier": "FAC-008742",
-        "license_number": "LIC-CC-21884",
-        "provider_account_id": "PRV-004198",
-        "program_type": "Child Care Center",
-        "facility_type": "Mixed Age",
-        "physical_address": "1250 Cedar Avenue",
-        "city_state_postal": "Olympia, WA 98501",
-        "region_office": "Region 3 - South Sound",
-        "provider_operator_name": "Sunrise Learning LLC",
-        "external_system": "Compass",
-        "external_case_number": "CMP-2026-004182",
-        "external_inspection_number": "INS-2026-0714-22",
-        "visit_date": "2026-07-14",
-        "assigned_primary_inspector": DEFAULT_INSPECTOR_NAME,
-        "inspector_name": DEFAULT_INSPECTOR_NAME,
-        "inspector_identifier": "EMP-10482",
-        "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection.",
-    }
-else: 
-    DEFAULT_INSPECTOR_NAME = ""
-    DEFAULT_ASSESSMENT_FORM_VALUES = {
-        "program": "",
-        "facility_type": "Mixed Age",
-        "inspection_type": "",
-        "assessment_date": "",
-        "visit_date": "",
-        "external_case_number": "",
-        "external_inspection_id": "",
-        "local_record_name": "",
-    }
-    DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES = {
-        "facility_name": "",
-        "facility_identifier": "",
-        "license_number": "",
-        "provider_account_id": "",
-        "program_type": "",
-        "facility_type": "",
-        "physical_address": "",
-        "city_state_postal": "",
-        "region_office": "",
-        "provider_operator_name": "",
-        "external_system": "",
-        "external_case_number": "",
-        "external_inspection_number": "",
-        "visit_date": "",
-        "assigned_primary_inspector": DEFAULT_INSPECTOR_NAME,
-        "inspector_name": DEFAULT_INSPECTOR_NAME,
-        "inspector_identifier": "",
-        "assessment_notes": "",
-    }
 
 NON_PQI_FIELD_REQUIREDNESS = {
     "new-assessment": {

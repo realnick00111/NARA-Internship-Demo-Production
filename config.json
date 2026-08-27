@@ -1,0 +1,491 @@
+﻿{
+  "regulation": {
+    "set_name": "Evergreen Center Standards",
+    "set_version": "2026.1",
+    "effective_date": "2026-01-01",
+    "calculation_model": "CCEEHM",
+    "calculation_model_version": "1.2",
+    "calculation_model_publication_date": "2026-05-01",
+    "structural_reference_table": "RWCH Conversion Table v0.9",
+    "threshold_set": "PQIAI Program-Type Thresholds v1.0"
+  },
+  "included_components": {
+    "CONTACT_HOURS": true,
+    "PQI1_5": true,
+    "PQI6_8": true,
+    "PQI9_10": true,
+    "ATTACHMENTS_AND_NARRATIVE_NOTES": false
+  },
+  "program_quality_outcomes": {
+    "Mixed Age": {
+      "High": 36,
+      "High-Mid": 30,
+      "Mid-Low": 20,
+      "Low": 10
+    },
+    "Preschool": {
+      "High": 32,
+      "High-Mid": 26,
+      "Mid-Low": 16,
+      "Low": 9
+    },
+    "Infant-Toddler": {
+      "High": 28,
+      "High-Mid": 22,
+      "Mid-Low": 12,
+      "Low": 8
+    }
+  },
+  "assessments_per_page": 8,
+  "defaults": {
+    "disabled": true,
+    "inspector_name": "Jordan Davis",
+    "assessment_form_values": {
+      "program": "Child Care Center",
+      "facility_type": "Mixed Age",
+      "inspection_type": "Annual Monitoring Visit",
+      "assessment_date": "2026-07-17",
+      "visit_date": "2026-07-14",
+      "external_case_number": "CMP-2026-004182",
+      "external_inspection_id": "INS-2026-0714-22",
+      "local_record_name": "Sunrise Learning Center - Annual 2026"
+    },
+    "facility_identification_form_values": {
+      "facility_name": "Sunrise Learning Center",
+      "facility_identifier": "FAC-008742",
+      "license_number": "LIC-CC-21884",
+      "provider_account_id": "PRV-004198",
+      "program_type": "Child Care Center",
+      "facility_type": "Mixed Age",
+      "physical_address": "1250 Cedar Avenue",
+      "city_state_postal": "Olympia, WA 98501",
+      "region_office": "Region 3 - South Sound",
+      "provider_operator_name": "Sunrise Learning LLC",
+      "external_system": "Compass",
+      "external_case_number": "CMP-2026-004182",
+      "external_inspection_number": "INS-2026-0714-22",
+      "visit_date": "2026-07-14",
+      "assigned_primary_inspector": "Jordan Davis",
+      "inspector_name": "Jordan Davis",
+      "inspector_identifier": "EMP-10482",
+      "assessment_notes": "Routine annual monitoring visit. Structural and process quality measures collected after the on-site inspection."
+    },
+    "empty_assessment_form_values": {
+      "program": "",
+      "facility_type": "Mixed Age",
+      "inspection_type": "",
+      "assessment_date": "",
+      "visit_date": "",
+      "external_case_number": "",
+      "external_inspection_id": "",
+      "local_record_name": ""
+    },
+    "empty_facility_identification_form_values": {
+      "facility_name": "",
+      "facility_identifier": "",
+      "license_number": "",
+      "provider_account_id": "",
+      "program_type": "",
+      "facility_type": "",
+      "physical_address": "",
+      "city_state_postal": "",
+      "region_office": "",
+      "provider_operator_name": "",
+      "external_system": "",
+      "external_case_number": "",
+      "external_inspection_number": "",
+      "visit_date": "",
+      "assigned_primary_inspector": "",
+      "inspector_name": "",
+      "inspector_identifier": "",
+      "assessment_notes": ""
+    }
+  },
+  "values": {
+    "DATABASE_TABLES": {
+      "facilities": "facilities",
+      "assessments": "assessments"
+    },
+    "NAV_BY_SCREEN": {
+      "agency-dashboard": "dashboard",
+      "assessment-list": "assessments",
+      "new-assessment": "assessments",
+      "new-assignment": "assessments",
+      "facility-identification": "assessments",
+      "assessment-progress": "assessments",
+      "ch-structural-entry": "assessments",
+      "pqi-findings-entry": "assessments",
+      "pqi1": "assessments",
+      "pqi3-sample": "assessments",
+      "pqi3": "assessments",
+      "pqi6-8-hierarchy": "assessments",
+      "pqi7": "assessments",
+      "pqi8": "assessments",
+      "pqi9-10-timed": "assessments",
+      "validation-summary": "assessments",
+      "calculation-review": "assessments",
+      "result-summary": "assessments",
+      "detailed-explanation": "assessments",
+      "draft-management": "drafts",
+      "regulation-library": "regulation-library",
+      "model-administration": "scoring-models",
+      "import-review": "regulation-library",
+      "audit-history": "assessments"
+    },
+    "STANDALONE_SCREENS": [
+      "export-preview",
+      "login-tenant"
+    ],
+    "CURRENT_ASSESSMENT_SESSION_KEY": "current_assessment_id",
+    "REGULATION_SET_NAME": "Evergreen Center Standards",
+    "REGULATION_SET_VERSION": "2026.1",
+    "REGULATION_EFFECTIVE_DATE": "2026-01-01",
+    "CALCULATION_MODEL": "CCEEHM",
+    "CALCULATION_MODEL_VERSION": "1.2",
+    "CALCULATION_MODEL_PUBLICATION_DATE": "2026-05-01",
+    "STRUCTURAL_REFERENCE_TABLE": "RWCH Conversion Table v0.9",
+    "THRESHOLD_SET": "PQIAI Program-Type Thresholds v1.0",
+    "INCLUDED_COMPONENTS": {
+      "CONTACT_HOURS": true,
+      "PQI1_5": true,
+      "PQI6_8": true,
+      "PQI9_10": true,
+      "ATTACHMENTS_AND_NARRATIVE_NOTES": false
+    },
+    "PROGRAM_QUALITY_OUTCOMES": {
+      "Mixed Age": {
+        "High": 36,
+        "High-Mid": 30,
+        "Mid-Low": 20,
+        "Low": 10
+      },
+      "Preschool": {
+        "High": 32,
+        "High-Mid": 26,
+        "Mid-Low": 16,
+        "Low": 9
+      },
+      "Infant-Toddler": {
+        "High": 28,
+        "High-Mid": 22,
+        "Mid-Low": 12,
+        "Low": 8
+      }
+    },
+    "ASSESSMENTS_PER_PAGE": 8,
+    "DISABLE_DEFAULT_ASSESSMENT_FORM_VALUES": true,
+    "DEFAULT_INSPECTOR_NAME": "",
+    "DEFAULT_ASSESSMENT_FORM_VALUES": {
+      "program": "",
+      "facility_type": "Mixed Age",
+      "inspection_type": "",
+      "assessment_date": "",
+      "visit_date": "",
+      "external_case_number": "",
+      "external_inspection_id": "",
+      "local_record_name": ""
+    },
+    "DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES": {
+      "facility_name": "",
+      "facility_identifier": "",
+      "license_number": "",
+      "provider_account_id": "",
+      "program_type": "",
+      "facility_type": "",
+      "physical_address": "",
+      "city_state_postal": "",
+      "region_office": "",
+      "provider_operator_name": "",
+      "external_system": "",
+      "external_case_number": "",
+      "external_inspection_number": "",
+      "visit_date": "",
+      "assigned_primary_inspector": "",
+      "inspector_name": "",
+      "inspector_identifier": "",
+      "assessment_notes": ""
+    },
+    "NON_PQI_FIELD_REQUIREDNESS": {
+      "new-assessment": {
+        "program": true,
+        "facility_type": true,
+        "inspection_type": true,
+        "assessment_date": true,
+        "visit_date": true,
+        "external_case_number": false,
+        "external_inspection_id": false,
+        "local_record_name": false
+      },
+      "facility-identification": {
+        "facility_name": true,
+        "facility_identifier": true,
+        "license_number": false,
+        "provider_account_id": false,
+        "program_type": true,
+        "facility_type": true,
+        "physical_address": true,
+        "city_state_postal": true,
+        "region_office": false,
+        "provider_operator_name": false,
+        "external_system": true,
+        "external_case_number": true,
+        "external_inspection_number": false,
+        "visit_date": true,
+        "assigned_primary_inspector": true,
+        "inspector_identifier": false,
+        "assessment_notes": false
+      },
+      "ch-structural-entry": {
+        "to1": true,
+        "to2": true,
+        "ta": true,
+        "nc": true,
+        "th1": true,
+        "th2": true,
+        "density_model": true,
+        "required_ratio": true,
+        "ratio_source": true,
+        "rwch_reference": true
+      }
+    },
+    "ASSESSMENT_IMPORT_FIELD_REQUIREDNESS": {
+      "assessment_name": false,
+      "assessment_date": false,
+      "visit_date": false,
+      "program_type": false,
+      "inspection_type": false,
+      "facility_type": true
+    },
+    "FACILITY_TYPE_OPTIONS": [
+      "Mixed Age",
+      "Preschool",
+      "Infant-Toddler"
+    ],
+    "FACILITY_TYPE_PQI_MAPPING": {
+      "Mixed Age": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "Preschool": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        9,
+        10
+      ],
+      "Infant-Toddler": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        9,
+        10
+      ]
+    },
+    "PQI2_ENVIRONMENT_QUESTIONS": [
+      "Co-teaching is evident.",
+      "Children are viewed as competent learners and can access materials independently.",
+      "Authentic and meaningful materials are used with children.",
+      "Children are provided with meaningful choices.",
+      "Children's work, art and photos are displayed respectfully.",
+      "Family photos are displayed in the early learning program.",
+      "Documentation of learning is displayed and discusses holistic development.",
+      "Environment reflects the culture and beliefs of the children, families and staff.",
+      "Variety of books and other print materials are available throughout the classroom.",
+      "A variety of writing materials are accessible to children most of the time.",
+      "There is evidence of the children's interests and projects in the classroom."
+    ],
+    "PQI4_STAFF_FAMILY_OPPORTUNITIES_QUESTIONS": [
+      "The program provides communication, education, and informational materials and opportunities for families that are delivered in a way that meets their diverse needs.",
+      "The program communicates with families using different modes of communication, and at least one mode promotes two-way communication.",
+      "The program demonstrates respect and engages in ongoing two-way communication. The program respects each family's strengths, choices, and goals for their children."
+    ],
+    "PQI4_BAND_MAPPING": {
+      "0": 1,
+      "33.33": 2,
+      "66.67": 3,
+      "100": 4
+    },
+    "PQI5_CHILD_PROGRESS_QUESTIONS": [
+      "The program holds qualifying conferences with families at least twice yearly.",
+      "The program provides a written developmental-progress report for each child.",
+      "The program engages in culturally and linguistically appropriate interactions with children and families."
+    ],
+    "PQI5_QUESTION_POINTS": [
+      2,
+      1,
+      1
+    ],
+    "PQI3_RECORD_COUNT": 10,
+    "PQI9_OBSERVATION_COUNT": 10,
+    "PQI9_OBSERVATION_DURATION_SECONDS": 120,
+    "PQI9_LIKERT_SCORE_RANGE": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "PQI10_OBSERVATION_COUNT": 10,
+    "PQI10_OBSERVATION_DURATION_SECONDS": 120,
+    "PQI10_LIKERT_SCORE_RANGE": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "PQI910_OBSERVATION_COUNT": 10,
+    "PQI910_OBSERVATION_DURATION_SECONDS": 120,
+    "PQI910_LIKERT_SCORE_RANGE": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "PQI6_HIERARCHY": {
+      "Foundational practice": [
+        "Staff respond when children initiate communication",
+        "Staff use respectful and age-appropriate language",
+        "Children have regular opportunities to communicate"
+      ],
+      "Consistent practice": [
+        "Staff extend children's ideas through follow-up questions",
+        "Conversations include more than one exchange",
+        "Language is adapted to individual developmental levels",
+        "Visual or contextual supports are used when needed"
+      ],
+      "Advanced practice": [
+        "Staff intentionally introduce new vocabulary",
+        "Children are encouraged to explain reasoning",
+        "Staff connect current discussion to prior learning",
+        "Peer-to-peer dialogue is intentionally supported"
+      ],
+      "Sustained exemplary practice": [
+        "Staff facilitate extended, child-led conversations that build on children's ideas",
+        "Language and interaction strategies consistently support complex thinking",
+        "Children independently use rich language with adults and peers",
+        "Staff use observation evidence to refine language and interaction practices"
+      ]
+    },
+    "PQI6_SCORE_MODIFIER_REQUIREMENTS": {
+      "1": {
+        "next_level": 2,
+        "required_met": 2
+      },
+      "2": {
+        "next_level": 3,
+        "required_met": 1
+      },
+      "3": {
+        "next_level": 4,
+        "required_met": 1
+      }
+    },
+    "PQI7_HIERARCHY": {
+      "Level 1": [
+        "Staff never initiate turn-taking conversations with children",
+        "Staff questions are often not appropriate for children, or no questions are asked",
+        "Staff respond negatively when children cannot answer questions"
+      ],
+      "Level 2": [
+        "Staff sometimes initiate conversations with children",
+        "Staff sometimes ask children appropriate questions and wait for the child to respond",
+        "Staff respond neutrally or positively to children who cannot answer questions and questions asked are sometimes meaningful to children"
+      ],
+      "Level 3": [
+        "Staff initiate engaging conversations with children throughout the observation",
+        "Staff often personalize questions and or conversations for individual children",
+        "Staff often pay attention to children's questions, verbal or nonverbal, and answer in a satisfying manner for the child",
+        "Staff ask questions in which children show interest in answering"
+      ],
+      "Level 4": [
+        "Staff frequently have turn-taking conversations with children throughout the observations and use many appropriate questions during both play and routines",
+        "Staff ask children appropriate questions, wait a reasonable time for child response, and then answer if needed"
+      ]
+    },
+    "PQI7_SCORE_MODIFIER_REQUIREMENTS": {
+      "1": {
+        "next_level": 2,
+        "required_met": 2
+      },
+      "2": {
+        "next_level": 3,
+        "required_met": 2
+      },
+      "3": {
+        "next_level": 4,
+        "required_met": 1
+      }
+    },
+    "PQI8_HIERARCHY": {
+      "Level 1": [
+        "Staff do not draw attention to logical relationships, patterns, or simple cause-and-effect connections during routines and play.",
+        "Concepts are introduced without regard to children's developmental level or without connecting them to concrete experiences."
+      ],
+      "Level 2": [
+        "Staff occasionally point out simple logical relationships, such as sequence, comparisons, or cause and effect, during daily activities.",
+        "Some concepts are introduced in ways that match children's developmental level and are supported with concrete experiences and guided discussion."
+      ],
+      "Level 3": [
+        "Staff regularly talk about logical relationships while children explore materials and activities that support reasoning.",
+        "Children are encouraged to explain their thinking and to compare, sort, sequence, or solve simple problems with staff support."
+      ],
+      "Level 4": [
+        "Staff consistently build reasoning throughout the day by using children's experiences, interests, and daily events to develop logical thinking.",
+        "Concepts are introduced in response to children's questions and needs, and staff support children in connecting ideas to experiences, materials, and problem solving."
+      ]
+    },
+    "PQI8_SCORE_MODIFIER_REQUIREMENTS": {
+      "1": {
+        "next_level": 2,
+        "required_met": 1
+      },
+      "2": {
+        "next_level": 3,
+        "required_met": 1
+      },
+      "3": {
+        "next_level": 4,
+        "required_met": 1
+      }
+    },
+    "PQI_BAND_MAPPING": {
+      "tuple:0,25": 1,
+      "tuple:26,50": 2,
+      "tuple:51,75": 3,
+      "tuple:76,100": 4
+    },
+    "STATUS_CLASS_MAP": {
+      "draft": "warning",
+      "review": "info",
+      "provisional": "info",
+      "final": "success",
+      "archived": "neutral",
+      "needs updates": "danger",
+      "not implemented": "danger-bright"
+    },
+    "WORKFLOW_PROGRESS_BY_STATUS": {
+      "draft": 68,
+      "review": 82,
+      "provisional": 90,
+      "final": 100,
+      "archived": 100,
+      "needs updates": 54,
+      "not implemented": 68
+    }
+  }
+}
+

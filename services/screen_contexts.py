@@ -1387,8 +1387,7 @@ def build_duplicate_warning_html() -> Markup:
     duplicate_assessment_id = None
 
     def duplicate_value(value: object) -> str:
-        normalized_value = str(value or "").strip()
-        return "" if normalized_value.lower() in {"none", "null"} else normalized_value
+        return str(value or "").strip()
 
     for candidate in candidate_rows:
         candidate_name = duplicate_value(candidate["assessment_name"])

@@ -125,7 +125,7 @@ class FacilityIdentificationTests(unittest.TestCase):
             """
             UPDATE assessments
             SET assessment_name = '', assessment_date = '', visit_date = '',
-                external_case_number = 'None', external_inspection_id = 'None'
+                external_case_number = '', external_inspection_id = ''
             WHERE id IN (?, ?)
             """,
             (first_id, second_id),
