@@ -745,7 +745,7 @@ def build_assessment_list_context() -> dict:
 
     assessments: list[dict] = []
     for row in result["rows"]:
-        status_text = str(row["status"] or "not implemented").strip() or "not implemented"
+        status_text = str(row["status"] or "not available").strip() or "not available"
         assessments.append(
             {
                 "id": row["id"],
@@ -757,8 +757,8 @@ def build_assessment_list_context() -> dict:
                 "external_inspection_id": str(row["external_inspection_id"] or "").strip(),
                 "status": status_text,
                 "status_chip_class": get_status_chip_class(status_text),
-                "model": "not implemented",
-                "current_result": "not implemented",
+                "model": "not available",
+                "current_result": "not available",
             }
         )
 
@@ -791,17 +791,17 @@ def build_dashboard_context() -> dict:
 
     recent_assessments: list[dict] = []
     for row in recent_rows:
-        status_text = str(row["status"] or "not implemented").strip() or "not implemented"
+        status_text = str(row["status"] or "not available").strip() or "not available"
         recent_assessments.append(
             {
                 "id": row["id"],
                 "assessment_name": row["assessment_name"],
                 "facility_type": row["facility_type"],
-                "reference_label": str(row["external_case_number"] or row["external_inspection_id"] or "not implemented").strip() or "not implemented",
+                "reference_label": str(row["external_case_number"] or row["external_inspection_id"] or "not available").strip() or "not available",
                 "status": status_text,
                 "status_chip_class": get_status_chip_class(status_text),
                 "modified_at_label": format_timestamp_label(row["modified_at"]),
-                "current_result": "not implemented",
+                "current_result": "not available",
                 "action_label": "Continue" if status_text == "draft" else "Open",
             }
         )
@@ -1048,7 +1048,7 @@ def build_assessment_progress_context() -> dict:
     program = str(assessment_row["program"] or data_unavailable).strip() or data_unavailable
     inspection_type = str(assessment_row["inspection_type"] or data_unavailable).strip() or data_unavailable
     visit_date_label = format_date_label(assessment_row["visit_date"])
-    if visit_date_label == "not implemented":
+    if visit_date_label == "not available":
         visit_date_label = data_unavailable
 
     validation_context = build_validation_context()
@@ -1384,24 +1384,43 @@ def build_duplicate_warning_html() -> Markup:
     reason_texts: list[str] = []
     has_case_match = False
     has_inspection_match = False
+    duplicate_assessment_id = None
+
+    def duplicate_value(value: object) -> str:
+        normalized_value = str(value or "").strip()
+        return "" if normalized_value.lower() in {"none", "null"} else normalized_value
 
     for candidate in candidate_rows:
-        candidate_label = f"assessment #{candidate['id']} ({escape(candidate['assessment_name'])})"
+        candidate_name = duplicate_value(candidate["assessment_name"])
+        candidate_label = f"assessment #{candidate['id']} ({escape(candidate_name)})"
+        current_assessment_date = duplicate_value(current_assessment["assessment_date"])
+        candidate_assessment_date = duplicate_value(candidate["assessment_date"])
+        current_visit_date = duplicate_value(current_assessment["visit_date"])
+        candidate_visit_date = duplicate_value(candidate["visit_date"])
+        current_case_number = duplicate_value(current_assessment["external_case_number"])
+        candidate_case_number = duplicate_value(candidate["external_case_number"])
+        current_inspection_id = duplicate_value(current_assessment["external_inspection_id"])
+        candidate_inspection_id = duplicate_value(candidate["external_inspection_id"])
 
         if (
-            current_assessment["assessment_date"] == candidate["assessment_date"]
-            and current_assessment["visit_date"] == candidate["visit_date"]
-            and names_are_similar(current_assessment["assessment_name"], candidate["assessment_name"])
+            current_assessment_date
+            and current_assessment_date == candidate_assessment_date
+            and current_visit_date
+            and current_visit_date == candidate_visit_date
+            and names_are_similar(duplicate_value(current_assessment["assessment_name"]), candidate_name)
         ):
+            duplicate_assessment_id = duplicate_assessment_id or candidate["id"]
             reason_texts.append(
                 f"an assessment with the same assessment date and visit date as {candidate_label}, and a similar assessment name"
             )
 
-        if current_assessment["external_case_number"] and current_assessment["external_case_number"] == candidate["external_case_number"]:
+        if current_case_number and current_case_number == candidate_case_number:
+            duplicate_assessment_id = duplicate_assessment_id or candidate["id"]
             has_case_match = True
             reason_texts.append(f"an assessment that has the same external case number as {candidate_label}")
 
-        if current_assessment["external_inspection_id"] and current_assessment["external_inspection_id"] == candidate["external_inspection_id"]:
+        if current_inspection_id and current_inspection_id == candidate_inspection_id:
+            duplicate_assessment_id = duplicate_assessment_id or candidate["id"]
             has_inspection_match = True
             reason_texts.append(f"an external inspection ID matches {candidate_label}")
 
@@ -1423,7 +1442,7 @@ def build_duplicate_warning_html() -> Markup:
             <div>
                 <strong>{lead_in}{reason_text}</strong>
             </div>
-            <button type="button">Review duplicate</button>
+            <a class="button" href="{url_for('open_assessment_create_assessment', assessment_id=duplicate_assessment_id)}">Review duplicate</a>
         </div>
     """
     return Markup(warning_html)

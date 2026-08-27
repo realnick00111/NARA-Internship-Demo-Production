@@ -1,7 +1,7 @@
 import json
 import sqlite3
 
-from constants import DEFAULT_INSPECTOR_NAME
+from constants import ASSESSMENT_IMPORT_FIELD_REQUIREDNESS, DEFAULT_INSPECTOR_NAME
 from db import get_db_connection, log_storage_event
 
 
@@ -263,6 +263,23 @@ def build_assessment_input_snapshot(assessment_id: int) -> dict | None:
     }
 
 
+def build_assessment_input_snapshots() -> list[dict]:
+    conn = get_db_connection()
+    try:
+        assessment_ids = [
+            int(row["id"])
+            for row in conn.execute("SELECT id FROM assessments ORDER BY id").fetchall()
+        ]
+    finally:
+        conn.close()
+
+    return [
+        snapshot
+        for assessment_id in assessment_ids
+        if (snapshot := build_assessment_input_snapshot(assessment_id)) is not None
+    ]
+
+
 def import_assessment_input_snapshot(snapshot: dict) -> int:
     assessment_payload = snapshot.get("assessment")
     facility_payload = snapshot.get("facility")
@@ -288,17 +305,18 @@ def import_assessment_input_snapshot(snapshot: dict) -> int:
     facility_fields = _facility_fields_from_payload(fields)
     assessment_fields = _assessment_fields_from_payload(fields)
     assessment_fields["status"] = status
+    import_field_values = {
+        "assessment_name": assessment_fields["assessment_name"],
+        "facility_type": facility_fields["type"],
+        "assessment_date": assessment_fields["assessment_date"],
+        "visit_date": assessment_fields["visit_date"],
+        "program_type": facility_fields["program_type"],
+        "inspection_type": assessment_fields["inspection_type"],
+    }
     missing_required = [
         field_name
-        for field_name, value in {
-            "assessment_name": assessment_fields["assessment_name"],
-            "facility_type": facility_fields["type"],
-            "assessment_date": assessment_fields["assessment_date"],
-            "visit_date": assessment_fields["visit_date"],
-            "program_type": facility_fields["program_type"],
-            "inspection_type": assessment_fields["inspection_type"],
-        }.items()
-        if not value
+        for field_name, value in import_field_values.items()
+        if ASSESSMENT_IMPORT_FIELD_REQUIREDNESS.get(field_name, True) and not value
     ]
     if missing_required:
         raise ValueError(f"Missing required fields: {', '.join(missing_required)}")
@@ -559,7 +577,7 @@ def query_assessment_list(normalized_query: str, page: int, per_page: int) -> di
                 a.assessor,
                 a.external_case_number,
                 a.external_inspection_id,
-                COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
+                COALESCE(NULLIF(trim(a.status), ''), 'not available') AS status,
                 a.created_at
             FROM assessments a
             LEFT JOIN facilities f ON f.id = a.facility_id
@@ -612,7 +630,7 @@ def get_dashboard_counts_and_recent() -> tuple[int, int, list[sqlite3.Row]]:
                 COALESCE(NULLIF(trim(f.type), ''), '') AS facility_type,
                 a.external_case_number,
                 a.external_inspection_id,
-                COALESCE(NULLIF(trim(a.status), ''), 'not implemented') AS status,
+                COALESCE(NULLIF(trim(a.status), ''), 'not available') AS status,
                 COALESCE(NULLIF(trim(a.modified_at), ''), a.created_at) AS modified_at
             FROM assessments a
             LEFT JOIN facilities f ON f.id = a.facility_id

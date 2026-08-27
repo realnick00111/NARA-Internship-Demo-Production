@@ -229,6 +229,15 @@ NON_PQI_FIELD_REQUIREDNESS = {
     },
 }
 
+ASSESSMENT_IMPORT_FIELD_REQUIREDNESS = {
+    "assessment_name": False,
+    "assessment_date": False,
+    "visit_date": False,
+    "program_type": False,
+    "inspection_type": False,
+    "facility_type": True,
+}
+
 FACILITY_TYPE_OPTIONS = ("Mixed Age", "Preschool", "Infant-Toddler")
 
 FACILITY_TYPE_PQI_MAPPING = {

@@ -8,6 +8,7 @@ from rendering import render_page
 from repositories.assessments import (
     delete_assessments_by_ids,
     build_assessment_input_snapshot,
+    build_assessment_input_snapshots,
     get_assessment_row_by_id,
     import_assessment_input_snapshot,
     update_assessment_json_fields,
@@ -67,6 +68,15 @@ def register_routes(app: Flask) -> None:
             mimetype="application/json",
         )
         response.headers["Content-Disposition"] = f"attachment; filename=assessment-input-snapshot-{int(assessment_id):05d}.json"
+        return response
+
+    @app.route("/assessments/input-snapshots")
+    def download_assessment_input_snapshots():
+        response = Response(
+            json.dumps(build_assessment_input_snapshots(), indent=2, ensure_ascii=True) + "\n",
+            mimetype="application/json",
+        )
+        response.headers["Content-Disposition"] = "attachment; filename=assessment-input-snapshots.json"
         return response
 
     @app.route("/api/save-log", methods=["POST"])
@@ -853,7 +863,7 @@ def register_routes(app: Flask) -> None:
 
         try:
             if current_assessment_row is not None:
-                existing_status = str(current_assessment_row["status"] or "not implemented").strip() or "not implemented"
+                existing_status = str(current_assessment_row["status"] or "not available").strip() or "not available"
                 fields = build_assessment_fields(
                     assessment_data,
                     status=existing_status,
@@ -886,13 +896,15 @@ def register_routes(app: Flask) -> None:
         except (UnicodeDecodeError, json.JSONDecodeError):
             return jsonify({"status": "error", "message": "The selected file is not valid JSON"}), 400
 
-        if not isinstance(snapshot, dict):
-            return jsonify({"status": "error", "message": "The snapshot must contain a JSON object"}), 400
+        snapshots = snapshot if isinstance(snapshot, list) else [snapshot]
+        if not snapshots or not all(isinstance(item, dict) for item in snapshots):
+            return jsonify({"status": "error", "message": "The file must contain an assessment object or an array of assessment objects"}), 400
 
         try:
-            assessment_id = import_assessment_input_snapshot(snapshot)
+            assessment_ids = [import_assessment_input_snapshot(item) for item in snapshots]
         except (TypeError, ValueError) as error:
             return jsonify({"status": "error", "message": str(error)}), 400
 
+        assessment_id = assessment_ids[-1]
         set_current_assessment(assessment_id)
-        return jsonify({"status": "success", "assessment_id": assessment_id, "next_screen": url_for("screen", screen_id="assessment-list")})
+        return jsonify({"status": "success", "assessment_id": assessment_id, "assessment_ids": assessment_ids, "imported_count": len(assessment_ids), "next_screen": url_for("screen", screen_id="assessment-list")})

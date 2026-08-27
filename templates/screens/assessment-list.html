@@ -4,7 +4,7 @@
 		<h1>Assessment List</h1>
 		<p>Search, filter, and resume the assessments that are currently active in the workspace.</p>
 	</div>
-	<div class="action-row"><a class="button primary" href="{{ url_for('start_new_assessment') }}">Create assessment</a><button class="button secondary" id="import-assessment-json" type="button">Import JSON</button><input id="import-assessment-json-file" type="file" accept=".json,application/json" hidden><button class="button secondary">Export list</button></div>
+	<div class="action-row"><a class="button primary" href="{{ url_for('start_new_assessment') }}">Create assessment</a><button class="button secondary" id="import-assessment-json" type="button">Import JSON</button><input id="import-assessment-json-file" type="file" accept=".json,application/json" hidden><a class="button secondary" href="{{ url_for('download_assessment_input_snapshots') }}">Export list</a></div>
 </div>
 
 <div class="toolbar">
@@ -38,7 +38,7 @@
 				<td><input class="assessment-row-select" type="checkbox" aria-label="Select assessment {{ assessment.id }}"></td>
 				<td>
 					<strong>ASMT-{{ "%05d"|format(assessment.id) }}</strong>
-					<span>{{ assessment.external_case_number or assessment.external_inspection_id or "not implemented" }}</span>
+					<span>{{ assessment.external_case_number or assessment.external_inspection_id or "not available" }}</span>
 				</td>
 				<td>
 					<strong>{{ assessment.assessment_name }}</strong>

@@ -118,6 +118,40 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('Ada Lovelace', rendered)
         self.assertIn('Sunrise Learning Center', rendered)
 
+    def test_duplicate_warning_ignores_empty_matching_fields(self):
+        first_id = self.insert_assessment()
+        second_id = self.insert_assessment()
+        self.conn.execute(
+            """
+            UPDATE assessments
+            SET assessment_name = '', assessment_date = '', visit_date = '',
+                external_case_number = 'None', external_inspection_id = 'None'
+            WHERE id IN (?, ?)
+            """,
+            (first_id, second_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = first_id
+
+        rendered = self.client.get("/screens/facility-identification").data.decode("utf-8")
+
+        self.assertNotIn("possible duplicate", rendered.lower())
+
+        self.conn.execute(
+            "UPDATE assessments SET external_case_number = ? WHERE id IN (?, ?)",
+            ("CASE-123", first_id, second_id),
+        )
+        self.conn.commit()
+
+        rendered = self.client.get("/screens/facility-identification").data.decode("utf-8")
+
+        self.assertIn("same external case number", rendered)
+
+        review_link = f'href="/assessments/{second_id}/create-assessment"'
+        self.assertIn(review_link, rendered)
+
     def test_new_assessment_uses_facility_type_dropdown(self):
         response = self.client.get("/screens/new-assessment")
         rendered = response.data.decode("utf-8")
@@ -227,6 +261,45 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(snapshot["assessment"]["contact_hours"], {"calculated_ch": "8"})
         self.assertEqual(snapshot["facility"]["identifier"], "FAC-008742")
 
+    def test_download_input_snapshots_returns_an_array_for_the_assessment_list(self):
+        first_id = self.insert_assessment(assessment_name="First assessment")
+        second_id = self.insert_assessment(assessment_name="Second assessment")
+
+        response = self.client.get("/assessments/input-snapshots")
+        snapshots = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment; filename=assessment-input-snapshots.json", response.headers["Content-Disposition"])
+        self.assertIsInstance(snapshots, list)
+        self.assertEqual([snapshot["assessment"]["assessment_name"] for snapshot in snapshots], [
+            "First assessment",
+            "Second assessment",
+        ])
+        self.assertEqual(len({first_id, second_id}), 2)
+
+    def test_import_input_snapshot_accepts_multiple_assessments(self):
+        first_id = self.insert_assessment(assessment_name="First assessment")
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = first_id
+        first_snapshot = self.client.get(f"/assessments/input-snapshot").get_json()
+        self.conn.execute("UPDATE assessments SET assessment_name = ? WHERE id = ?", ("Second assessment", first_id))
+        self.conn.commit()
+        second_snapshot = self.client.get("/assessments/input-snapshot").get_json()
+        self.conn.execute("DELETE FROM assessments")
+        self.conn.commit()
+
+        response = self.client.post(
+            "/api/assessments/import-input-snapshot",
+            data={"snapshot": (io.BytesIO(json.dumps([first_snapshot, second_snapshot]).encode("utf-8")), "snapshots.json")},
+            content_type="multipart/form-data",
+        )
+
+        payload = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["imported_count"], 2)
+        self.assertEqual(len(payload["assessment_ids"]), 2)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM assessments").fetchone()[0], 2)
+
     def test_imported_snapshot_round_trips_input_and_ignores_calculation_result(self):
         assessment_id = self.insert_assessment()
         self.conn.execute(
@@ -262,6 +335,24 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(imported_row["contact_hours"], json.dumps({"calculated_ch": "8"}))
         self.assertEqual(imported_row["pqi_findings"], json.dumps({"pqi1": {"score": 2}}))
         self.assertEqual(json.loads(imported_row["calculated_result"]), {})
+
+    def test_import_accepts_optional_assessment_fields(self):
+        assessment_id = self.insert_assessment()
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        snapshot = self.client.get("/assessments/input-snapshot").get_json()
+        for field_name in ("assessment_name", "assessment_date", "visit_date", "inspection_type"):
+            snapshot["assessment"].pop(field_name)
+        snapshot["facility"].pop("program_type")
+
+        response = self.client.post(
+            "/api/assessments/import-input-snapshot",
+            data={"snapshot": (io.BytesIO(json.dumps(snapshot).encode("utf-8")), "snapshot.json")},
+            content_type="multipart/form-data",
+        )
+
+        self.assertEqual(response.status_code, 200)
 
     def test_calculation_review_component_statuses_follow_included_components(self):
         assessment_id = self.insert_assessment()

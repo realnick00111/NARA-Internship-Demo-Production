@@ -26,7 +26,7 @@ def round_percentage_half_up(value: float | int) -> int:
 def format_date_label(date_value: str | None) -> str:
     value = str(date_value or "").strip()
     if not value:
-        return "not implemented"
+        return "not available"
 
     for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
         try:
@@ -41,7 +41,7 @@ def format_date_label(date_value: str | None) -> str:
 def format_timestamp_label(timestamp_value: str | None) -> str:
     value = str(timestamp_value or "").strip()
     if not value:
-        return "not implemented"
+        return "not available"
 
     parsed_value: datetime | None = None
     for candidate_format in (
