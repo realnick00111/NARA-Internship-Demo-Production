@@ -152,6 +152,9 @@
       "PQI9_10": true,
       "ATTACHMENTS_AND_NARRATIVE_NOTES": false
     },
+    "DENSITY_MODEL_OPTIONS": [
+      "Trapezoidal"
+    ],
     "PROGRAM_QUALITY_OUTCOMES": {
       "Mixed Age": {
         "High": 36,
@@ -467,24 +470,6 @@
       "tuple:26,50": 2,
       "tuple:51,75": 3,
       "tuple:76,100": 4
-    },
-    "STATUS_CLASS_MAP": {
-      "draft": "warning",
-      "review": "info",
-      "provisional": "info",
-      "final": "success",
-      "archived": "neutral",
-      "needs updates": "danger",
-      "not implemented": "danger-bright"
-    },
-    "WORKFLOW_PROGRESS_BY_STATUS": {
-      "draft": 68,
-      "review": 82,
-      "provisional": 90,
-      "final": 100,
-      "archived": 100,
-      "needs updates": 54,
-      "not implemented": 68
     }
   }
 }

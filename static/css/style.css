@@ -1654,6 +1654,16 @@ td span {
 	font-weight: 700
 }
 
+.pqi-complete-card.danger {
+	border-color: #efb9b4;
+	background: #fff0ef;
+	color: #7f1a13
+}
+
+.pqi-complete-card.danger .pqi-complete-icon {
+	background: #b42318
+}
+
 .pqi-complete-icon {
 	display: inline-flex;
 	align-items: center;

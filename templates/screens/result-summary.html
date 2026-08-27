@@ -5,6 +5,8 @@
 	</div>
 </div>
 
+{% if results_outdated %}<div class="pqi-complete-card danger" role="alert"><span class="pqi-complete-icon" aria-hidden="true">!</span><span>Results are outdated</span></div>{% endif %}
+
 <div class="result-summary-page">
 	<section class="result-hero">
 		<div>
@@ -68,6 +70,6 @@
 
 	<div class="sticky-actions result-actions">
 		<a class="button secondary" href="{{ url_for('screen', screen_id='calculation-review') }}">Back to calculation review</a>
-		<div><a class="button secondary" href="{{ url_for('screen', screen_id='detailed-explanation') }}">Detailed explanation (Not Implemented)</a><a class="button secondary" href="{{ url_for('screen', screen_id='export-preview') }}">Export preview (Not Implemented)</a><button class="button primary">Finalize assessment</button></div>
+		<div><a class="button secondary" href="{{ url_for('screen', screen_id='detailed-explanation') }}">Detailed explanation (Not Implemented)</a><a class="button secondary" href="{{ url_for('screen', screen_id='export-preview') }}">Export preview (Not Implemented)</a><form method="post" action="{{ url_for('finalize_assessment') }}" style="display: inline"><button class="button primary" type="submit"{% if not can_finalize %} disabled aria-disabled="true"{% endif %}>Finalize assessment</button></form></div>
 	</div>
 </div>

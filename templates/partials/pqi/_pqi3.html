@@ -12,7 +12,12 @@
 		<span class="pqi-complete-icon" aria-hidden="true">✓</span>
 		<span>PQI 3 marked as complete</span>
 	</div>
-	{% if not pqi3_complete %}<div class="alert info pqi2-summary-card" id="pqi3-summary-card" role="status" aria-live="polite">
+	{% if not pqi_allowed['3'] %}
+	<div class="alert danger pqi-disabled-alert" role="alert">
+		<div class="alert-icon">!</div>
+		<div><strong>PQI 3 is disabled</strong><span>This PQI is disabled for {{ facility_type }}.</span></div>
+	</div>
+	{% elif not pqi3_complete %}<div class="alert info pqi2-summary-card" id="pqi3-summary-card" role="status" aria-live="polite">
 		<div class="alert-icon">i</div>
 		<div>
 			<strong>Records complete</strong>
@@ -34,14 +39,14 @@
 						{% if record[field] == 'yes' %}<span class="chip success">Yes</span>{% elif record[field] == 'no' %}<span class="chip danger">No</span>{% else %}<span class="chip warning">Incomplete</span>{% endif %}
 					{% else %}
 						<div class="pqi3-choice-group" role="group" aria-label="Record {{ record_number }} response">
-							<button class="button secondary tinybtn pqi3-choice" type="button" data-field="{{ field }}" data-value="yes">Yes</button>
-							<button class="button secondary tinybtn pqi3-choice" type="button" data-field="{{ field }}" data-value="no">No</button>
+							<button class="button secondary tinybtn pqi3-choice" type="button" data-field="{{ field }}" data-value="yes"{% if not pqi_allowed['3'] %} disabled aria-disabled="true"{% endif %}>Yes</button>
+							<button class="button secondary tinybtn pqi3-choice" type="button" data-field="{{ field }}" data-value="no"{% if not pqi_allowed['3'] %} disabled aria-disabled="true"{% endif %}>No</button>
 						</div>
 					{% endif %}
 				</td>
 				{% endfor %}
 				<td><span class="chip {% if record.complete and record.positive %}success{% elif record.complete %}neutral{% else %}warning{% endif %}" data-pqi3-positive>{% if record.complete and record.positive %}Positive{% elif record.complete %}Not positive{% else %}Incomplete{% endif %}</span></td>
-				<td>{% if pqi3_preview %}<span>{{ record.notes or 'No notes' }}</span>{% else %}<input class="input pqi3-notes" type="text" value="{{ record.notes }}" aria-label="Notes for record {{ record_number }}">{% endif %}</td>
+				<td>{% if pqi3_preview %}<span>{{ record.notes or 'No notes' }}</span>{% else %}<input class="input pqi3-notes" type="text" value="{{ record.notes }}" aria-label="Notes for record {{ record_number }}"{% if not pqi_allowed['3'] %} disabled aria-disabled="true"{% endif %}>{% endif %}</td>
 			</tr>
 			{% endfor %}
 			</tbody>
@@ -59,7 +64,7 @@
 	{% if pqi3_preview %}
 	<div class="table-actions"><a class="button secondary" href="{{ pqi3_full_href }}">Open full 10-record sample</a><span>{{ pqi3_completed_count }} of 10 records complete</span></div>
 	{% else %}
-	<div class="card-actions" style="margin-top: 16px; justify-content: space-between;"><a class="button ghost" href="{{ pqi3_back_href }}">Back to PQI list</a><div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;"><span class="save-indicator" id="pqi3-save-state">{% if pqi3_complete %}PQI 3 marked as complete{% else %}Complete all ten records to complete PQI 3{% endif %}</span><button class="button secondary" id="pqi3-draft-save-button" type="button">Save Draft</button><button class="button primary" id="pqi3-save-button" type="button"{% if not pqi3_complete %} disabled{% endif %}>Complete PQI 3</button></div></div>
+	<div class="card-actions" style="margin-top: 16px; justify-content: space-between;"><a class="button ghost" href="{{ pqi3_back_href }}">Back to PQI list</a><div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;"><span class="save-indicator" id="pqi3-save-state">{% if pqi3_complete %}PQI 3 marked as complete{% else %}Complete all ten records to complete PQI 3{% endif %}</span><button class="button secondary" id="pqi3-draft-save-button" type="button"{% if not pqi_allowed['3'] %} disabled aria-disabled="true"{% endif %}>Save Draft</button><button class="button primary" id="pqi3-save-button" type="button"{% if not pqi3_complete or not pqi_allowed['3'] %} disabled{% endif %}>Complete PQI 3</button></div></div>
 	{% endif %}
 </div>
 
@@ -69,6 +74,7 @@
 	const bandRows = {{ pqi1_band_rows | tojson }};
 	const assessmentId = {{ editing_assessment_id | tojson }};
 	const saveUrl = "{{ pqi3_save_url }}";
+	const pqi3Allowed = {{ pqi_allowed['3'] | tojson }};
 	let completeInitially = {{ pqi3_complete | tojson }};
 	const fields = ['emergent_curriculum', 'co_learning', 'documented_learning_future_planning'];
 	const rows = Array.from(document.querySelectorAll('#pqi3-card [data-pqi3-record]'));
@@ -123,7 +129,7 @@
 		const allComplete = completeCount === 10; const percentage = positiveCount * 10; const score = band(percentage); const changed = JSON.stringify(records) !== lastSaved;
 		syncCompletionState();
 		summaryText.textContent = `${completeCount} of 10 records complete`;
-		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
+		positiveCountNode.textContent = positiveCount; percentageNode.textContent = percentage === null ? '-' : `${roundHalfUpWhole(percentage)}%`; scoreNode.textContent = score === null ? '-' : score; topScoreNode.textContent = score === null ? 'Score unavailable' : `Score ${score}`; noteNode.textContent = allComplete ? 'Ready to complete.' : `Complete ${10 - completeCount} more record${10 - completeCount === 1 ? '' : 's'} to calculate the ordinal score.`; completeButton.disabled = !pqi3Allowed || !allComplete || (!changed && completeInitially); if (!changed) saveState.textContent = completeInitially ? 'PQI 3 marked as complete' : 'Draft saved'; else saveState.textContent = allComplete ? `Ready to complete with score ${score}` : 'Complete all ten records to complete PQI 3';
 	};
 	rows.forEach((row) => {
 		syncRowState(row);

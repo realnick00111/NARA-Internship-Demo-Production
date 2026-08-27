@@ -97,6 +97,15 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('value="Jordan Davis"', rendered)
 
+    def test_assessment_list_shows_static_calculation_model(self):
+        self.insert_assessment()
+
+        response = self.client.get("/screens/assessment-list")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<td>CCEEHM v1.2</td>", rendered)
+
     def test_facility_screen_uses_date_input_and_database_values(self):
         assessment_id = self.insert_assessment(
             assessment_name="Sunrise Learning Center",
@@ -117,6 +126,32 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('value="2026-04-12"', rendered)
         self.assertIn('Ada Lovelace', rendered)
         self.assertIn('Sunrise Learning Center', rendered)
+
+    def test_facility_screen_saves_inspector_identifier_and_assessment_notes(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        response = self.client.post(
+            "/api/save-assignment-draft",
+            json={
+                "inspector_identifier": "EMP-10482",
+                "assessment_notes": "Routine annual monitoring visit.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_row = self.conn.execute(
+            "SELECT inspector_identifier, assessment_notes FROM assessments WHERE id = ?",
+            (assessment_id,),
+        ).fetchone()
+        self.assertEqual(saved_row["inspector_identifier"], "EMP-10482")
+        self.assertEqual(saved_row["assessment_notes"], "Routine annual monitoring visit.")
+
+        rendered = self.client.get("/screens/facility-identification").data.decode("utf-8")
+        self.assertIn('value="EMP-10482"', rendered)
+        self.assertIn('value="Routine annual monitoring visit."', rendered)
 
     def test_duplicate_warning_ignores_empty_matching_fields(self):
         first_id = self.insert_assessment()
@@ -171,6 +206,15 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn('<option value="Preschool">Preschool</option>', rendered)
         self.assertIn('<option value="Infant-Toddler">Infant-Toddler</option>', rendered)
 
+    def test_structural_entry_uses_configured_density_model_dropdown(self):
+        response = self.client.get("/screens/ch-structural-entry")
+        rendered = response.data.decode("utf-8")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('<select class="select" id="density-model" name="density_model">', rendered)
+        self.assertIn('<option value="Trapezoidal" selected>Trapezoidal</option>', rendered)
+        self.assertEqual(rendered.count('<option value="Trapezoidal"'), 1)
+
     def test_opening_an_existing_assessment_redirects_to_progress(self):
         assessment_id = self.insert_assessment()
 
@@ -196,6 +240,39 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertEqual(rendered.count('class="issue-row danger"'), 3)
         self.assertNotIn("Validation summary has not been reviewed", rendered)
         self.assertIn('href="/screens/audit-history"', rendered)
+
+    def test_assessment_progress_recommends_calculation_for_outdated_result(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET calculated_result = ? WHERE id = ?",
+            (json.dumps({"CALCULATED_CH": 8, "RWCH_REFERENCE": 10}), assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        with patch(
+            "services.screen_contexts.build_validation_context",
+            return_value={"blocking_errors": [], "total_checks": 0, "warnings": []},
+        ):
+            rendered = self.client.get("/screens/assessment-progress").data.decode("utf-8")
+
+        self.assertIn('<div class="next-num">6</div>', rendered)
+        self.assertIn("Complete Calculation", rendered)
+        self.assertIn('href="/screens/result-summary"', rendered)
+        self.assertNotIn('class="progress-item done" href="/screens/calculation-review"', rendered)
+
+    def test_needs_review_uses_needs_updates_danger_status_on_list_and_dashboard(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute("UPDATE assessments SET status = ? WHERE id = ?", ("needs review", assessment_id))
+        self.conn.commit()
+
+        list_rendered = self.client.get("/screens/assessment-list").data.decode("utf-8")
+        dashboard_rendered = self.client.get("/screens/agency-dashboard").data.decode("utf-8")
+
+        self.assertIn('class="chip danger">Needs updates</span>', list_rendered)
+        self.assertIn('class="chip danger">Needs updates</span>', dashboard_rendered)
 
     def test_pqi_entry_has_continue_to_validation_button(self):
         assessment_id = self.insert_assessment()
@@ -240,6 +317,98 @@ class FacilityIdentificationTests(unittest.TestCase):
         self.assertIn("No assessment selected", rendered)
         self.assertNotIn("Ready to calculate", rendered)
         self.assertIn('disabled aria-disabled="true"', rendered)
+
+    def test_calculation_review_warns_for_draft_with_existing_result(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET calculated_result = ? WHERE id = ?",
+            (json.dumps({"score": 9}), assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/calculation-review").data.decode("utf-8")
+
+        self.assertIn('class="pqi-complete-card danger"', rendered)
+        self.assertIn("Results are outdated", rendered)
+
+        self.conn.execute("UPDATE assessments SET status = ? WHERE id = ?", ("final", assessment_id))
+        self.conn.commit()
+
+        rendered = self.client.get("/screens/calculation-review").data.decode("utf-8")
+
+        self.assertNotIn("Results are outdated", rendered)
+
+    def test_result_summary_warns_for_draft_with_existing_result(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET calculated_result = ? WHERE id = ?",
+            (json.dumps({"score": 9}), assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/result-summary").data.decode("utf-8")
+
+        self.assertIn('class="pqi-complete-card danger"', rendered)
+        self.assertIn("Results are outdated", rendered)
+
+    def test_provisional_result_can_be_finalized(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET calculated_result = ?, status = ? WHERE id = ?",
+            (json.dumps({"CALCULATED_CH": 8, "RWCH_REFERENCE": 10}), "provisional", assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/result-summary").data.decode("utf-8")
+        self.assertNotIn('disabled aria-disabled="true"', rendered)
+
+        response = self.client.post("/assessments/finalize")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.conn.execute("SELECT status FROM assessments WHERE id = ?", (assessment_id,)).fetchone()[0], "final")
+
+    def test_result_summary_disables_finalize_for_needs_review_result(self):
+        assessment_id = self.insert_assessment()
+        self.conn.execute(
+            "UPDATE assessments SET calculated_result = ?, status = ? WHERE id = ?",
+            (json.dumps({"CALCULATED_CH": 12, "RWCH_REFERENCE": 10}), "needs review", assessment_id),
+        )
+        self.conn.commit()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        rendered = self.client.get("/screens/result-summary").data.decode("utf-8")
+
+        self.assertIn('disabled aria-disabled="true"', rendered)
+
+        response = self.client.post("/assessments/finalize")
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_calculation_marks_result_needs_review_when_ch_exceeds_reference(self):
+        assessment_id = self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session["current_assessment_id"] = assessment_id
+
+        with patch("routes.build_validation_context", return_value={"assessment_id": assessment_id, "blocking_errors": []}), patch(
+            "routes.build_calculation_result",
+            return_value={"CALCULATED_CH": 12, "RWCH_REFERENCE": 10},
+        ):
+            response = self.client.post("/assessments/calculate")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.conn.execute("SELECT status FROM assessments WHERE id = ?", (assessment_id,)).fetchone()[0], "needs review")
 
     def test_download_input_snapshot_excludes_calculation_result(self):
         assessment_id = self.insert_assessment()
@@ -1170,6 +1339,20 @@ class FacilityIdentificationTests(unittest.TestCase):
         saved_findings = json.loads(saved_row[0])
         self.assertEqual(saved_findings["pqi3"]["record 1"]["notes"], "Numeric-key note 1")
         self.assertTrue(saved_findings["pqi3"]["completed"])
+
+    def test_save_pqi3_rejects_disabled_indicator(self):
+        assessment_id = self.insert_assessment()
+        with patch(
+            "routes.build_pqi_access_context",
+            return_value={"pqi_allowed": {"3": False}},
+        ):
+            response = self.client.post(
+                "/api/assessments/pqi3",
+                json={"assessment_id": assessment_id, "records": {}, "completed": True},
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("PQI 3 is not available", response.get_json()["message"])
 
     def test_save_pqi6_persists_hierarchy_state_and_locks_later_levels(self):
         assessment_id = self.insert_assessment()

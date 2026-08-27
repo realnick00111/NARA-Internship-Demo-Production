@@ -10,6 +10,7 @@ from constants import (
     CALCULATION_MODEL_PUBLICATION_DATE,
     CALCULATION_MODEL_VERSION,
     CALCULATION_MODEL_PUBLICATION_DATE,
+    DENSITY_MODEL_OPTIONS,
     FACILITY_TYPE_OPTIONS,
     DEFAULT_INSPECTOR_NAME,
     DEFAULT_ASSESSMENT_FORM_VALUES,
@@ -37,7 +38,6 @@ from constants import (
     REGULATION_SET_VERSION,
     STRUCTURAL_REFERENCE_TABLE,
     THRESHOLD_SET,
-    WORKFLOW_PROGRESS_BY_STATUS,
     PROGRAM_QUALITY_OUTCOMES,
 )
 from repositories.assessments import (
@@ -62,6 +62,7 @@ from services.formatters import (
     format_pqi8_score,
     format_timestamp_label,
     get_status_chip_class,
+    get_status_label,
     names_are_similar,
     normalize_yes_no,
     normalize_text,
@@ -468,7 +469,7 @@ def build_contact_hours_context() -> dict:
         "nc": "",
         "th1": "",
         "th2": "",
-        "density_model": "",
+        "density_model": DENSITY_MODEL_OPTIONS[0] if DENSITY_MODEL_OPTIONS else "",
         "required_ratio": "",
         "ratio_source": "",
         "rwch_reference": "",
@@ -490,6 +491,7 @@ def build_contact_hours_context() -> dict:
         "assessment_label": assessment_label,
         "editing_assessment_id": assessment_id,
         "contact_hours_form": contact_hours_form,
+        "density_model_options": DENSITY_MODEL_OPTIONS,
         "save_indicator_label": f"Autosaved {format_timestamp_label(assessment_row['modified_at'])}" if assessment_row is not None else "Autosaved --",
     }
 
@@ -755,9 +757,9 @@ def build_assessment_list_context() -> dict:
                 "owner": str(row["assessor"] or "not implemented").strip() or "not implemented",
                 "external_case_number": str(row["external_case_number"] or "").strip(),
                 "external_inspection_id": str(row["external_inspection_id"] or "").strip(),
-                "status": status_text,
+                "status": get_status_label(status_text),
                 "status_chip_class": get_status_chip_class(status_text),
-                "model": "not available",
+                "model": f"{CALCULATION_MODEL} v{CALCULATION_MODEL_VERSION}",
                 "current_result": "not available",
             }
         )
@@ -798,7 +800,7 @@ def build_dashboard_context() -> dict:
                 "assessment_name": row["assessment_name"],
                 "facility_type": row["facility_type"],
                 "reference_label": str(row["external_case_number"] or row["external_inspection_id"] or "not available").strip() or "not available",
-                "status": status_text,
+                "status": get_status_label(status_text),
                 "status_chip_class": get_status_chip_class(status_text),
                 "modified_at_label": format_timestamp_label(row["modified_at"]),
                 "current_result": "not available",
@@ -892,6 +894,8 @@ def build_facility_identification_context() -> dict:
                     if current_assessment["assessor"] and str(current_assessment["assessor"]).strip().lower() != "not implemented"
                     else DEFAULT_INSPECTOR_NAME
                 ),
+                "inspector_identifier": str(current_assessment["inspector_identifier"] or facility_form["inspector_identifier"]).strip() or facility_form["inspector_identifier"],
+                "assessment_notes": str(current_assessment["assessment_notes"] or facility_form["assessment_notes"]).strip() or facility_form["assessment_notes"],
             }
         )
 
@@ -960,6 +964,8 @@ def build_calculation_result() -> dict:
 def build_result_summary_context() -> dict:
     assessment_row = get_current_assessment_row()
     result = _load_json_object(assessment_row["calculated_result"], {}) if assessment_row is not None else {}
+    assessment_status = str(assessment_row["status"] or "").strip().lower() if assessment_row is not None else ""
+    results_outdated = bool(result) and assessment_status == "draft"
     contact_hours = _load_json_object(assessment_row["contact_hours"], {}) if assessment_row is not None else {}
     facility_type = _normalize_facility_type(assessment_row["facility_type"]) if assessment_row is not None else ""
     thresholds = PROGRAM_QUALITY_OUTCOMES.get(facility_type, {})
@@ -988,6 +994,10 @@ def build_result_summary_context() -> dict:
     except (TypeError, ValueError):
         structural_is_acceptable = False
     try:
+        needs_review = float(calculated_ch) > float(rwch_reference)
+    except (TypeError, ValueError):
+        needs_review = False
+    try:
         calculated_ch_position = min(100, max(0, 55 * float(calculated_ch) / float(rwch_reference)))
     except (TypeError, ValueError, ZeroDivisionError):
         calculated_ch_position = None
@@ -996,6 +1006,8 @@ def build_result_summary_context() -> dict:
         "assessment_label": get_assessment_label(assessment_row),
         "result": result,
         "has_result": bool(result),
+        "results_outdated": results_outdated,
+        "can_finalize": bool(result) and assessment_status == "provisional" and not needs_review,
         "facility_type": facility_type,
         "outcome_number": outcome_number,
         "outcome": outcome,
@@ -1086,6 +1098,7 @@ def build_assessment_progress_context() -> dict:
     validation_complete = not validation_errors
     calculation_result = _load_json_object(assessment_row["calculated_result"], {})
     calculation_complete = bool(calculation_result)
+    results_outdated = calculation_complete and status_text.lower() == "draft"
     last_calculation = format_timestamp_label(calculation_result.get("DATE_CALCULATED")) if calculation_complete else "Not calculated"
 
     snapshot_items = [
@@ -1128,8 +1141,8 @@ def build_assessment_progress_context() -> dict:
         },
         {
             "label": "6. Calculation",
-            "detail": "Complete" if calculation_complete else "Not started",
-            "state": "done" if calculation_complete else "pending",
+            "detail": "Needs update" if results_outdated else "Complete" if calculation_complete else "Not started",
+            "state": "done" if calculation_complete and not results_outdated else "pending",
             "href": url_for("screen", screen_id="calculation-review"),
         },
         {
@@ -1140,7 +1153,11 @@ def build_assessment_progress_context() -> dict:
         },
     ]
 
-    next_step = next((step for step in progress_steps if step["state"] == "pending"), progress_steps[-1])
+    next_step = (
+        progress_steps[5]
+        if results_outdated
+        else next((step for step in progress_steps if step["state"] == "pending"), progress_steps[-1])
+    )
     if next_step["state"] != "done":
         next_step["state"] = "active"
     next_step_number, next_step_title = next_step["label"].split(". ", 1)
@@ -1218,7 +1235,7 @@ def build_assessment_progress_context() -> dict:
         "assessment_name": assessment_name,
         "assessment_status": status_text,
         "assessment_status_chip_class": get_status_chip_class(status_text),
-        "assessment_status_label": data_unavailable if status_text == data_unavailable else status_text.title(),
+        "assessment_status_label": data_unavailable if status_text == data_unavailable else get_status_label(status_text),
         "reference_label": reference_label,
         "facility_type": facility_type,
         "inspection_type": inspection_type,
@@ -1239,6 +1256,7 @@ def build_assessment_progress_context() -> dict:
         "acknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if warning.get("acknowledged")),
         "unacknowledged_warning_count": sum(1 for warning in validation_context["warnings"] if not warning.get("acknowledged")),
         "calculation_ready": assessment_id is not None and not validation_context["blocking_errors"],
+        "results_outdated": results_outdated,
         "snapshot_items": snapshot_items,
         "recommendation_title": f"Complete {next_step_title}",
         "recommendation_body": next_step["detail"],
@@ -1273,8 +1291,8 @@ def build_validation_context() -> dict:
             "external_inspection_number": assessment_row["external_inspection_id"] or facility_defaults["external_inspection_number"],
             "visit_date": assessment_row["visit_date"] or facility_defaults["visit_date"],
             "assigned_primary_inspector": assessment_row["assessor"] or facility_defaults["assigned_primary_inspector"],
-            "inspector_identifier": "",
-            "assessment_notes": "",
+            "inspector_identifier": assessment_row["inspector_identifier"] or facility_defaults["inspector_identifier"],
+            "assessment_notes": assessment_row["assessment_notes"] or facility_defaults["assessment_notes"],
         }
         contact_hours = _load_json_object(assessment_row["contact_hours"], {})
         field_values.update(contact_hours)

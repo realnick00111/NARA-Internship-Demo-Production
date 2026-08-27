@@ -77,6 +77,13 @@ def get_status_chip_class(status_value: str | None) -> str:
     return STATUS_CLASS_MAP.get(normalized, "neutral")
 
 
+def get_status_label(status_value: str | None) -> str:
+    normalized = normalize_text(status_value)
+    if normalized == "needs review":
+        return "Needs updates"
+    return str(status_value or "not available").strip().title()
+
+
 def _calculate_band_score_from_percentage(percentage: float) -> int | None:
     for (lower_bound, upper_bound), band in sorted(PQI_BAND_MAPPING.items(), key=lambda item: item[1]):
         if lower_bound <= percentage <= upper_bound:

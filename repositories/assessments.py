@@ -18,6 +18,8 @@ ASSESSMENT_ROW_SELECT = """
         a.visit_date,
         a.inspection_type,
         a.assessor,
+        a.inspector_identifier,
+        a.assessment_notes,
         COALESCE(NULLIF(trim(a.status), ''), 'draft') AS status,
         a.external_case_number,
         a.external_inspection_id,
@@ -105,6 +107,8 @@ def _assessment_fields_from_payload(fields: dict) -> dict[str, str | None]:
         "visit_date": _clean_text(fields.get("visit_date")),
         "inspection_type": _clean_text(fields.get("inspection_type")),
         "assessor": _clean_text(fields.get("assessor"), DEFAULT_INSPECTOR_NAME) or DEFAULT_INSPECTOR_NAME,
+        "inspector_identifier": _clean_text(fields.get("inspector_identifier")),
+        "assessment_notes": _clean_text(fields.get("assessment_notes")),
         "status": _clean_text(fields.get("status"), "draft") or "draft",
         "external_case_number": _clean_text(fields.get("external_case_number")) or None,
         "external_inspection_id": _clean_text(fields.get("external_inspection_id")) or None,
@@ -242,6 +246,8 @@ def build_assessment_input_snapshot(assessment_id: int) -> dict | None:
             "visit_date": _clean_text(row["visit_date"]),
             "inspection_type": _clean_text(row["inspection_type"]),
             "assessor": _clean_text(row["assessor"], "not implemented") or "not implemented",
+            "inspector_identifier": _clean_text(row["inspector_identifier"]),
+            "assessment_notes": _clean_text(row["assessment_notes"]),
             "status": _clean_text(row["status"], "draft") or "draft",
             "external_case_number": row["external_case_number"],
             "external_inspection_id": row["external_inspection_id"],
@@ -337,12 +343,14 @@ def import_assessment_input_snapshot(snapshot: dict) -> int:
                 visit_date,
                 inspection_type,
                 assessor,
+                inspector_identifier,
+                assessment_notes,
                 status,
                 external_case_number,
                 external_inspection_id,
                 contact_hours,
                 pqi_findings
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 assessment_fields["assessment_name"],
@@ -353,6 +361,8 @@ def import_assessment_input_snapshot(snapshot: dict) -> int:
                 assessment_fields["visit_date"],
                 assessment_fields["inspection_type"],
                 assessment_fields["assessor"],
+                assessment_fields["inspector_identifier"],
+                assessment_fields["assessment_notes"],
                 assessment_fields["status"],
                 assessment_fields["external_case_number"],
                 assessment_fields["external_inspection_id"],
@@ -370,11 +380,27 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
     conn = get_db_connection()
     try:
         existing_row = _fetch_assessment_row(conn, int(assessment_id)) if assessment_id is not None else None
+        facility_fields = _facility_fields_from_payload(fields)
+        existing_facility = None
+        if existing_row is not None and existing_row["facility_id"] is not None:
+            existing_facility = conn.execute(
+                "SELECT identifier, name, license_number, physical_address, city_state_postal_code, type, provider_name, provider_id, region, program_type FROM facilities WHERE id = ?",
+                (int(existing_row["facility_id"]),),
+            ).fetchone()
         facility_id = _upsert_facility(conn, fields, int(existing_row["facility_id"]) if existing_row and existing_row["facility_id"] is not None else None)
         assessment_fields = _assessment_fields_from_payload(fields)
         json_fields = _json_fields_from_payload(fields, existing_row)
 
         if existing_row is not None:
+            facility_changed = existing_facility is None or any(
+                existing_facility[key] != value for key, value in facility_fields.items()
+            )
+            assessment_changed = any(
+                existing_row[key] != value
+                for key, value in assessment_fields.items()
+                if key != "status"
+            ) or existing_row["contact_hours"] != json_fields["contact_hours"] or existing_row["pqi_findings"] != json_fields["pqi_findings"]
+            assessment_fields["status"] = "draft" if facility_changed or assessment_changed else existing_row["status"]
             conn.execute(
                 """
                 UPDATE assessments
@@ -387,6 +413,8 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                     visit_date = ?,
                     inspection_type = ?,
                     assessor = ?,
+                    inspector_identifier = ?,
+                    assessment_notes = ?,
                     status = ?,
                     external_case_number = ?,
                     external_inspection_id = ?,
@@ -404,6 +432,8 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                     assessment_fields["visit_date"],
                     assessment_fields["inspection_type"],
                     assessment_fields["assessor"],
+                    assessment_fields["inspector_identifier"],
+                    assessment_fields["assessment_notes"],
                     assessment_fields["status"],
                     assessment_fields["external_case_number"],
                     assessment_fields["external_inspection_id"],
@@ -427,12 +457,14 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                 visit_date,
                 inspection_type,
                 assessor,
+                inspector_identifier,
+                assessment_notes,
                 status,
                 external_case_number,
                 external_inspection_id,
                 contact_hours,
                 pqi_findings
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 assessment_fields["assessment_name"],
@@ -443,6 +475,8 @@ def upsert_assessment_fields(fields: dict, *, assessment_id: int | None = None) 
                 assessment_fields["visit_date"],
                 assessment_fields["inspection_type"],
                 assessment_fields["assessor"],
+                assessment_fields["inspector_identifier"],
+                assessment_fields["assessment_notes"],
                 assessment_fields["status"],
                 assessment_fields["external_case_number"],
                 assessment_fields["external_inspection_id"],
@@ -464,19 +498,24 @@ def update_assessment_json_fields(
     contact_hours: object | None = None,
     pqi_findings: object | None = None,
     calculated_result: object | None = None,
+    status: str | None = "draft",
 ) -> None:
     updates: list[str] = []
     values: list[object] = []
 
     if contact_hours is not None:
         updates.append("contact_hours = ?")
-        values.append(_json_text(contact_hours, {}))
+        contact_hours_text = _json_text(contact_hours, {})
+        values.append(contact_hours_text)
 
     if pqi_findings is not None:
         updates.append("pqi_findings = ?")
 
     if calculated_result is not None:
         updates.append("calculated_result = ?")
+
+    if status is not None:
+        updates.append("status = ?")
 
     if not updates:
         return
@@ -487,15 +526,25 @@ def update_assessment_json_fields(
         if existing_row is None:
             raise ValueError("No assessment selected, unable to save")
 
+        data_changed = False
+        if contact_hours is not None:
+            data_changed = contact_hours_text != existing_row["contact_hours"]
         if pqi_findings is not None:
             existing_pqi_findings = _json_object(existing_row["pqi_findings"], {})
             incoming_pqi_findings = _json_object(pqi_findings, {})
             merged_pqi_findings = dict(existing_pqi_findings)
             merged_pqi_findings.update(incoming_pqi_findings)
-            values.append(_json_text(merged_pqi_findings, {}))
+            merged_pqi_findings_text = _json_text(merged_pqi_findings, {})
+            data_changed = data_changed or merged_pqi_findings_text != existing_row["pqi_findings"]
+            values.append(merged_pqi_findings_text)
 
         if calculated_result is not None:
-            values.append(_json_text(calculated_result, {}))
+            calculated_result_text = _json_text(calculated_result, {})
+            data_changed = data_changed or calculated_result_text != existing_row["calculated_result"]
+            values.append(calculated_result_text)
+
+        if status is not None:
+            values.append(status if status != "draft" or data_changed else existing_row["status"])
 
         conn.execute(
             f"""

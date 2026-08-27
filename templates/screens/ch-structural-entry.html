@@ -61,7 +61,9 @@
 				<div class="form-grid">
 					<div class="field">
 						<div class="labelrow"><label for="density-model">Density model</label>{% if required_fields.density_model %}<span class="req">Required</span>{% endif %}</div>
-						<input class="input" id="density-model" name="density_model" type="text" value="{{ contact_hours_form.density_model }}">
+						<select class="select" id="density-model" name="density_model">
+							{% for option in density_model_options %}<option value="{{ option }}"{% if contact_hours_form.density_model == option %} selected{% endif %}>{{ option }}</option>{% endfor %}
+						</select>
 						<div class="hint">Standard for staggered arrivals and departures.</div>
 					</div>
 					<div class="field">

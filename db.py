@@ -57,6 +57,8 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
         "visit_date",
         "inspection_type",
         "assessor",
+        "inspector_identifier",
+        "assessment_notes",
         "status",
         "external_case_number",
         "external_inspection_id",
@@ -101,6 +103,8 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
             visit_date TEXT NOT NULL,
             inspection_type TEXT NOT NULL,
             assessor TEXT NOT NULL DEFAULT 'not implemented',
+            inspector_identifier TEXT NOT NULL DEFAULT '',
+            assessment_notes TEXT NOT NULL DEFAULT '',
             status TEXT NOT NULL DEFAULT 'draft',
             external_case_number TEXT,
             external_inspection_id TEXT,
@@ -121,6 +125,8 @@ def ensure_storage_schema(conn: sqlite3.Connection) -> None:
                 "contact_hours": "TEXT NOT NULL DEFAULT '{}'",
                 "pqi_findings": "TEXT NOT NULL DEFAULT '{}'",
                 "calculated_result": "TEXT NOT NULL DEFAULT '{}'",
+                "inspector_identifier": "TEXT NOT NULL DEFAULT ''",
+                "assessment_notes": "TEXT NOT NULL DEFAULT ''",
             },
         )
 

@@ -136,6 +136,16 @@ def build_assessment_fields(
             "assigned_primary_inspector",
             default=str(existing_values.get("assessor", DEFAULT_INSPECTOR_NAME)).strip() or DEFAULT_INSPECTOR_NAME,
         ),
+        "inspector_identifier": get_payload_value(
+            assessment_data,
+            "inspector_identifier",
+            default=str(existing_values.get("inspector_identifier", "")).strip(),
+        ),
+        "assessment_notes": get_payload_value(
+            assessment_data,
+            "assessment_notes",
+            default=str(existing_values.get("assessment_notes", "")).strip(),
+        ),
         "status": status,
         "external_case_number": get_payload_value(
             assessment_data,

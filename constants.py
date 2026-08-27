@@ -78,7 +78,6 @@ CURRENT_ASSESSMENT_SESSION_KEY = "current_assessment_id"
 with CONFIG_PATH.open(encoding="utf-8-sig") as config_file:
     CONFIG = json.load(config_file)
 
-globals().update(CONFIG["values"])
 SCREEN_ORDER = [
     "login-tenant",
     "agency-dashboard",
@@ -108,14 +107,6 @@ SCREEN_ORDER = [
     "export-preview",
 ]
 STANDALONE_SCREENS = set(STANDALONE_SCREENS)
-PQI4_BAND_MAPPING = {float(key): value for key, value in PQI4_BAND_MAPPING.items()}
-PQI6_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI6_SCORE_MODIFIER_REQUIREMENTS.items()}
-PQI7_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI7_SCORE_MODIFIER_REQUIREMENTS.items()}
-PQI8_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI8_SCORE_MODIFIER_REQUIREMENTS.items()}
-PQI_BAND_MAPPING = {
-    tuple(int(value) for value in key.removeprefix("tuple:").split(",")): band
-    for key, band in PQI_BAND_MAPPING.items()
-}
 
 NON_PQI_FIELD_REQUIREDNESS = {
     "new-assessment": {
@@ -171,6 +162,7 @@ ASSESSMENT_IMPORT_FIELD_REQUIREDNESS = {
 }
 
 FACILITY_TYPE_OPTIONS = ("Mixed Age", "Preschool", "Infant-Toddler")
+DENSITY_MODEL_OPTIONS = ("Trapezoidal",)
 
 FACILITY_TYPE_PQI_MAPPING = {
     "Mixed Age": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
@@ -329,15 +321,22 @@ STATUS_CLASS_MAP = {
     "final": "success",
     "archived": "neutral",
     "needs updates": "danger",
+    "needs review": "danger",
     "not implemented": "danger-bright",
 }
 
-WORKFLOW_PROGRESS_BY_STATUS = {
-    "draft": 68,
-    "review": 82,
-    "provisional": 90,
-    "final": 100,
-    "archived": 100,
-    "needs updates": 54,
-    "not implemented": 68,
+globals().update(CONFIG["values"])
+STANDALONE_SCREENS = set(STANDALONE_SCREENS)
+FACILITY_TYPE_OPTIONS = tuple(FACILITY_TYPE_OPTIONS)
+DENSITY_MODEL_OPTIONS = tuple(DENSITY_MODEL_OPTIONS)
+PQI9_LIKERT_SCORE_RANGE = tuple(PQI9_LIKERT_SCORE_RANGE)
+PQI10_LIKERT_SCORE_RANGE = tuple(PQI10_LIKERT_SCORE_RANGE)
+PQI910_LIKERT_SCORE_RANGE = tuple(PQI910_LIKERT_SCORE_RANGE)
+PQI4_BAND_MAPPING = {float(key): value for key, value in PQI4_BAND_MAPPING.items()}
+PQI6_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI6_SCORE_MODIFIER_REQUIREMENTS.items()}
+PQI7_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI7_SCORE_MODIFIER_REQUIREMENTS.items()}
+PQI8_SCORE_MODIFIER_REQUIREMENTS = {int(key): value for key, value in PQI8_SCORE_MODIFIER_REQUIREMENTS.items()}
+PQI_BAND_MAPPING = {
+    tuple(int(value) for value in key.removeprefix("tuple:").split(",")): band
+    for key, band in PQI_BAND_MAPPING.items()
 }

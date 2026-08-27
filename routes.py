@@ -30,6 +30,13 @@ from services.formatters import (
 from session_state import clear_current_assessment, get_current_assessment, set_current_assessment
 
 
+def calculation_requires_review(result: dict) -> bool:
+    try:
+        return float(result.get("CALCULATED_CH")) > float(result.get("RWCH_REFERENCE"))
+    except (TypeError, ValueError):
+        return False
+
+
 def register_routes(app: Flask) -> None:
     @app.route("/")
     def index():
@@ -103,7 +110,24 @@ def register_routes(app: Flask) -> None:
             return jsonify({"status": "error", "message": "Complete all required assessment data before calculating"}), 400
 
         result = build_calculation_result()
-        update_assessment_json_fields(validation_context["assessment_id"], calculated_result=result)
+        status = "needs review" if calculation_requires_review(result) else "provisional"
+        update_assessment_json_fields(validation_context["assessment_id"], calculated_result=result, status=status)
+        return redirect(url_for("screen", screen_id="result-summary"))
+
+    @app.route("/assessments/finalize", methods=["POST"])
+    def finalize_assessment():
+        assessment_id = get_current_assessment()
+        assessment_row = get_assessment_row_by_id(assessment_id) if assessment_id is not None else None
+        result = json.loads(assessment_row["calculated_result"] or "{}") if assessment_row is not None else {}
+
+        if assessment_row is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to finalize"}), 400
+        if str(assessment_row["status"] or "").strip().lower() != "provisional":
+            return jsonify({"status": "error", "message": "Only provisional assessments can be finalized"}), 400
+        if not result or calculation_requires_review(result):
+            return jsonify({"status": "error", "message": "Assessment requires review before finalization"}), 400
+
+        update_assessment_json_fields(assessment_id, status="final")
         return redirect(url_for("screen", screen_id="result-summary"))
 
     @app.route("/api/assessments/pqi-progress")
@@ -373,6 +397,9 @@ def register_routes(app: Flask) -> None:
         assessment_id = payload.get("assessment_id") or get_current_assessment()
         if assessment_id is None:
             return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+        assessment_row = get_assessment_row_by_id(int(assessment_id))
+        if assessment_row is None or not build_pqi_access_context(assessment_row)["pqi_allowed"]["3"]:
+            return jsonify({"status": "error", "message": "PQI 3 is not available for this facility type"}), 400
 
         raw_records = payload.get("records")
         if not isinstance(raw_records, dict):
