@@ -3,13 +3,67 @@
 import json
 from unittest.mock import patch
 
+from flask import session
+
 from app import app
-from constants import INCLUDED_COMPONENTS, REGULATION_SET_NAME, REGULATION_SET_VERSION
+from constants import (
+    INCLUDED_COMPONENTS,
+    PROGRAM_QUALITY_OUTCOMES,
+    REGULATION_SET_NAME,
+    REGULATION_SET_VERSION,
+)
+from services.screen_contexts import build_calculation_result, build_result_summary_context
 from tests.test_support import AssessmentTestCase
 
 
 class CalculationResultsTests(AssessmentTestCase):
     """Calculation readiness, result status, finalization, and component scoring."""
+
+    def test_program_type_threshold_boundaries_assign_each_outcome(self):
+        for facility_type, thresholds in PROGRAM_QUALITY_OUTCOMES.items():
+            ordered_thresholds = sorted(thresholds.items(), key=lambda item: item[1])
+            expected_ranges = [
+                f"{lower_bound}-{ordered_thresholds[index + 1][1] - 1}"
+                if index + 1 < len(ordered_thresholds)
+                else f"{lower_bound}+"
+                for index, (_, lower_bound) in enumerate(ordered_thresholds)
+            ]
+
+            for index, (outcome, lower_bound) in enumerate(ordered_thresholds):
+                assessment_id = self.insert_assessment()
+                self.conn.execute(
+                    "UPDATE facilities SET type = ? WHERE id = (SELECT facility_id FROM assessments WHERE id = ?)",
+                    (facility_type, assessment_id),
+                )
+                self.conn.execute(
+                    "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+                    (json.dumps({"pqi1": {"score": lower_bound}}), assessment_id),
+                )
+                self.conn.commit()
+
+                with app.test_request_context("/"):
+                    session["current_assessment_id"] = assessment_id
+                    result = build_calculation_result()
+                    summary = build_result_summary_context()
+
+                self.assertEqual(result["PROGRAM_QUALITY_OUTCOME"], outcome)
+                self.assertEqual(summary["outcome_bands"][index]["range"], expected_ranges[index])
+
+                self.conn.execute(
+                    "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+                    (json.dumps({"pqi1": {"score": lower_bound - 1}}), assessment_id),
+                )
+                self.conn.commit()
+
+                with app.test_request_context("/"):
+                    session["current_assessment_id"] = assessment_id
+                    result_below_boundary = build_calculation_result()
+
+                expected_below = ordered_thresholds[index - 1][0] if index else "Low"
+                self.assertEqual(result_below_boundary["PROGRAM_QUALITY_OUTCOME"], expected_below)
+
+                self.conn.execute("DELETE FROM assessments WHERE id = ?", (assessment_id,))
+                self.conn.commit()
 
     def test_calculation_review_matches_prototype_structure(self):
         assessment_id = self.insert_assessment()
@@ -27,6 +81,7 @@ class CalculationResultsTests(AssessmentTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("Calculation Review", rendered)
+        self.assertIn('href="/screens/assessment-progress">Return to Progress</a>', rendered)
         self.assertIn("Frozen calculation assets", rendered)
         self.assertIn("Calculation readiness", rendered)
         self.assertIn("Create a reproducible result", rendered)

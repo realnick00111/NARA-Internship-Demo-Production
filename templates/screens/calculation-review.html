@@ -3,6 +3,9 @@
 		<div class="eyebrow">{{ assessment_label }}</div>
 		<h1>Calculation Review</h1>
 	</div>
+	<div class="action-row">
+		<a class="button secondary" href="{{ url_for('screen', screen_id='assessment-progress') }}">Return to Progress</a>
+	</div>
 </div>
 
 {% if results_outdated %}<div class="pqi-complete-card danger" role="alert"><span class="pqi-complete-icon" aria-hidden="true">!</span><span>Results are outdated</span></div>{% endif %}
