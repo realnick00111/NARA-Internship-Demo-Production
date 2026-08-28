@@ -891,6 +891,9 @@ def build_facility_identification_context() -> dict:
         current_assessment = get_assessment_row_by_id(int(current_assessment_id))
 
     facility_form = dict(DEFAULT_FACILITY_IDENTIFICATION_FORM_VALUES)
+    facility_form["assigned_primary_inspector"] = (
+        facility_form.get("assigned_primary_inspector") or DEFAULT_INSPECTOR_NAME
+    )
     if current_assessment is not None:
         facility_form.update(
             {

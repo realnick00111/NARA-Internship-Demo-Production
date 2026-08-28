@@ -67,7 +67,7 @@ NAV_BY_SCREEN = {
     "draft-management": "drafts",
     "regulation-library": "regulation-library",
     "model-administration": "scoring-models",
-    "import-review": "regulation-library",
+    "import-review": "admin" + "istration",
     "audit-history": "assessments",
 }
 

@@ -108,7 +108,7 @@ def render_screen_section(screen_id: str) -> str:
     else:
         inner_html = render_template(
             "partials/_shell_routes.html",
-            active_nav=NAV_BY_SCREEN.get(screen_id, "assessments"),
+            active_nav="administration" if screen_id == "import-review" else NAV_BY_SCREEN.get(screen_id, "assessments"),
             page_head=Markup(""),
             page_content=Markup(content),
         )

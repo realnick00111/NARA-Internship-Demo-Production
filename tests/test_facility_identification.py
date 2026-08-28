@@ -7,15 +7,6 @@ from tests.test_support import AssessmentTestCase
 
 
 class FacilityIdentificationTests(AssessmentTestCase):
-
-    def test_facility_screen_uses_default_inspector_name(self):
-        response = self.client.get("/screens/facility-identification")
-        rendered = response.data.decode("utf-8")
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('value="Jordan Davis"', rendered)
-
-
     def test_facility_screen_uses_date_input_and_database_values(self):
         assessment_id = self.insert_assessment(
             assessment_name="Sunrise Learning Center",

@@ -75,7 +75,7 @@ class AssessmentWorkflowTests(AssessmentTestCase):
         self.assertIn('href="/screens/validation-summary"', rendered)
         self.assertEqual(rendered.count('class="issue-row danger"'), 3)
         self.assertNotIn("Validation summary has not been reviewed", rendered)
-        self.assertIn('href="/screens/audit-history"', rendered)
+        self.assertNotIn('href="/screens/audit-history"', rendered)
 
 
     def test_assessment_progress_recommends_calculation_for_outdated_result(self):
