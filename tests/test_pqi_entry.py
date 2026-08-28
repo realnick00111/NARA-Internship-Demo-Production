@@ -61,6 +61,34 @@ class PqiEntryTests(AssessmentTestCase):
         self.assertNotIn("findingsEntry?.addEventListener('input', syncPqiProgress)", findings_rendered)
 
 
+    def test_pqi_completion_invalidation_preserves_saved_values(self):
+        assessment_id = self.insert_assessment()
+        original_findings = {
+            "pqi2": {"complete": True, "score": 4, "responses": {"2.1": "yes"}},
+            "pqi3": {"completed": True, "record 1": {"notes": "Saved evidence"}},
+        }
+        self.conn.execute(
+            "UPDATE assessments SET pqi_findings = ? WHERE id = ?",
+            (json.dumps(original_findings), assessment_id),
+        )
+        self.conn.commit()
+
+        response = self.client.post(
+            "/api/assessments/pqi-completion",
+            json={"assessment_id": assessment_id, "pqi_number": 2},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        saved_findings = json.loads(
+            self.conn.execute(
+                "SELECT pqi_findings FROM assessments WHERE id = ?", (assessment_id,)
+            ).fetchone()[0]
+        )
+        self.assertFalse(saved_findings["pqi2"]["complete"])
+        self.assertEqual(saved_findings["pqi2"]["responses"], {"2.1": "yes"})
+        self.assertTrue(saved_findings["pqi3"]["completed"])
+
+
     def test_pqi_findings_entry_embeds_pqi1_controls(self):
         assessment_id = self.insert_assessment()
 

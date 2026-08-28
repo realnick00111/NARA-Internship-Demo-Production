@@ -172,6 +172,10 @@
 		}
 
 		const hasChanges = lastSavedSnapshot === null || snapshot.certified !== lastSavedSnapshot.certified || snapshot.total !== lastSavedSnapshot.total;
+		if (hasChanges && pqi1Complete) {
+			pqi1Complete = false;
+			window.markPqiIncomplete?.(assessmentId, 1);
+		}
 		syncCompletionState();
 		saveButton.disabled = !hasAssessment || !valid || (lastSavedSnapshot !== null && !hasChanges && pqi1Complete);
 		draftSaveButton.disabled = !hasAssessment;

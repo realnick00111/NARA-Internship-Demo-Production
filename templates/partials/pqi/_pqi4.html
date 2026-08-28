@@ -119,6 +119,10 @@
 		const matchingBand = percentage === null ? null : bandRows.find((row) => Number(row.percentage.toFixed(2)) === Number(percentage.toFixed(2)));
 		const score = matchingBand ? matchingBand.band : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
+		if (hasChanges && pqi4Complete) {
+			pqi4Complete = false;
+			window.markPqiIncomplete?.(assessmentId, 4);
+		}
 		syncCompletionState();
 		summaryText.textContent = `${completedCount} of ${questionIds.length} completed`;
 		yesCountDisplay.textContent = String(yesCount);
@@ -148,12 +152,19 @@
 	};
 
 	if (optionalNote) {
-		optionalNote.addEventListener('input', syncOptionalNoteHeight);
+		optionalNote.addEventListener('input', () => {
+			if (pqi4Complete) {
+				pqi4Complete = false;
+				window.markPqiIncomplete?.(assessmentId, 4);
+			}
+			syncCompletionState();
+			syncOptionalNoteHeight();
+		});
 		syncOptionalNoteHeight();
 	}
 	rows.forEach((row) => {
 		updateRow(row, normalizeChoice(row.dataset.pqi4Response));
-		row.querySelectorAll('[data-pqi4-choice]').forEach((button) => button.addEventListener('click', () => { statusMessage = ''; updateRow(row, button.dataset.pqi4Choice); updateView(); }));
+		row.querySelectorAll('[data-pqi4-choice]').forEach((button) => button.addEventListener('click', () => { statusMessage = ''; const choice = button.dataset.pqi4Choice; updateRow(row, row.dataset.pqi4Response === choice ? '' : choice); updateView(); }));
 	});
 	window.pqiDraftSavers = window.pqiDraftSavers || [];
 	window.pqiDraftSavers.push(() => persist(draftSaveButton));

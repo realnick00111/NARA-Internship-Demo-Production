@@ -6,4 +6,14 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>CCEEHM Prototype Screen Mockups</title>
 	<link rel="stylesheet" href="/static/css/style.css">
+	<script>
+		window.markPqiIncomplete = (assessmentId, pqiNumber) => {
+			if (assessmentId === null || assessmentId === undefined) return;
+			fetch('/api/assessments/pqi-completion', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ assessment_id: assessmentId, pqi_number: pqiNumber }),
+			}).catch(() => {});
+		};
+	</script>
 </head>

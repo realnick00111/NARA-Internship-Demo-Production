@@ -11,6 +11,7 @@ from repositories.assessments import (
     build_assessment_input_snapshots,
     get_assessment_row_by_id,
     import_assessment_input_snapshot,
+    mark_pqi_incomplete,
     update_assessment_json_fields,
     upsert_assessment_fields,
 )
@@ -151,6 +152,27 @@ def register_routes(app: Flask) -> None:
                 "nav_items": nav_items,
             }
         )
+
+    @app.route("/api/assessments/pqi-completion", methods=["POST"])
+    def mark_pqi_incomplete_api():
+        payload = request.get_json(silent=True) or {}
+        assessment_id = payload.get("assessment_id") or get_current_assessment()
+        pqi_number = payload.get("pqi_number")
+
+        if assessment_id is None:
+            return jsonify({"status": "error", "message": "No assessment selected, unable to save"}), 400
+
+        try:
+            normalized_assessment_id = int(assessment_id)
+            normalized_pqi_number = int(pqi_number)
+            if normalized_pqi_number not in range(1, 11):
+                raise ValueError("pqi_number must be between 1 and 10")
+            mark_pqi_incomplete(normalized_assessment_id, normalized_pqi_number)
+        except (TypeError, ValueError) as error:
+            return jsonify({"status": "error", "message": str(error)}), 400
+
+        set_current_assessment(normalized_assessment_id)
+        return jsonify({"status": "success", "assessment_id": normalized_assessment_id, "pqi_number": normalized_pqi_number, "complete": False})
 
     @app.route("/api/save-assignment-draft", methods=["POST"])
     def save_assignment_draft_api():

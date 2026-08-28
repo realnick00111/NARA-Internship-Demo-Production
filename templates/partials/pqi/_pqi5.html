@@ -124,7 +124,7 @@
 		});
 	}
 
-	if (!rows.length || !summaryText || !baseDisplay || !bonusDisplay || !totalDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
+	if (!rows.length || !baseDisplay || !bonusDisplay || !totalDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;
 	}
 
@@ -212,8 +212,12 @@
 			totalPoints = basePoints + bonusPoint;
 		}
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
+		if (hasChanges && pqi5Complete) {
+			pqi5Complete = false;
+			window.markPqiIncomplete?.(assessmentId, 5);
+		}
 
-		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
+		if (summaryText) summaryText.textContent = `${completedCount} of ${totalCount} completed`;
 		syncCompletionState();
 		baseDisplay.textContent = basePoints === null ? '-' : String(basePoints);
 		bonusDisplay.textContent = bonusPoint === null ? '-' : String(bonusPoint);
@@ -290,7 +294,8 @@
 		const buttons = Array.from(row.querySelectorAll('[data-pqi5-choice]'));
 		buttons.forEach((button) => {
 			button.addEventListener('click', () => {
-				setResponse(row, button.getAttribute('data-pqi5-choice') || '');
+				const choice = button.getAttribute('data-pqi5-choice') || '';
+				setResponse(row, row.getAttribute('data-pqi5-response') === choice ? '' : choice);
 			});
 		});
 	});

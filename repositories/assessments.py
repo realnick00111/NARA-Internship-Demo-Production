@@ -598,6 +598,32 @@ def update_assessment_json_fields(
         conn.close()
 
 
+def mark_pqi_incomplete(assessment_id: int, pqi_number: int) -> None:
+    completion_key = "completed" if pqi_number == 3 else "complete"
+    pqi_key = f"pqi{pqi_number}"
+
+    conn = get_db_connection()
+    try:
+        existing_row = _fetch_assessment_row(conn, int(assessment_id))
+        if existing_row is None:
+            raise ValueError("No assessment selected, unable to save")
+
+        pqi_findings = _json_object(existing_row["pqi_findings"], {})
+        pqi_data = pqi_findings.get(pqi_key)
+        if not isinstance(pqi_data, dict):
+            pqi_data = {}
+        pqi_data[completion_key] = False
+        pqi_findings[pqi_key] = pqi_data
+        conn.execute(
+            "UPDATE assessments SET pqi_findings = ?, modified_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (_json_text(pqi_findings, {}), int(assessment_id)),
+        )
+        conn.commit()
+        log_storage_event(f"Marked {pqi_key} incomplete for assessment {assessment_id}")
+    finally:
+        conn.close()
+
+
 def delete_assessments_by_ids(assessment_ids: list[int]) -> int:
     if not assessment_ids:
         return 0

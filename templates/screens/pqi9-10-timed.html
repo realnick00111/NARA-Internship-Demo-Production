@@ -156,7 +156,11 @@
 		provisionalScore.textContent = Math.round(average).toString();
 	};
 
-	const updateObservationState = (row, selectedButton) => {
+	const updateObservationState = (row, selectedButton, isUserChange = false) => {
+		if (isUserChange && completeFlag) {
+			completeFlag = false;
+			window.markPqiIncomplete?.(assessmentId, 9);
+		}
 		row.querySelectorAll('[data-pqi910-score]').forEach((button) => {
 			const selected = button === selectedButton;
 			button.classList.toggle('selected', selected);
@@ -177,12 +181,19 @@
 
 	observationRows.forEach((row, index) => {
 		row.querySelectorAll('[data-pqi910-score]').forEach((button) => {
-			button.addEventListener('click', () => updateObservationState(row, button));
+			button.addEventListener('click', () => updateObservationState(row, button, true));
 		});
 		const savedScore = initialSavedScores[String(index + 1)];
 		const selectedButton = savedScore !== undefined && savedScore !== null ? row.querySelector(`[data-pqi910-score="${savedScore}"]`) : null;
 		const notesInput = row.querySelector('.pqi910-notes');
 		if (notesInput) notesInput.value = initialSavedNotes[String(index + 1)] || '';
+		if (notesInput) notesInput.addEventListener('input', () => {
+			if (completeFlag) {
+				completeFlag = false;
+				window.markPqiIncomplete?.(assessmentId, 9);
+			}
+			syncCompletionState();
+		});
 		updateObservationState(row, selectedButton);
 	});
 
@@ -318,6 +329,7 @@
 	const initialSeconds = {{ pqi10_duration_seconds }};
 	let remainingSeconds = initialSeconds;
 	let timerId = null;
+	let initializing = true;
 
 	if (!panel || !timerDisplay || !pauseButton || !resetButton || !saveState) return;
 	const getSnapshot = () => Object.fromEntries(observationRows.map((row, index) => {
@@ -340,13 +352,18 @@
 	};
 	observationRows.forEach((row, index) => {
 		row.querySelectorAll('[data-pqi10-score]').forEach((button) => button.addEventListener('click', () => {
+			if (!initializing && completeFlag) {
+				completeFlag = false;
+				window.markPqiIncomplete?.(assessmentId, 10);
+			}
 			row.querySelectorAll('[data-pqi10-score]').forEach((candidate) => { const selected = candidate === button; candidate.classList.toggle('selected', selected); candidate.setAttribute('aria-pressed', String(selected)); });
 			const status = row.querySelector('[data-pqi10-status]'); status.className = 'chip success'; status.textContent = 'Complete'; update();
 		}));
 		const savedScore = initialSavedScores[String(index + 1)];
 		if (savedScore !== undefined) row.querySelector(`[data-pqi10-score="${savedScore}"]`)?.click();
-		const notesInput = row.querySelector('.pqi10-notes'); if (notesInput) notesInput.value = initialSavedNotes[String(index + 1)] || '';
+		const notesInput = row.querySelector('.pqi10-notes'); if (notesInput) { notesInput.value = initialSavedNotes[String(index + 1)] || ''; notesInput.addEventListener('input', () => { if (completeFlag) { completeFlag = false; window.markPqiIncomplete?.(assessmentId, 10); } update(); }); }
 	});
+	initializing = false;
 	const persist = async (button) => {
 		const completeAction = button === completeButton;
 		button.disabled = true;

@@ -2083,6 +2083,22 @@ td span {
 	color: var(--red)
 }
 
+.pqi2-state-button.is-selected.is-yes {
+	border-color: #8cc897;
+	background: #e8f5ea;
+	color: var(--green);
+	font-weight: 800;
+	box-shadow: 0 0 0 2px rgba(140, 200, 151, 0.35)
+}
+
+.pqi2-state-button.is-selected.is-no {
+	border-color: #e6aaa6;
+	background: #fdeceb;
+	color: var(--red);
+	font-weight: 800;
+	box-shadow: 0 0 0 2px rgba(230, 170, 166, 0.35)
+}
+
 .save-indicator {
 	font-size: 11px;
 	color: var(--muted)

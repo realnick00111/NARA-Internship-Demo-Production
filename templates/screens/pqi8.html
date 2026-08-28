@@ -167,6 +167,10 @@
 		calculatedLevel.textContent = displayScore;
 		calculatedDescription.textContent = `Level ${displayScore} is the highest level with all criteria met.`;
 		const changed = JSON.stringify(snapshot()) !== lastSaved;
+		if (changed && completeInitially) {
+			completeInitially = false;
+			window.markPqiIncomplete?.(assessmentId, 8);
+		}
 		completeButton.disabled = !pqiAllowed['8'] || (completeInitially && !changed);
 		const completionCard = document.getElementById('pqi8-complete-card');
 		if (completionCard) completionCard.hidden = !completeInitially || changed;

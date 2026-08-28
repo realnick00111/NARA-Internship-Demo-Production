@@ -117,7 +117,7 @@
 		}
 	};
 
-	if (!rows.length || !summaryText || !yesCountDisplay || !totalCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
+	if (!rows.length || !yesCountDisplay || !totalCountDisplay || !percentageDisplay || !bandDisplay || !formulaNote || !saveState || !draftSaveButton || !saveButton) {
 		return;
 	}
 
@@ -211,9 +211,13 @@
 		const percentage = allAnswered ? (yesCount / totalCount) * 100 : null;
 		const bandLabel = allAnswered ? getBandLabel(percentage) : '-';
 		const hasChanges = !snapshotsMatch(snapshot, lastSavedSnapshot);
+		if (hasChanges && pqi2Complete) {
+			pqi2Complete = false;
+			window.markPqiIncomplete?.(assessmentId, 2);
+		}
 		syncCompletionState();
 
-		summaryText.textContent = `${completedCount} of ${totalCount} completed`;
+		if (summaryText) summaryText.textContent = `${completedCount} of ${totalCount} completed`;
 		yesCountDisplay.textContent = String(yesCount);
 		totalCountDisplay.textContent = String(totalCount);
 		percentageDisplay.textContent = formatPercentage(percentage);
@@ -283,7 +287,14 @@
 	};
 
 	if (optionalNote) {
-		optionalNote.addEventListener('input', syncOptionalNoteHeight);
+		optionalNote.addEventListener('input', () => {
+			if (pqi2Complete) {
+				pqi2Complete = false;
+				window.markPqiIncomplete?.(assessmentId, 2);
+			}
+			syncCompletionState();
+			syncOptionalNoteHeight();
+		});
 		syncOptionalNoteHeight();
 	}
 	rows.forEach((row) => {
@@ -295,7 +306,8 @@
 		const buttons = Array.from(row.querySelectorAll('[data-pqi2-choice]'));
 		buttons.forEach((button) => {
 			button.addEventListener('click', () => {
-				setResponse(row, button.getAttribute('data-pqi2-choice') || '');
+				const choice = button.getAttribute('data-pqi2-choice') || '';
+				setResponse(row, row.getAttribute('data-pqi2-response') === choice ? '' : choice);
 			});
 		});
 	});
