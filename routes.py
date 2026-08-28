@@ -160,7 +160,8 @@ def register_routes(app: Flask) -> None:
             try:
                 save_assignment_draft(draft_data)
             except ValueError as error:
-                return jsonify({"status": "error", "message": str(error)}), 400
+                status_code = 409 if "matches an existing facility" in str(error) else 400
+                return jsonify({"status": "error", "message": str(error)}), status_code
 
             return jsonify({"status": "success", "message": "Draft saved successfully!"})
 

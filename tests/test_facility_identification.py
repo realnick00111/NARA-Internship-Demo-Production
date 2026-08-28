@@ -56,6 +56,27 @@ class FacilityIdentificationTests(AssessmentTestCase):
         self.assertIn('value="Routine annual monitoring visit."', rendered)
 
 
+    def test_conflicting_facility_identifier_blocks_save(self):
+        self.insert_assessment()
+
+        with self.client.session_transaction() as session:
+            session.pop("current_assessment_id", None)
+
+        response = self.client.post(
+            "/api/save-assignment-draft",
+            json={
+                "facility_identifier": "FAC-008742",
+                "facility_name": "Different Facility",
+                "license_number": "LIC-NEW",
+            },
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertIn("Facility name", response.json["message"])
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM assessments").fetchone()[0], 1)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM facilities").fetchone()[0], 1)
+
+
     def test_duplicate_warning_ignores_empty_matching_fields(self):
         first_id = self.insert_assessment()
         second_id = self.insert_assessment()

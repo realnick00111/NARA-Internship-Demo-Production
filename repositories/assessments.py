@@ -128,6 +128,44 @@ def _json_fields_from_payload(fields: dict, existing_row: sqlite3.Row | None = N
 def _upsert_facility(conn: sqlite3.Connection, fields: dict, facility_id: int | None = None) -> int:
     facility_fields = _facility_fields_from_payload(fields)
 
+    matching_conditions = []
+    matching_values = []
+    if facility_fields["identifier"]:
+        matching_conditions.append("identifier = ?")
+        matching_values.append(facility_fields["identifier"])
+    if facility_fields["license_number"]:
+        matching_conditions.append("license_number = ?")
+        matching_values.append(facility_fields["license_number"])
+    if matching_conditions:
+        query = "SELECT id, identifier, name, license_number, physical_address, city_state_postal_code, type, provider_name, provider_id, region, program_type FROM facilities WHERE (" + " OR ".join(matching_conditions) + ")"
+        if facility_id is not None:
+            query += " AND id != ?"
+            matching_values.append(facility_id)
+        existing_match = conn.execute(query, matching_values).fetchone()
+        if existing_match is not None:
+            field_labels = {
+                "identifier": "Facility identifier",
+                "name": "Facility name",
+                "license_number": "License number",
+                "physical_address": "Physical address",
+                "city_state_postal_code": "City, state, postal code",
+                "type": "Facility type",
+                "provider_name": "Provider or operator name",
+                "provider_id": "Provider or account ID",
+                "region": "Region / office",
+                "program_type": "Program type",
+            }
+            differing_fields = [
+                field_labels[field_name]
+                for field_name in facility_fields
+                if existing_match[field_name] != facility_fields[field_name]
+            ]
+            if differing_fields:
+                raise ValueError(
+                    "Facility identifier or license number matches an existing facility, "
+                    "but these fields differ: " + ", ".join(differing_fields)
+                )
+
     if facility_id is not None:
         existing_facility = conn.execute("SELECT id FROM facilities WHERE id = ?", (facility_id,)).fetchone()
         if existing_facility is not None:

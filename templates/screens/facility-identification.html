@@ -84,6 +84,12 @@
 		status.textContent = message;
 	};
 
+	let autosaveTimer;
+	const clearConflict = () => {
+		saveButton.disabled = false;
+		continueButton.disabled = false;
+	};
+
 	backButton.addEventListener('click', () => {
 		window.location.href = resolveBackTarget();
 	});
@@ -104,18 +110,38 @@
 
 			if (!response.ok) {
 				const result = await response.json().catch(() => ({}));
-				throw new Error(result.message || 'No assessment selected, unable to save');
+				const error = new Error(result.message || 'No assessment selected, unable to save');
+				error.isFacilityConflict = response.status === 409;
+				throw error;
 			}
 
+			saveButton.disabled = false;
+			continueButton.disabled = false;
 			setStatus('Draft saved');
 			return true;
 		} catch (error) {
-			setStatus(error instanceof Error && /assessment|not found|unable to save/i.test(error.message) ? 'No assessment selected, unable to save' : 'No assessment selected, unable to save');
+			if (error instanceof Error && error.isFacilityConflict) {
+				saveButton.disabled = true;
+				continueButton.disabled = true;
+				setStatus(error.message);
+			} else {
+				setStatus('No assessment selected, unable to save');
+			}
 			return false;
 		}
 	};
 
 	saveButton.addEventListener('click', saveFacilityDraft);
+	form.addEventListener('input', () => {
+		clearConflict();
+		window.clearTimeout(autosaveTimer);
+		autosaveTimer = window.setTimeout(saveFacilityDraft, 500);
+	});
+	form.addEventListener('change', () => {
+		clearConflict();
+		window.clearTimeout(autosaveTimer);
+		autosaveTimer = window.setTimeout(saveFacilityDraft, 500);
+	});
 	continueButton.addEventListener('click', async () => {
 		continueButton.disabled = true;
 		if (await saveFacilityDraft()) {
